@@ -8,20 +8,54 @@ public interface ICoordinateParser { ParsedCoordinate? TryParse(string text, int
 
 public sealed class CoordinateParser : ICoordinateParser
 {
-    private static readonly Regex CoordinateRegex = new(@"(?<!\d)(\d{1,5})\s*[,\.]\s*(\d{1,5})(?!\d)", RegexOptions.Compiled);
+    private static readonly Regex LabeledCoordinateRegex = new(
+        @"x\s*[:=]?\s*(?<x>\d{1,5})\D{0,12}y\s*[:=]?\s*(?<y>\d{1,5})",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static readonly Regex PairCoordinateRegex = new(
+        @"(?<!\d)(?<x>\d{1,5})\s*[,\.]\s*(?<y>\d{1,5})(?!\d)",
+        RegexOptions.Compiled);
 
     public ParsedCoordinate? TryParse(string text, int worldWidth, int worldHeight)
     {
         if (string.IsNullOrWhiteSpace(text)) return null;
-        var match = CoordinateRegex.Match(text);
-        if (!match.Success) return null;
+        var normalized = NormalizeOcrCoordinateText(text);
 
-        var x = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
-        var y = int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+        foreach (Match match in LabeledCoordinateRegex.Matches(normalized))
+        {
+            var parsed = TryBuildCoordinate(match.Groups["x"].Value, match.Groups["y"].Value, match.Value, worldWidth, worldHeight);
+            if (parsed is not null) return parsed;
+        }
 
-        return x >= 0 && x <= worldWidth && y >= 0 && y <= worldHeight
-            ? new ParsedCoordinate(x, y, match.Value)
-            : null;
+        foreach (Match match in PairCoordinateRegex.Matches(normalized))
+        {
+            var parsed = TryBuildCoordinate(match.Groups["x"].Value, match.Groups["y"].Value, match.Value, worldWidth, worldHeight);
+            if (parsed is not null) return parsed;
+        }
+
+        return null;
+    }
+
+    private static ParsedCoordinate? TryBuildCoordinate(string xText, string yText, string rawText, int worldWidth, int worldHeight)
+    {
+        if (!int.TryParse(xText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var x)) return null;
+        if (!int.TryParse(yText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var y)) return null;
+        if (x < 0 || x > worldWidth) return null;
+        if (y < 0 || y > worldHeight) return null;
+        return new ParsedCoordinate(x, y, rawText.Trim());
+    }
+
+    private static string NormalizeOcrCoordinateText(string text)
+    {
+        return text
+            .Replace('，', ',')
+            .Replace('。', '.')
+            .Replace('：', ':')
+            .Replace('Ｘ', 'X')
+            .Replace('Ｙ', 'Y')
+            .Replace('\r', ' ')
+            .Replace('\n', ' ')
+            .Trim();
     }
 }
 
@@ -39,13 +73,10 @@ public sealed class CityParser : ICityParser
         foreach (var raw in text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             var candidate = CleanCityCandidate(raw);
-
-            if (candidate.Count(char.IsLetter) < minLetters)
-                continue;
+            if (candidate.Count(char.IsLetter) < minLetters) continue;
 
             var city = _catalog.FindByName(candidate);
-            if (city is not null)
-                return city.Name;
+            if (city is not null) return city.Name;
         }
 
         return null;
@@ -54,21 +85,17 @@ public sealed class CityParser : ICityParser
     private static string CleanCityCandidate(string raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
-
-        // City OCR can return values like:
-        // "Mogadishu (Allied"
-        // "Mogadishu (Allied Country C -"
-        // We only want the city name before the first parenthesis.
         var beforeParenthesis = raw.Split('(', 2)[0];
-
         var candidate = Regex.Replace(beforeParenthesis, @"[^\p{L}\s\-']", " ").Trim();
         candidate = Regex.Replace(candidate, @"\s+", " ");
-
         return candidate;
     }
 }
 
-public interface IPriceParser { IReadOnlyList<ParsedPriceLine> ParseLines(string text); }
+public interface IPriceParser
+{
+    IReadOnlyList<ParsedPriceLine> ParseLines(string text, bool allowPendingCandidates = false);
+}
 
 public sealed class PriceParser : IPriceParser
 {
@@ -81,12 +108,14 @@ public sealed class PriceParser : IPriceParser
         _pendingTradeGoods = pendingTradeGoods;
     }
 
-    public IReadOnlyList<ParsedPriceLine> ParseLines(string text)
+    public IReadOnlyList<ParsedPriceLine> ParseLines(string text, bool allowPendingCandidates = false)
     {
         var results = new List<ParsedPriceLine>();
         if (string.IsNullOrWhiteSpace(text)) return results;
 
         var tradeType = DetectTradeType(text);
+        var tradeTypeKnown = PriceCaptureMergeService.IsKnownTradeType(tradeType);
+
         var lines = text
             .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(CleanLine)
@@ -114,16 +143,20 @@ public sealed class PriceParser : IPriceParser
             {
                 if (pendingKnownItem is not null && pendingKnownGood is not null)
                 {
-                    results.Add(new ParsedPriceLine(
-                        pendingKnownItem,
-                        pendingKnownGood.Type,
-                        parsed.Value.Price,
-                        parsed.Value.Multiplier,
-                        tradeType,
-                        $"{pendingKnownItem} | {line}"
-                    ));
+                    // Only return price rows when Buy/Sell is known.
+                    if (tradeTypeKnown)
+                    {
+                        results.Add(new ParsedPriceLine(
+                            pendingKnownItem,
+                            pendingKnownGood.Type,
+                            parsed.Value.Price,
+                            parsed.Value.Multiplier,
+                            tradeType,
+                            $"{pendingKnownItem} | {line}"
+                        ));
+                    }
                 }
-                else if (!string.IsNullOrWhiteSpace(pendingUnknownItem))
+                else if (allowPendingCandidates && tradeTypeKnown && !string.IsNullOrWhiteSpace(pendingUnknownItem))
                 {
                     RegisterPendingTradeGood(pendingUnknownItem, line, tradeType, parsed.Value.Price, parsed.Value.Multiplier);
                 }
@@ -230,12 +263,7 @@ public sealed class PriceParser : IPriceParser
     private static (decimal Price, decimal Multiplier)? TryParseExplicitPriceMultiplier(string line)
     {
         var normalized = CleanLine(line);
-        var match = Regex.Match(
-            normalized,
-            @"(?<price>\d[\d\.,]*)\s*[\(\s]+(?<mult>\d{1,3})\s*%",
-            RegexOptions.Compiled
-        );
-
+        var match = Regex.Match(normalized, @"(?<price>\d[\d\.,]*)\s*[\(\s]+(?<mult>\d{1,3})\s*%", RegexOptions.Compiled);
         if (!match.Success) return null;
 
         var priceText = NormalizePriceNumber(match.Groups["price"].Value);

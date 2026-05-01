@@ -1238,5 +1238,91 @@
     "status": 1,
     "resolvedAtUtc": "2026-05-01T00:22:10.0002447Z",
     "resolutionMessage": "Trade good \u0027Stone\u0027 was added."
+  },
+  {
+    "id": "1702c208538b467f934988cb3557be8c",
+    "name": "ype: Fabrics",
+    "normalizedName": "ype fabrics",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T02:26:14.0318828Z",
+    "lastSeenAtUtc": "2026-05-01T02:26:14.0318828Z",
+    "lastRawText": "ype: Fabrics | 107%",
+    "lastTradeType": "Sell",
+    "lastPrice": 1,
+    "lastMultiplier": 7,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T02:28:23.0565753Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "c37d0a1b84aa43a0a09d1c88a014e587",
+    "name": "articlesrsuchassveils.",
+    "normalizedName": "articlesrsuchassveils",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T02:26:14.0421738Z",
+    "lastSeenAtUtc": "2026-05-01T02:26:14.0421738Z",
+    "lastRawText": "articlesrsuchassveils. | /5/101%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 5,
+    "lastMultiplier": 101,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T02:28:21.9400865Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "7fa135a7f16640be934b613bbe73a4fe",
+    "name": "neankincense",
+    "normalizedName": "neankincense",
+    "suggestedType": "Fragrances",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T03:13:01.5344919Z",
+    "lastSeenAtUtc": "2026-05-01T03:13:01.5344919Z",
+    "lastRawText": "neankincense | Wares0(98%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 0,
+    "lastMultiplier": 98,
+    "similar": [
+      {
+        "name": "Frankincense",
+        "type": "Fragrances",
+        "score": 0.833,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T03:25:58.8713271Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "57da8ab0ca7f4d218781ed52d2246446",
+    "name": "Civet Musk",
+    "normalizedName": "civet musk",
+    "suggestedType": "Fragrances",
+    "confidence": 0.9000000000000001,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-05-01T03:25:42.6573105Z",
+    "lastSeenAtUtc": "2026-05-01T03:25:48.3141304Z",
+    "lastRawText": "Civet Musk | 3.880(134%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 3880,
+    "lastMultiplier": 134,
+    "similar": [
+      {
+        "name": "Musk",
+        "type": "Fragrances",
+        "score": 0.4,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T03:25:59.873444Z",
+    "resolutionMessage": "Dismissed by user."
   }
 ]

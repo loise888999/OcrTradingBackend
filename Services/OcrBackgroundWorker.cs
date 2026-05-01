@@ -12,7 +12,11 @@ public sealed class OcrBackgroundWorker : BackgroundService
     private readonly IOptionsMonitor<OcrRuntimeSettings> _settings;
     private readonly ILogger<OcrBackgroundWorker> _logger;
 
-    public OcrBackgroundWorker(IServiceScopeFactory scopeFactory, OcrControlState control, IOptionsMonitor<OcrRuntimeSettings> settings, ILogger<OcrBackgroundWorker> logger)
+    public OcrBackgroundWorker(
+        IServiceScopeFactory scopeFactory,
+        OcrControlState control,
+        IOptionsMonitor<OcrRuntimeSettings> settings,
+        ILogger<OcrBackgroundWorker> logger)
     {
         _scopeFactory = scopeFactory;
         _control = control;
@@ -28,13 +32,15 @@ public sealed class OcrBackgroundWorker : BackgroundService
             var settings = _settings.CurrentValue;
             try
             {
-                if (_control.Enabled) await RunOneCycleAsync(settings, stoppingToken);
+                if (_control.Enabled)
+                    await RunOneCycleAsync(settings, stoppingToken);
             }
             catch (Exception ex)
             {
                 _control.LastError = ex.Message;
                 _logger.LogError(ex, "OCR background cycle failed");
             }
+
             await Task.Delay(TimeSpan.FromSeconds(Math.Max(1, settings.DefaultIntervalSeconds)), stoppingToken);
         }
     }
@@ -69,10 +75,14 @@ public sealed class OcrBackgroundWorker : BackgroundService
 
         if (priceZone is not null)
         {
+            var latestCity = await db.CityCaptures
+                .OrderByDescending(x => x.CapturedAtUtc)
+                .FirstOrDefaultAsync(ct);
+
+            var cityKnown = PriceCaptureMergeService.IsKnownCity(latestCity?.City);
+
             using var bitmap = capture.Capture(priceZone);
             var raw = ocr.DetectText(bitmap);
-            var parsedPrices = priceParser.ParseLines(raw);
-            var latestCity = await db.CityCaptures.OrderByDescending(x => x.CapturedAtUtc).FirstOrDefaultAsync(ct);
 
             if (!string.IsNullOrWhiteSpace(raw))
             {
@@ -81,23 +91,45 @@ public sealed class OcrBackgroundWorker : BackgroundService
                 Console.WriteLine("=====================");
             }
 
-            foreach (var price in parsedPrices)
+            // Important rule:
+            // If city is unknown, do not add prices to DB and do not create pending trade-good suggestions.
+            if (cityKnown)
             {
-                Console.WriteLine($"Parsed {price.TradeType}: {price.ItemName} | {price.TradeGoodType} | {price.Price} | {price.Multiplier}%");
-                db.PriceCaptures.Add(new PriceCapture
-                {
-                    City = latestCity?.City ?? "Unknown",
-                    ItemName = price.ItemName,
-                    TradeGoodType = price.TradeGoodType,
-                    Price = price.Price,
-                    Multiplier = price.Multiplier,
-                    TradeType = price.TradeType,
-                    RawText = price.RawText,
-                    CapturedAtUtc = DateTime.UtcNow
-                });
-            }
+                var parsedPrices = priceParser.ParseLines(raw, allowPendingCandidates: true);
 
-            if (parsedPrices.Count > 0) _control.LastPriceReadUtc = DateTime.UtcNow;
+                foreach (var price in parsedPrices)
+                {
+                    // Important rule:
+                    // If we do not know whether this is Buy or Sell, do not add it to DB.
+                    if (!PriceCaptureMergeService.IsKnownTradeType(price.TradeType))
+                    {
+                        Console.WriteLine($"Skipped price because trade type is unknown: {price.ItemName} | {price.Price} | {price.Multiplier}%");
+                        continue;
+                    }
+
+                    var priceCapture = new PriceCapture
+                    {
+                        City = latestCity!.City,
+                        ItemName = price.ItemName,
+                        TradeGoodType = price.TradeGoodType,
+                        Price = price.Price,
+                        Multiplier = price.Multiplier,
+                        TradeType = price.TradeType,
+                        RawText = price.RawText,
+                        CapturedAtUtc = DateTime.UtcNow
+                    };
+
+                    var mergeResult = await PriceCaptureMergeService.AddOrUpdateAsync(db, priceCapture, ct);
+                    Console.WriteLine($"{mergeResult.Action}: {price.TradeType} {price.ItemName} | {price.TradeGoodType} | {price.Price} | {price.Multiplier}% | {mergeResult.Message}");
+                }
+
+                if (parsedPrices.Count > 0)
+                    _control.LastPriceReadUtc = DateTime.UtcNow;
+            }
+            else
+            {
+                Console.WriteLine("Skipped price OCR parse because current city is unknown.");
+            }
         }
 
         var coordinateRecentlyVisible = _control.LastCoordinateReadUtc is not null &&
@@ -113,7 +145,12 @@ public sealed class OcrBackgroundWorker : BackgroundService
             var city = cityParser.TryParse(raw, settings.MinCityNameLength);
             if (city is not null)
             {
-                db.CityCaptures.Add(new CityCapture { City = city, RawText = raw, CapturedAtUtc = DateTime.UtcNow });
+                db.CityCaptures.Add(new CityCapture
+                {
+                    City = city,
+                    RawText = raw,
+                    CapturedAtUtc = DateTime.UtcNow
+                });
                 _control.LastCityReadUtc = DateTime.UtcNow;
             }
         }
@@ -123,8 +160,20 @@ public sealed class OcrBackgroundWorker : BackgroundService
 
     private static async Task AddUniqueCoordinateAsync(AppDbContext db, ParsedCoordinate parsed, CancellationToken ct)
     {
-        var lastFive = await db.CoordinateCaptures.OrderByDescending(x => x.CapturedAtUtc).Take(5).ToListAsync(ct);
-        if (lastFive.Any(x => x.X == parsed.X && x.Y == parsed.Y)) return;
-        db.CoordinateCaptures.Add(new CoordinateCapture { X = parsed.X, Y = parsed.Y, RawText = parsed.RawText, CapturedAtUtc = DateTime.UtcNow });
+        var lastFive = await db.CoordinateCaptures
+            .OrderByDescending(x => x.CapturedAtUtc)
+            .Take(5)
+            .ToListAsync(ct);
+
+        if (lastFive.Any(x => x.X == parsed.X && x.Y == parsed.Y))
+            return;
+
+        db.CoordinateCaptures.Add(new CoordinateCapture
+        {
+            X = parsed.X,
+            Y = parsed.Y,
+            RawText = parsed.RawText,
+            CapturedAtUtc = DateTime.UtcNow
+        });
     }
 }
