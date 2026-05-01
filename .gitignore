@@ -47,6 +47,13 @@ project.lock.json
 !.vscode/extensions.json
 *.code-workspace
 
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
 ## [ Tools ]
 # Rider
 .idea/

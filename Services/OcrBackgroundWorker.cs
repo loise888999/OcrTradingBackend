@@ -30,6 +30,7 @@ public sealed class OcrBackgroundWorker : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             var settings = _settings.CurrentValue;
+
             try
             {
                 if (_control.Enabled)
@@ -58,91 +59,75 @@ public sealed class OcrBackgroundWorker : BackgroundService
         var coordinateZone = await db.OcrZones.FirstOrDefaultAsync(x => x.Name == settings.CoordinateOcrZoneName, ct);
         var cityZone = await db.OcrZones.FirstOrDefaultAsync(x => x.Name == settings.CityOcrZoneName, ct);
         var priceZone = await db.OcrZones.FirstOrDefaultAsync(x => x.Name == settings.PriceOcrZoneName, ct);
-        var coordinateWasRead = false;
 
+        var coordinateWasReadThisCycle = false;
+
+        var latestCityBeforeCoordinate = await db.CityCaptures
+            .OrderByDescending(x => x.CapturedAtUtc)
+            .FirstOrDefaultAsync(ct);
+
+        var coordinateRecentlyVisibleBeforeRead = _control.LastCoordinateReadUtc is not null &&
+            DateTime.UtcNow - _control.LastCoordinateReadUtc.Value < TimeSpan.FromSeconds(settings.CoordinateRecentlyVisibleSeconds);
+
+        var wasInKnownCityBeforeCoordinate = PriceCaptureMergeService.IsKnownCity(latestCityBeforeCoordinate?.City);
+
+        // If we were in a known city/menu and coordinates appear again, this is a transition back to sea/map.
+        // In that case, ignore the max jump check for this first coordinate because the ship could now be far away
+        // from the last coordinate stored before entering the city.
+        var ignoreCoordinateJumpThisRead = wasInKnownCityBeforeCoordinate && !coordinateRecentlyVisibleBeforeRead;
+
+        // 1. Coordinate OCR is the priority and uses the main loop interval.
         if (coordinateZone is not null)
         {
             using var bitmap = capture.Capture(coordinateZone);
             var raw = ocr.DetectText(bitmap);
-            var parsed = coordinateParser.TryParse(raw, settings.WorldWidth, settings.WorldHeight);
+
+            var previousCoordinate = ignoreCoordinateJumpThisRead
+                ? null
+                : await db.CoordinateCaptures
+                    .OrderByDescending(x => x.CapturedAtUtc)
+                    .FirstOrDefaultAsync(ct);
+
+            var parsed = coordinateParser.TryParse(
+                raw,
+                settings.WorldWidth,
+                settings.WorldHeight,
+                previousCoordinate,
+                new CoordinateCorrectionOptions(
+                    settings.EnableCoordinateCorrection,
+                    settings.MaxCoordinateJumpX,
+                    settings.MaxCoordinateJumpY));
+
             if (parsed is not null)
             {
-                coordinateWasRead = true;
+                coordinateWasReadThisCycle = true;
                 _control.LastCoordinateReadUtc = DateTime.UtcNow;
+
                 await AddUniqueCoordinateAsync(db, parsed, ct);
-            }
-        }
 
-        if (priceZone is not null)
-        {
-            var latestCity = await db.CityCaptures
-                .OrderByDescending(x => x.CapturedAtUtc)
-                .FirstOrDefaultAsync(ct);
+                // Important new rule:
+                // When coordinates are visible, we are no longer inside a city.
+                // Set current city to Unknown so price OCR/export/import logic keeps using the existing Unknown safeguards.
+                await SetLatestCityUnknownIfNeededAsync(db, latestCityBeforeCoordinate, raw, ct);
 
-            var cityKnown = PriceCaptureMergeService.IsKnownCity(latestCity?.City);
-
-            using var bitmap = capture.Capture(priceZone);
-            var raw = ocr.DetectText(bitmap);
-
-            if (!string.IsNullOrWhiteSpace(raw))
-            {
-                Console.WriteLine("=== PRICE OCR RAW ===");
-                Console.WriteLine(raw);
-                Console.WriteLine("=====================");
-            }
-
-            // Important rule:
-            // If city is unknown, do not add prices to DB and do not create pending trade-good suggestions.
-            if (cityKnown)
-            {
-                var parsedPrices = priceParser.ParseLines(raw, allowPendingCandidates: true);
-
-                foreach (var price in parsedPrices)
-                {
-                    // Important rule:
-                    // If we do not know whether this is Buy or Sell, do not add it to DB.
-                    if (!PriceCaptureMergeService.IsKnownTradeType(price.TradeType))
-                    {
-                        Console.WriteLine($"Skipped price because trade type is unknown: {price.ItemName} | {price.Price} | {price.Multiplier}%");
-                        continue;
-                    }
-
-                    var priceCapture = new PriceCapture
-                    {
-                        City = latestCity!.City,
-                        ItemName = price.ItemName,
-                        TradeGoodType = price.TradeGoodType,
-                        Price = price.Price,
-                        Multiplier = price.Multiplier,
-                        TradeType = price.TradeType,
-                        RawText = price.RawText,
-                        CapturedAtUtc = DateTime.UtcNow
-                    };
-
-                    var mergeResult = await PriceCaptureMergeService.AddOrUpdateAsync(db, priceCapture, ct);
-                    Console.WriteLine($"{mergeResult.Action}: {price.TradeType} {price.ItemName} | {price.TradeGoodType} | {price.Price} | {price.Multiplier}% | {mergeResult.Message}");
-                }
-
-                if (parsedPrices.Count > 0)
-                    _control.LastPriceReadUtc = DateTime.UtcNow;
-            }
-            else
-            {
-                Console.WriteLine("Skipped price OCR parse because current city is unknown.");
+                if (ignoreCoordinateJumpThisRead)
+                    Console.WriteLine("Coordinate appeared after known city. Ignored max jump range for this first coordinate read.");
             }
         }
 
         var coordinateRecentlyVisible = _control.LastCoordinateReadUtc is not null &&
             DateTime.UtcNow - _control.LastCoordinateReadUtc.Value < TimeSpan.FromSeconds(settings.CoordinateRecentlyVisibleSeconds);
 
+        // 2. City OCR only runs when coordinates are not visible/recent.
         var cityDue = _control.LastCityReadUtc is null ||
             DateTime.UtcNow - _control.LastCityReadUtc.Value >= TimeSpan.FromSeconds(settings.CityIntervalSeconds);
 
-        if (!coordinateWasRead && !coordinateRecentlyVisible && cityDue && cityZone is not null)
+        if (!coordinateWasReadThisCycle && !coordinateRecentlyVisible && cityDue && cityZone is not null)
         {
             using var bitmap = capture.Capture(cityZone);
             var raw = ocr.DetectText(bitmap);
             var city = cityParser.TryParse(raw, settings.MinCityNameLength);
+
             if (city is not null)
             {
                 db.CityCaptures.Add(new CityCapture
@@ -151,9 +136,137 @@ public sealed class OcrBackgroundWorker : BackgroundService
                     RawText = raw,
                     CapturedAtUtc = DateTime.UtcNow
                 });
+
                 _control.LastCityReadUtc = DateTime.UtcNow;
+                await db.SaveChangesAsync(ct);
             }
         }
+
+        // 3. Price OCR only runs when we are not at sea/map, current city is known, and price interval is due.
+        if (!coordinateRecentlyVisible && priceZone is not null)
+        {
+            var latestCity = await db.CityCaptures
+                .OrderByDescending(x => x.CapturedAtUtc)
+                .FirstOrDefaultAsync(ct);
+
+            if (PriceCaptureMergeService.IsKnownCity(latestCity?.City))
+            {
+                var priceDue = IsPriceOcrDue(settings);
+                if (priceDue)
+                    await TryReadPricesAsync(db, capture, ocr, priceParser, priceZone, latestCity!, settings, ct);
+            }
+            else
+            {
+                Console.WriteLine("Skipped price OCR because current city is unknown.");
+            }
+        }
+        else if (coordinateRecentlyVisible)
+        {
+            Console.WriteLine("Skipped price OCR because coordinate/map is visible recently; current city is treated as Unknown.");
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    private bool IsPriceOcrDue(OcrRuntimeSettings settings)
+    {
+        var now = DateTime.UtcNow;
+        var fastModeActive = _control.PriceFastModeUntilUtc is not null && _control.PriceFastModeUntilUtc.Value > now;
+
+        var intervalSeconds = fastModeActive
+            ? Math.Max(1, settings.ActivePriceIntervalSeconds)
+            : Math.Max(1, settings.PriceIntervalSeconds);
+
+        if (_control.LastPriceAttemptUtc is null)
+            return true;
+
+        return now - _control.LastPriceAttemptUtc.Value >= TimeSpan.FromSeconds(intervalSeconds);
+    }
+
+    private async Task TryReadPricesAsync(
+        AppDbContext db,
+        IScreenCaptureService capture,
+        IPaddleOcrService ocr,
+        IPriceParser priceParser,
+        OcrZone priceZone,
+        CityCapture latestCity,
+        OcrRuntimeSettings settings,
+        CancellationToken ct)
+    {
+        _control.LastPriceAttemptUtc = DateTime.UtcNow;
+
+        using var bitmap = capture.Capture(priceZone);
+        var raw = ocr.DetectText(bitmap);
+
+        if (!string.IsNullOrWhiteSpace(raw))
+        {
+            Console.WriteLine("=== PRICE OCR RAW ===");
+            Console.WriteLine(raw);
+            Console.WriteLine("=====================");
+        }
+
+        var parsedPrices = priceParser.ParseLines(raw, allowPendingCandidates: true);
+        if (parsedPrices.Count == 0)
+            return;
+
+        _control.LastPriceReadUtc = DateTime.UtcNow;
+
+        var hadNewPriceState = false;
+        var hadUpdatedExistingState = false;
+
+        foreach (var price in parsedPrices)
+        {
+            if (!PriceCaptureMergeService.IsKnownTradeType(price.TradeType))
+            {
+                Console.WriteLine($"Skipped price because trade type is unknown: {price.ItemName} | {price.Price} | {price.Multiplier}%");
+                continue;
+            }
+
+            var priceCapture = new PriceCapture
+            {
+                City = latestCity.City,
+                ItemName = price.ItemName,
+                TradeGoodType = price.TradeGoodType,
+                Price = price.Price,
+                Multiplier = price.Multiplier,
+                TradeType = price.TradeType,
+                RawText = price.RawText,
+                CapturedAtUtc = DateTime.UtcNow
+            };
+
+            var mergeResult = await PriceCaptureMergeService.AddOrUpdateAsync(db, priceCapture, ct);
+
+            if (mergeResult.Action == PriceCaptureMergeAction.Added)
+                hadNewPriceState = true;
+            else if (mergeResult.Action == PriceCaptureMergeAction.UpdatedExisting)
+                hadUpdatedExistingState = true;
+
+            Console.WriteLine($"{mergeResult.Action}: {price.TradeType} {price.ItemName} | {price.TradeGoodType} | {price.Price} | {price.Multiplier}% | {mergeResult.Message}");
+        }
+
+        if (hadNewPriceState)
+        {
+            _control.LastPriceStateChangeUtc = DateTime.UtcNow;
+            _control.PriceFastModeUntilUtc = DateTime.UtcNow.AddSeconds(Math.Max(1, settings.PriceFastModeSeconds));
+            Console.WriteLine($"Price fast mode active until {_control.PriceFastModeUntilUtc:O}");
+        }
+        else if (hadUpdatedExistingState)
+        {
+            Console.WriteLine("Price OCR saw the same latest price state; fast mode was not extended.");
+        }
+    }
+
+    private static async Task SetLatestCityUnknownIfNeededAsync(AppDbContext db, CityCapture? latestCity, string coordinateRawText, CancellationToken ct)
+    {
+        if (latestCity is not null && !PriceCaptureMergeService.IsKnownCity(latestCity.City))
+            return;
+
+        db.CityCaptures.Add(new CityCapture
+        {
+            City = "Unknown",
+            RawText = $"Coordinate visible; leaving city/map mode. Coordinate OCR: {coordinateRawText}",
+            CapturedAtUtc = DateTime.UtcNow
+        });
 
         await db.SaveChangesAsync(ct);
     }

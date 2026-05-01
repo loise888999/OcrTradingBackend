@@ -4,7 +4,17 @@ using OcrTradingBackend.Models;
 
 namespace OcrTradingBackend.Services;
 
-public interface ICoordinateParser { ParsedCoordinate? TryParse(string text, int worldWidth, int worldHeight); }
+public sealed record CoordinateCorrectionOptions(
+    bool Enabled,
+    int MaxJumpX,
+    int MaxJumpY
+);
+
+public interface ICoordinateParser
+{
+    ParsedCoordinate? TryParse(string text, int worldWidth, int worldHeight);
+    ParsedCoordinate? TryParse(string text, int worldWidth, int worldHeight, CoordinateCapture? previous, CoordinateCorrectionOptions correctionOptions);
+}
 
 public sealed class CoordinateParser : ICoordinateParser
 {
@@ -18,31 +28,156 @@ public sealed class CoordinateParser : ICoordinateParser
 
     public ParsedCoordinate? TryParse(string text, int worldWidth, int worldHeight)
     {
-        if (string.IsNullOrWhiteSpace(text)) return null;
-        var normalized = NormalizeOcrCoordinateText(text);
+        return TryParse(text, worldWidth, worldHeight, null, new CoordinateCorrectionOptions(false, 0, 0));
+    }
 
-        foreach (Match match in LabeledCoordinateRegex.Matches(normalized))
+    public ParsedCoordinate? TryParse(string text, int worldWidth, int worldHeight, CoordinateCapture? previous, CoordinateCorrectionOptions correctionOptions)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+
+        var normalized = NormalizeOcrCoordinateText(text);
+        var rawPairs = ExtractRawPairs(normalized).ToList();
+
+        if (rawPairs.Count == 0)
+            return null;
+
+        var allCandidates = new List<CoordinateCandidate>();
+
+        foreach (var pair in rawPairs)
         {
-            var parsed = TryBuildCoordinate(match.Groups["x"].Value, match.Groups["y"].Value, match.Value, worldWidth, worldHeight);
-            if (parsed is not null) return parsed;
+            allCandidates.AddRange(BuildCandidates(pair.XText, pair.YText, pair.RawText, worldWidth, worldHeight, correctionOptions.Enabled));
         }
 
-        foreach (Match match in PairCoordinateRegex.Matches(normalized))
+        if (allCandidates.Count == 0)
+            return null;
+
+        // If we do not have a previous coordinate yet, choose the best direct/least corrected valid coordinate.
+        if (previous is null)
         {
-            var parsed = TryBuildCoordinate(match.Groups["x"].Value, match.Groups["y"].Value, match.Value, worldWidth, worldHeight);
-            if (parsed is not null) return parsed;
+            var bestWithoutPrevious = allCandidates
+                .OrderBy(c => c.CorrectionCount)
+                .ThenBy(c => c.RawOrder)
+                .FirstOrDefault();
+
+            return bestWithoutPrevious?.ToParsedCoordinate();
+        }
+
+        // With a previous coordinate, use circular X distance and normal Y distance.
+        // This treats x=1 and x=16250 as close when worldWidth=16500.
+        var reasonableCandidates = allCandidates
+            .Select(c => c with
+            {
+                CircularDx = CircularDistance(previous.X, c.X, worldWidth),
+                Dy = Math.Abs(previous.Y - c.Y)
+            })
+            .Where(c => c.CircularDx <= Math.Max(1, correctionOptions.MaxJumpX) && c.Dy <= Math.Max(1, correctionOptions.MaxJumpY))
+            .OrderBy(c => c.CorrectionCount)
+            .ThenBy(c => c.CircularDx + c.Dy)
+            .ThenBy(c => c.RawOrder)
+            .ToList();
+
+        if (reasonableCandidates.Count > 0)
+            return reasonableCandidates[0].ToParsedCoordinate();
+
+        // If direct value is valid but jump is too large, only allow it when correction is disabled.
+        // This prevents bad OCR jumps from polluting the map.
+        if (!correctionOptions.Enabled)
+        {
+            return allCandidates
+                .Where(c => c.CorrectionCount == 0)
+                .OrderBy(c => c.RawOrder)
+                .FirstOrDefault()
+                ?.ToParsedCoordinate();
         }
 
         return null;
     }
 
-    private static ParsedCoordinate? TryBuildCoordinate(string xText, string yText, string rawText, int worldWidth, int worldHeight)
+    private static IEnumerable<(string XText, string YText, string RawText)> ExtractRawPairs(string normalized)
     {
-        if (!int.TryParse(xText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var x)) return null;
-        if (!int.TryParse(yText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var y)) return null;
-        if (x < 0 || x > worldWidth) return null;
-        if (y < 0 || y > worldHeight) return null;
-        return new ParsedCoordinate(x, y, rawText.Trim());
+        foreach (Match match in LabeledCoordinateRegex.Matches(normalized))
+            yield return (match.Groups["x"].Value, match.Groups["y"].Value, match.Value);
+
+        foreach (Match match in PairCoordinateRegex.Matches(normalized))
+            yield return (match.Groups["x"].Value, match.Groups["y"].Value, match.Value);
+    }
+
+    private static IEnumerable<CoordinateCandidate> BuildCandidates(
+        string xText,
+        string yText,
+        string rawText,
+        int worldWidth,
+        int worldHeight,
+        bool correctionEnabled)
+    {
+        var rawOrder = 0;
+        var xCandidates = correctionEnabled ? GenerateDigitCorrections(xText) : new[] { new DigitCandidate(xText, 0) };
+        var yCandidates = correctionEnabled ? GenerateDigitCorrections(yText) : new[] { new DigitCandidate(yText, 0) };
+
+        foreach (var xCandidate in xCandidates)
+        {
+            foreach (var yCandidate in yCandidates)
+            {
+                rawOrder++;
+
+                if (!int.TryParse(xCandidate.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var x)) continue;
+                if (!int.TryParse(yCandidate.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var y)) continue;
+
+                if (x < 0 || x > worldWidth) continue;
+                if (y < 0 || y > worldHeight) continue;
+
+                var correctionCount = xCandidate.CorrectionCount + yCandidate.CorrectionCount;
+                var correctedRaw = correctionCount == 0
+                    ? rawText.Trim()
+                    : $"{rawText.Trim()} corrected to {x},{y}";
+
+                yield return new CoordinateCandidate(x, y, correctedRaw, correctionCount, rawOrder, 0, 0);
+            }
+        }
+    }
+
+    private static IEnumerable<DigitCandidate> GenerateDigitCorrections(string value)
+    {
+        yield return new DigitCandidate(value, 0);
+
+        // One-digit substitutions only. This keeps corrections conservative.
+        // Most useful case: OCR reads 8825, but valid coordinate is 3825.
+        var substitutions = new Dictionary<char, char[]>
+        {
+            ['8'] = new[] { '3', '6', '0' },
+            ['3'] = new[] { '8' },
+            ['6'] = new[] { '8', '5' },
+            ['5'] = new[] { '6' },
+            ['0'] = new[] { '8' },
+            ['1'] = new[] { '7' },
+            ['7'] = new[] { '1', '2' },
+            ['2'] = new[] { '7' }
+        };
+
+        var seen = new HashSet<string> { value };
+
+        for (var i = 0; i < value.Length; i++)
+        {
+            var c = value[i];
+            if (!substitutions.TryGetValue(c, out var replacements)) continue;
+
+            foreach (var replacement in replacements)
+            {
+                var chars = value.ToCharArray();
+                chars[i] = replacement;
+                var corrected = new string(chars).TrimStart('0');
+                if (string.IsNullOrWhiteSpace(corrected)) corrected = "0";
+
+                if (seen.Add(corrected))
+                    yield return new DigitCandidate(corrected, 1);
+            }
+        }
+    }
+
+    private static int CircularDistance(int a, int b, int width)
+    {
+        var dx = Math.Abs(a - b);
+        return Math.Min(dx, Math.Abs(width - dx));
     }
 
     private static string NormalizeOcrCoordinateText(string text)
@@ -56,6 +191,20 @@ public sealed class CoordinateParser : ICoordinateParser
             .Replace('\r', ' ')
             .Replace('\n', ' ')
             .Trim();
+    }
+
+    private sealed record DigitCandidate(string Value, int CorrectionCount);
+
+    private sealed record CoordinateCandidate(
+        int X,
+        int Y,
+        string RawText,
+        int CorrectionCount,
+        int RawOrder,
+        int CircularDx,
+        int Dy)
+    {
+        public ParsedCoordinate ToParsedCoordinate() => new(X, Y, RawText);
     }
 }
 
@@ -143,7 +292,6 @@ public sealed class PriceParser : IPriceParser
             {
                 if (pendingKnownItem is not null && pendingKnownGood is not null)
                 {
-                    // Only return price rows when Buy/Sell is known.
                     if (tradeTypeKnown)
                     {
                         results.Add(new ParsedPriceLine(

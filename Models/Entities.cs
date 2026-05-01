@@ -52,13 +52,28 @@ public sealed class AppSetting
 public sealed class OcrRuntimeSettings
 {
     public bool Enabled { get; set; }
-    public int DefaultIntervalSeconds { get; set; } = 5;
+    public int DefaultIntervalSeconds { get; set; } = 2;
     public int CityIntervalSeconds { get; set; } = 8;
+    public int PriceIntervalSeconds { get; set; } = 6;
+    public int ActivePriceIntervalSeconds { get; set; } = 1;
+    public int PriceFastModeSeconds { get; set; } = 20;
+
     public int WorldWidth { get; set; } = 16500;
     public int WorldHeight { get; set; } = 7200;
-    public int XZeroVisualOffset { get; set; } = 0;
+    public int XZeroVisualOffset { get; set; } = 8250;
     public int CoordinateRecentlyVisibleSeconds { get; set; } = 10;
-    public int MinCityNameLength { get; set; } = 3;
+    public int MinCityNameLength { get; set; } = 5;
+
+    // Coordinate OCR correction settings.
+    public bool EnableCoordinateCorrection { get; set; } = true;
+
+    // X is wrap-around, so jump distance is circular. Example with width 16500:
+    // X 1 to X 16250 is only 251 away, not 16249.
+    public int MaxCoordinateJumpX { get; set; } = 1200;
+
+    // Y does not wrap, so this is a normal absolute jump limit.
+    public int MaxCoordinateJumpY { get; set; } = 900;
+
     public string CoordinateOcrZoneName { get; set; } = "Coordinate";
     public string CityOcrZoneName { get; set; } = "City";
     public string PriceOcrZoneName { get; set; } = "Price";
@@ -70,6 +85,9 @@ public sealed class OcrControlState
     public DateTime? LastCoordinateReadUtc { get; set; }
     public DateTime? LastCityReadUtc { get; set; }
     public DateTime? LastPriceReadUtc { get; set; }
+    public DateTime? LastPriceAttemptUtc { get; set; }
+    public DateTime? LastPriceStateChangeUtc { get; set; }
+    public DateTime? PriceFastModeUntilUtc { get; set; }
     public string? LastError { get; set; }
 }
 
