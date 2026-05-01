@@ -1783,5 +1783,140 @@
     "status": 2,
     "resolvedAtUtc": "2026-05-01T04:22:14.2815486Z",
     "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "ce23f907f03544b7abfa66b660710919",
+    "name": "ed originating from Ethiopia",
+    "normalizedName": "ed originating from ethiopia",
+    "suggestedType": "Alcohol",
+    "confidence": 0.8500000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T04:54:46.4872691Z",
+    "lastSeenAtUtc": "2026-05-01T04:54:46.4872691Z",
+    "lastRawText": "ed originating from Ethiopia | 298106%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 298,
+    "lastMultiplier": 106,
+    "similar": [
+      {
+        "name": "Gin",
+        "type": "Alcohol",
+        "score": 0.107,
+        "aliases": []
+      },
+      {
+        "name": "Tin",
+        "type": "Ores",
+        "score": 0.107,
+        "aliases": []
+      }
+    ],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
+  },
+  {
+    "id": "bcb68e3bef2047468f6b04054ace0469",
+    "name": "Yarl",
+    "normalizedName": "yarl",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T04:54:54.2775966Z",
+    "lastSeenAtUtc": "2026-05-01T04:54:54.2775966Z",
+    "lastRawText": "Yarl | 298(106%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 298,
+    "lastMultiplier": 106,
+    "similar": [
+      {
+        "name": "Pearl",
+        "type": "Precious Stones",
+        "score": 0.6,
+        "aliases": []
+      }
+    ],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
+  },
+  {
+    "id": "9e7cc1c440f04fd1a7a08158440b3687",
+    "name": "ype:",
+    "normalizedName": "ype",
+    "suggestedType": "",
+    "confidence": 0.8200000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T04:55:07.1246498Z",
+    "lastSeenAtUtc": "2026-05-01T04:55:07.1246498Z",
+    "lastRawText": "ype: | Wares4E(124%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 4,
+    "lastMultiplier": 124,
+    "similar": [],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
+  },
+  {
+    "id": "817c04888d574544bd397bd1eca8ba25",
+    "name": "Maa",
+    "normalizedName": "maa",
+    "suggestedType": "",
+    "confidence": 0.8200000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T04:55:16.6694269Z",
+    "lastSeenAtUtc": "2026-05-01T04:55:16.6694269Z",
+    "lastRawText": "Maa | 135(101%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 135,
+    "lastMultiplier": 101,
+    "similar": [],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
+  },
+  {
+    "id": "fc2f6e1a7b3a4c07b8f01c4a04e4f4ed",
+    "name": "Lemon Oil",
+    "normalizedName": "lemon oil",
+    "suggestedType": "Luxury Goods",
+    "confidence": 0.9000000000000001,
+    "seenCount": 11,
+    "firstSeenAtUtc": "2026-05-01T05:21:15.5800623Z",
+    "lastSeenAtUtc": "2026-05-01T05:22:34.3149791Z",
+    "lastRawText": "Lemon Oil | 698(141%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 698,
+    "lastMultiplier": 141,
+    "similar": [
+      {
+        "name": "Lemon Myrtle",
+        "type": "Luxury Goods",
+        "score": 0.583,
+        "aliases": []
+      },
+      {
+        "name": "Herb Oil",
+        "type": "Seasonings",
+        "score": 0.556,
+        "aliases": []
+      },
+      {
+        "name": "Lemon",
+        "type": "Foodstuffs",
+        "score": 0.556,
+        "aliases": []
+      },
+      {
+        "name": "Oil",
+        "type": "Wares",
+        "score": 0.333,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-01T05:22:34.8329153Z",
+    "resolutionMessage": "Trade good \u0027Lemon Oil\u0027 was added."
   }
 ]
