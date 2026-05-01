@@ -1811,9 +1811,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T21:31:07.896991Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "bcb68e3bef2047468f6b04054ace0469",
@@ -1836,9 +1836,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:49.4541611Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "9e7cc1c440f04fd1a7a08158440b3687",
@@ -1854,9 +1854,9 @@
     "lastPrice": 4,
     "lastMultiplier": 124,
     "similar": [],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:47.2191021Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "817c04888d574544bd397bd1eca8ba25",
@@ -1872,9 +1872,9 @@
     "lastPrice": 135,
     "lastMultiplier": 101,
     "similar": [],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:48.4018075Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "fc2f6e1a7b3a4c07b8f01c4a04e4f4ed",
@@ -1918,5 +1918,918 @@
     "status": 1,
     "resolvedAtUtc": "2026-05-01T05:22:34.8329153Z",
     "resolutionMessage": "Trade good \u0027Lemon Oil\u0027 was added."
+  },
+  {
+    "id": "af931231cf774197aefe51eede3ed7ed",
+    "name": "Shamshirs",
+    "normalizedName": "shamshirs",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 12,
+    "firstSeenAtUtc": "2026-05-01T17:38:04.5118302Z",
+    "lastSeenAtUtc": "2026-05-01T17:38:23.8174982Z",
+    "lastRawText": "Shamshirs | 1.060 (116%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1060,
+    "lastMultiplier": 116,
+    "similar": [
+      {
+        "name": "Sapphire",
+        "type": "Precious Stones",
+        "score": 0.556,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-01T17:38:26.1607147Z",
+    "resolutionMessage": "Trade good \u0027Shamshirs\u0027 was added."
+  },
+  {
+    "id": "0e9d60f1892749639aba1f9af6b54151",
+    "name": "Lemon olb",
+    "normalizedName": "lemon olb",
+    "suggestedType": "Fragrances",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T17:38:30.8869291Z",
+    "lastSeenAtUtc": "2026-05-01T17:38:30.8869291Z",
+    "lastRawText": "Lemon olb | 460(93%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 460,
+    "lastMultiplier": 93,
+    "similar": [
+      {
+        "name": "Lemon Oil",
+        "type": "Fragrances",
+        "score": 0.778,
+        "aliases": []
+      },
+      {
+        "name": "Lemon Myrtle",
+        "type": "Luxury Goods",
+        "score": 0.583,
+        "aliases": []
+      },
+      {
+        "name": "Lemon",
+        "type": "Foodstuffs",
+        "score": 0.556,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:45.9910148Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "74b22ad3d1554d7f95bc2f05d22f0c81",
+    "name": "Yvory",
+    "normalizedName": "yvory",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T17:38:34.6560079Z",
+    "lastSeenAtUtc": "2026-05-01T17:38:34.6560079Z",
+    "lastRawText": "Yvory | 2.040((94%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 2040,
+    "lastMultiplier": 94,
+    "similar": [
+      {
+        "name": "Ivory",
+        "type": "Precious Stones",
+        "score": 0.8,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:45.0336774Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "a37c8ae51b014ddab9cc06cb82387150",
+    "name": "ROUIUU",
+    "normalizedName": "rouiuu",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T17:38:38.5932545Z",
+    "lastSeenAtUtc": "2026-05-01T17:38:38.5932545Z",
+    "lastRawText": "ROUIUU | 779 (70%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 779,
+    "lastMultiplier": 70,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:42.2116118Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "4c03653830ee4efca7664faea5fca7c0",
+    "name": "Lemonoi",
+    "normalizedName": "lemonoi",
+    "suggestedType": "Fragrances",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T17:39:08.8862876Z",
+    "lastSeenAtUtc": "2026-05-01T17:39:08.8862876Z",
+    "lastRawText": "Lemonoi | 1~26",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 26,
+    "similar": [
+      {
+        "name": "Lemon Oil",
+        "type": "Fragrances",
+        "score": 0.778,
+        "aliases": []
+      },
+      {
+        "name": "Lemon",
+        "type": "Foodstuffs",
+        "score": 0.714,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:37.8689638Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "618b0d4cd069473f949100fe83410c65",
+    "name": "Lemon oi",
+    "normalizedName": "lemon oi",
+    "suggestedType": "Fragrances",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T17:39:10.3171947Z",
+    "lastSeenAtUtc": "2026-05-01T17:39:10.3171947Z",
+    "lastRawText": "Lemon oi | 1~26",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 26,
+    "similar": [
+      {
+        "name": "Lemon Oil",
+        "type": "Fragrances",
+        "score": 0.889,
+        "aliases": []
+      },
+      {
+        "name": "Lemon",
+        "type": "Foodstuffs",
+        "score": 0.625,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:36.0718724Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "ec55b792c92c4bae943074eb4275194e",
+    "name": "Mint",
+    "normalizedName": "mint",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 55,
+    "firstSeenAtUtc": "2026-05-01T17:46:05.8634161Z",
+    "lastSeenAtUtc": "2026-05-01T18:01:05.66151Z",
+    "lastRawText": "Mint | 7990%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 79,
+    "lastMultiplier": 90,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:52.7510912Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "20560e6c28a64668b98d4ac8855220f1",
+    "name": "nboi",
+    "normalizedName": "nboi",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 7,
+    "firstSeenAtUtc": "2026-05-01T17:46:08.6228488Z",
+    "lastSeenAtUtc": "2026-05-01T17:46:23.6648571Z",
+    "lastRawText": "nboi | 7990%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 79,
+    "lastMultiplier": 90,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:43.8145626Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "4b76db3a59bd44e3a2f613e0289250ea",
+    "name": "Persian Carpet",
+    "normalizedName": "persian carpet",
+    "suggestedType": "Fabrics",
+    "confidence": 0.9000000000000001,
+    "seenCount": 15,
+    "firstSeenAtUtc": "2026-05-01T17:46:08.6245062Z",
+    "lastSeenAtUtc": "2026-05-01T17:46:27.7531056Z",
+    "lastRawText": "Persian Carpet | 8.130\u91CC(186%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 8130,
+    "lastMultiplier": 186,
+    "similar": [
+      {
+        "name": "Persian Rug",
+        "type": "Fabrics",
+        "score": 0.643,
+        "aliases": []
+      },
+      {
+        "name": "Turkish Carpet",
+        "type": "Fabrics",
+        "score": 0.643,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-01T17:46:31.3440007Z",
+    "resolutionMessage": "Trade good \u0027Persian Carpet\u0027 was added."
+  },
+  {
+    "id": "082a8e7c440a4a078263dd7e2b4600d2",
+    "name": "cYanaw",
+    "normalizedName": "cyanaw",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T17:46:09.9882064Z",
+    "lastSeenAtUtc": "2026-05-01T17:46:09.9882064Z",
+    "lastRawText": "cYanaw | 79(90%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 79,
+    "lastMultiplier": 90,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:34.066763Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "308a52a4c9d54e098e77c88f7a13cdaa",
+    "name": "aboi",
+    "normalizedName": "aboi",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 3,
+    "firstSeenAtUtc": "2026-05-01T17:46:14.1400312Z",
+    "lastSeenAtUtc": "2026-05-01T17:46:27.752461Z",
+    "lastRawText": "aboi | 7990%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 79,
+    "lastMultiplier": 90,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:30.8006137Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "e104494288844523ae936cea6bbfde6a",
+    "name": "tboi",
+    "normalizedName": "tboi",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T17:46:18.2448636Z",
+    "lastSeenAtUtc": "2026-05-01T17:46:18.2448636Z",
+    "lastRawText": "tboi | 7990%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 79,
+    "lastMultiplier": 90,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:33.4930816Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "1c5f42fb27d4464e80c50fe45a79a2fa",
+    "name": "nbol",
+    "normalizedName": "nbol",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T17:46:19.6065205Z",
+    "lastSeenAtUtc": "2026-05-01T17:46:19.6065205Z",
+    "lastRawText": "nbol | 7990%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 79,
+    "lastMultiplier": 90,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:32.8601535Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "9a57aef59a9245fbac964fa8611dd1d8",
+    "name": "cYal",
+    "normalizedName": "cyal",
+    "suggestedType": "Ores",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T17:46:25.0331488Z",
+    "lastSeenAtUtc": "2026-05-01T17:46:25.0331488Z",
+    "lastRawText": "cYal | 7990%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 79,
+    "lastMultiplier": 90,
+    "similar": [
+      {
+        "name": "Coal",
+        "type": "Ores",
+        "score": 0.75,
+        "aliases": []
+      },
+      {
+        "name": "Coral",
+        "type": "Precious Stones",
+        "score": 0.6,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:31.7025835Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "95af0883c3ca4f809221409a03dc1a38",
+    "name": "cabol",
+    "normalizedName": "cabol",
+    "suggestedType": "Livestock",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T17:46:26.3880009Z",
+    "lastSeenAtUtc": "2026-05-01T17:46:26.3880009Z",
+    "lastRawText": "cabol | 79(90%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 79,
+    "lastMultiplier": 90,
+    "similar": [
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.6,
+        "aliases": []
+      },
+      {
+        "name": "Carambola",
+        "type": "Foodstuffs",
+        "score": 0.556,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:30.2089281Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "f62d6cd45f554d8b89bb64c1c4988ed3",
+    "name": "caboi",
+    "normalizedName": "caboi",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T17:46:34.8438079Z",
+    "lastSeenAtUtc": "2026-05-01T17:46:34.8438079Z",
+    "lastRawText": "caboi | 7990%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 79,
+    "lastMultiplier": 90,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:55.7231131Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "d404bdc60080436fb085eb3a2b4bb1ef",
+    "name": "ibo",
+    "normalizedName": "ibo",
+    "suggestedType": "Medicine",
+    "confidence": 0.8200000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T17:46:41.6633496Z",
+    "lastSeenAtUtc": "2026-05-01T17:46:41.6633496Z",
+    "lastRawText": "ibo | 101(93%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 101,
+    "lastMultiplier": 93,
+    "similar": [
+      {
+        "name": "Rooibos",
+        "type": "Medicine",
+        "score": 0.429,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:54.6062982Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "12050868cd2d4a45b43bda5036cce955",
+    "name": "boi",
+    "normalizedName": "boi",
+    "suggestedType": "",
+    "confidence": 0.8200000000000001,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-05-01T17:46:43.0202267Z",
+    "lastSeenAtUtc": "2026-05-01T17:46:45.7333758Z",
+    "lastRawText": "boi | 101(93%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 101,
+    "lastMultiplier": 93,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:53.2613183Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "87f0c5227c2f409eb6ed73343f92756d",
+    "name": "Velcome!",
+    "normalizedName": "velcome",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-05-01T18:18:23.8055876Z",
+    "lastSeenAtUtc": "2026-05-01T18:18:25.1767972Z",
+    "lastRawText": "Velcome! | 418(95%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 418,
+    "lastMultiplier": 95,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:19:52.206511Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "50a3b4d345ea4cea84390bea8128c160",
+    "name": "Persian Berry",
+    "normalizedName": "persian berry",
+    "suggestedType": "Fabrics",
+    "confidence": 0.9000000000000001,
+    "seenCount": 18,
+    "firstSeenAtUtc": "2026-05-01T18:28:11.9935737Z",
+    "lastSeenAtUtc": "2026-05-01T18:30:09.1003785Z",
+    "lastRawText": "Persian Berry | 1.480\u91CC(143%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1480,
+    "lastMultiplier": 143,
+    "similar": [
+      {
+        "name": "Persian Rug",
+        "type": "Fabrics",
+        "score": 0.692,
+        "aliases": []
+      },
+      {
+        "name": "Persian Carpet",
+        "type": "Fabrics",
+        "score": 0.643,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-01T18:30:13.3853918Z",
+    "resolutionMessage": "Trade good \u0027Persian Berry\u0027 was added."
+  },
+  {
+    "id": "77eb8a51d89a41b0862e38f47e6d187d",
+    "name": "cLemonllwb",
+    "normalizedName": "clemonllwb",
+    "suggestedType": "Foodstuffs",
+    "confidence": 0.9000000000000001,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-05-01T18:28:11.9971598Z",
+    "lastSeenAtUtc": "2026-05-01T18:28:14.7601026Z",
+    "lastRawText": "cLemonllwb | 718 ((145%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 718,
+    "lastMultiplier": 145,
+    "similar": [
+      {
+        "name": "Lemon",
+        "type": "Foodstuffs",
+        "score": 0.5,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T21:31:02.6109557Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "716d1f3eb47b4defa8b3c4e13f3db4b3",
+    "name": "[aeanaaeew",
+    "normalizedName": "aeanaaeew",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-05-01T18:28:12.0037709Z",
+    "lastSeenAtUtc": "2026-05-01T18:28:14.7604909Z",
+    "lastRawText": "[aeanaaeew | 6.950((159%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 6950,
+    "lastMultiplier": 159,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T21:31:01.247319Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "250b7764223e455b8573681f266e7a53",
+    "name": "ype:",
+    "normalizedName": "ype",
+    "suggestedType": "",
+    "confidence": 0.8200000000000001,
+    "seenCount": 4,
+    "firstSeenAtUtc": "2026-05-01T18:28:13.3319918Z",
+    "lastSeenAtUtc": "2026-05-01T18:29:58.1043973Z",
+    "lastRawText": "ype: | Dyes718\u5230(145%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 718,
+    "lastMultiplier": 145,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:30:47.5821531Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "bc3a248c90a34119a0038ad3ef31bb66",
+    "name": "cae",
+    "normalizedName": "cae",
+    "suggestedType": "Livestock",
+    "confidence": 0.8200000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T18:28:13.3371201Z",
+    "lastSeenAtUtc": "2026-05-01T18:28:13.3371201Z",
+    "lastRawText": "cae | 6.950159%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 6950,
+    "lastMultiplier": 159,
+    "similar": [
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.6,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T21:31:03.2048915Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "94be03ce5eab43e090c51d57298f08fd",
+    "name": "Sulphur",
+    "normalizedName": "sulphur",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 13,
+    "firstSeenAtUtc": "2026-05-01T18:28:16.1779507Z",
+    "lastSeenAtUtc": "2026-05-01T18:30:42.460484Z",
+    "lastRawText": "Sulphur | 405((115%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 405,
+    "lastMultiplier": 115,
+    "similar": [],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-01T18:30:44.0976411Z",
+    "resolutionMessage": "Trade good \u0027Sulphur\u0027 was added."
+  },
+  {
+    "id": "f428bb01809a4e2cb993fc89ae30dfb1",
+    "name": "Yvory",
+    "normalizedName": "yvory",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 7,
+    "firstSeenAtUtc": "2026-05-01T18:28:19.8850124Z",
+    "lastSeenAtUtc": "2026-05-01T18:28:38.9233155Z",
+    "lastRawText": "Yvory | 2,170a100%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 2170,
+    "lastMultiplier": 100,
+    "similar": [
+      {
+        "name": "Ivory",
+        "type": "Precious Stones",
+        "score": 0.8,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T21:31:08.5516927Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "4c647c88828d4aa99a20a05a3f5287e3",
+    "name": "Peeael",
+    "normalizedName": "peeael",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T18:28:23.708586Z",
+    "lastSeenAtUtc": "2026-05-01T18:28:23.708586Z",
+    "lastRawText": "Peeael | 3,750a64%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 3750,
+    "lastMultiplier": 64,
+    "similar": [
+      {
+        "name": "Pearl",
+        "type": "Precious Stones",
+        "score": 0.667,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T21:31:00.1018825Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "0db6f6e5cb524f3a9d4818ad5b554789",
+    "name": "Senna",
+    "normalizedName": "senna",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 14,
+    "firstSeenAtUtc": "2026-05-01T18:28:42.6304363Z",
+    "lastSeenAtUtc": "2026-05-01T18:29:00.1678023Z",
+    "lastRawText": "Senna | 358(140%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 358,
+    "lastMultiplier": 140,
+    "similar": [],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-01T18:29:00.8783627Z",
+    "resolutionMessage": "Trade good \u0027Senna\u0027 was added."
+  },
+  {
+    "id": "2b42fe7c400a48ed8162f5f1286b40b8",
+    "name": "Cheese",
+    "normalizedName": "cheese",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 29,
+    "firstSeenAtUtc": "2026-05-01T18:28:43.9403614Z",
+    "lastSeenAtUtc": "2026-05-01T18:29:27.6914124Z",
+    "lastRawText": "Cheese | 344(108%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 344,
+    "lastMultiplier": 108,
+    "similar": [],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-01T18:29:33.5063154Z",
+    "resolutionMessage": "Trade good \u0027Cheese\u0027 was added."
+  },
+  {
+    "id": "39b44fde895b458786868ed5d41152ae",
+    "name": "ctive for constipation.",
+    "normalizedName": "ctive for constipation",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T18:28:49.2526313Z",
+    "lastSeenAtUtc": "2026-05-01T18:28:49.2526313Z",
+    "lastRawText": "ctive for constipation. | 29988%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 299,
+    "lastMultiplier": 88,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T21:31:09.7426209Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "af3b893675fa423c97a8babda09eccc0",
+    "name": "eesen",
+    "normalizedName": "eesen",
+    "suggestedType": "Wares",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T18:29:16.5816171Z",
+    "lastSeenAtUtc": "2026-05-01T18:29:16.5816171Z",
+    "lastRawText": "eesen | ype:Foodstuffs140%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 40,
+    "similar": [
+      {
+        "name": "Resin",
+        "type": "Wares",
+        "score": 0.6,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:30:49.3590433Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "26dd5e3b8afc4186a27d8413654093c1",
+    "name": "Leatiei",
+    "normalizedName": "leatiei",
+    "suggestedType": "Fibres",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T18:29:16.5870771Z",
+    "lastSeenAtUtc": "2026-05-01T18:29:16.5870771Z",
+    "lastRawText": "Leatiei | 468\u91CC(120%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 468,
+    "lastMultiplier": 120,
+    "similar": [
+      {
+        "name": "Leather",
+        "type": "Fibres",
+        "score": 0.714,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T18:30:48.784103Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "8de6d12e4b8b4318940b597b8211b10a",
+    "name": "Wetland Rice",
+    "normalizedName": "wetland rice",
+    "suggestedType": "Foodstuffs",
+    "confidence": 0.9000000000000001,
+    "seenCount": 14,
+    "firstSeenAtUtc": "2026-05-01T21:38:59.4641517Z",
+    "lastSeenAtUtc": "2026-05-01T21:39:40.5822215Z",
+    "lastRawText": "Wetland Rice | 46(100%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 46,
+    "lastMultiplier": 100,
+    "similar": [
+      {
+        "name": "Upland Rice",
+        "type": "Foodstuffs",
+        "score": 0.75,
+        "aliases": []
+      },
+      {
+        "name": "Rice",
+        "type": "Foodstuffs",
+        "score": 0.333,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-01T21:39:42.8224753Z",
+    "resolutionMessage": "Trade good \u0027Wetland Rice\u0027 was added."
+  },
+  {
+    "id": "4f678f890b764ad2bffb9599725a14b5",
+    "name": "Silk Thread",
+    "normalizedName": "silk thread",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 9,
+    "firstSeenAtUtc": "2026-05-01T21:38:59.4730213Z",
+    "lastSeenAtUtc": "2026-05-01T21:39:21.7348748Z",
+    "lastRawText": "Silk Thread | 2.680(153%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 2680,
+    "lastMultiplier": 153,
+    "similar": [],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-01T21:39:26.0152988Z",
+    "resolutionMessage": "Trade good \u0027Silk Thread\u0027 was added."
+  },
+  {
+    "id": "52d7c797a04f49d795e61a9ec12032bd",
+    "name": "Suqar Cane",
+    "normalizedName": "suqar cane",
+    "suggestedType": "Foodstuffs",
+    "confidence": 0.9000000000000001,
+    "seenCount": 16,
+    "firstSeenAtUtc": "2026-05-01T21:39:02.0345461Z",
+    "lastSeenAtUtc": "2026-05-01T21:39:49.0613666Z",
+    "lastRawText": "Suqar Cane | 205(102%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 205,
+    "lastMultiplier": 102,
+    "similar": [
+      {
+        "name": "Sugar Cane",
+        "type": "Foodstuffs",
+        "score": 0.9,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T21:39:49.6392522Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "8599c5e3d1ac4c7bb82e28c1ad31ecec",
+    "name": "Wood Sculpture",
+    "normalizedName": "wood sculpture",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 9,
+    "firstSeenAtUtc": "2026-05-01T21:39:51.9019864Z",
+    "lastSeenAtUtc": "2026-05-01T21:40:19.543436Z",
+    "lastRawText": "Wood Sculpture | 1.330(145%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1330,
+    "lastMultiplier": 145,
+    "similar": [],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-01T21:40:23.8033956Z",
+    "resolutionMessage": "Trade good \u0027Wood Sculpture\u0027 was added."
+  },
+  {
+    "id": "d2348060e2764ea5be9b31952aa0c7fb",
+    "name": "restern",
+    "normalizedName": "restern",
+    "suggestedType": "Foodstuffs",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T21:41:24.9412753Z",
+    "lastSeenAtUtc": "2026-05-01T21:41:24.9412753Z",
+    "lastRawText": "restern | 1~29",
+    "lastTradeType": "Sell",
+    "lastPrice": 1,
+    "lastMultiplier": 29,
+    "similar": [
+      {
+        "name": "Oysters",
+        "type": "Foodstuffs",
+        "score": 0.571,
+        "aliases": []
+      },
+      {
+        "name": "Resin",
+        "type": "Wares",
+        "score": 0.571,
+        "aliases": []
+      }
+    ],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
+  },
+  {
+    "id": "9b44a9b614f54210b3ed3a861f597e96",
+    "name": "Max",
+    "normalizedName": "max",
+    "suggestedType": "",
+    "confidence": 0.8200000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T21:41:24.9440681Z",
+    "lastSeenAtUtc": "2026-05-01T21:41:24.9440681Z",
+    "lastRawText": "Max | X118%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 1,
+    "lastMultiplier": 18,
+    "similar": [],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
+  },
+  {
+    "id": "ffbdfa165d1f40ab89229db2eb671355",
+    "name": "Durability",
+    "normalizedName": "durability",
+    "suggestedType": "",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T21:41:40.5066815Z",
+    "lastSeenAtUtc": "2026-05-01T21:41:40.5066815Z",
+    "lastRawText": "Durability | 30/3",
+    "lastTradeType": "Buy",
+    "lastPrice": 3,
+    "lastMultiplier": 3,
+    "similar": [],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
+  },
+  {
+    "id": "724e5980638546209b2d3d76f1db2b70",
+    "name": "Required Total Fame",
+    "normalizedName": "required total fame",
+    "suggestedType": "",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T21:41:40.5098486Z",
+    "lastSeenAtUtc": "2026-05-01T21:41:40.5098486Z",
+    "lastRawText": "Required Total Fame | 20100",
+    "lastTradeType": "Buy",
+    "lastPrice": 20,
+    "lastMultiplier": 100,
+    "similar": [],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
   }
 ]

@@ -3,6 +3,7 @@ using OcrTradingBackend.Data;
 using OcrTradingBackend.Models;
 using OcrTradingBackend.Services;
 
+
 // DPI fix for PCs using Windows display scaling such as 125%, 150%, etc.
 // This helps Cursor.Position and screen capture use the same coordinate system.
 try
@@ -29,6 +30,9 @@ builder.Services.AddSingleton<ICityParser, CityParser>();
 builder.Services.AddSingleton<ITradeGoodCatalog, TradeGoodCatalog>();
 builder.Services.AddSingleton<IPendingTradeGoodService, PendingTradeGoodService>();
 builder.Services.AddSingleton<IPriceParser, PriceParser>();
+builder.Services.Configure<GameWindowSettings>(builder.Configuration.GetSection("GameWindow"));
+builder.Services.AddSingleton<IGameWindowLocator, GameWindowLocatorService>();
+builder.Services.AddScoped<IWindowRelativeOcrZoneService, WindowRelativeOcrZoneService>();
 builder.Services.AddSingleton<IScreenCaptureService, WindowsScreenCaptureService>();
 builder.Services.AddSingleton<IPaddleOcrService, PaddleOcrSharpService>();
 builder.Services.AddScoped<ITradingRecommendationService, TradingRecommendationService>();
@@ -81,27 +85,71 @@ app.MapGet("/api/settings", async (AppDbContext db) => Results.Ok(new
     settings = await db.AppSettings.ToDictionaryAsync(x => x.Key, x => x.Value)
 }));
 
-app.MapPost("/api/settings/ocr-zone", async (AppDbContext db, OcrZone zone) =>
+app.MapPost("/api/settings/ocr-zone", async (
+    AppDbContext db,
+    IWindowRelativeOcrZoneService zoneService,
+    OcrZone zone,
+    CancellationToken ct) =>
 {
-    var e = await db.OcrZones.FirstOrDefaultAsync(x => x.Name == zone.Name);
-
-    if (e is null)
-    {
-        zone.UpdatedAtUtc = DateTime.UtcNow;
-        db.OcrZones.Add(zone);
-    }
-    else
-    {
-        e.TopLeftX = zone.TopLeftX;
-        e.TopLeftY = zone.TopLeftY;
-        e.BottomRightX = zone.BottomRightX;
-        e.BottomRightY = zone.BottomRightY;
-        e.UpdatedAtUtc = DateTime.UtcNow;
-    }
-
-    await db.SaveChangesAsync();
-    return Results.Ok(zone);
+    var saved = await zoneService.SaveZoneAsync(db, zone, ct);
+    return Results.Ok(saved);
 });
+
+app.MapGet("/api/system/window-under-mouse-delayed", async (int seconds = 5, CancellationToken ct = default) =>
+{
+    var delaySeconds = Math.Clamp(seconds, 1, 30);
+
+    await Task.Delay(TimeSpan.FromSeconds(delaySeconds), ct);
+
+    var window = MouseWindowScanner.GetWindowUnderMouse();
+
+    return window is null
+        ? Results.NotFound(new { message = "No window found under mouse after delay." })
+        : Results.Ok(window);
+});
+
+app.MapMethods(
+    "/api/system/select-window-under-mouse-delayed",
+    new[] { "GET", "POST" },
+    async (HttpRequest request, CancellationToken ct) =>
+    {
+        var secondsText = request.Query["seconds"].FirstOrDefault();
+        var seconds = int.TryParse(secondsText, out var parsedSeconds)
+            ? parsedSeconds
+            : 5;
+
+        var delaySeconds = Math.Clamp(seconds, 1, 30);
+
+        await Task.Delay(TimeSpan.FromSeconds(delaySeconds), ct);
+
+        var mouseWindow = MouseWindowScanner.GetWindowUnderMouse();
+        var gameWindow = MouseWindowScanner.ToGameWindowInfo(mouseWindow);
+
+        if (gameWindow is null)
+        {
+            return Results.NotFound(new
+            {
+                message = "No window found under mouse after delay."
+            });
+        }
+
+        GameWindowSelectionStore.Set(gameWindow);
+
+        return Results.Ok(GameWindowResponseMapper.ToResponse(gameWindow));
+    });
+
+
+
+
+app.MapGet("/api/system/game-window", (IWindowRelativeOcrZoneService zoneService) =>
+{
+    var window = zoneService.FindWindow();
+
+    return window is null
+        ? Results.NotFound(new { message = "Game window not found." })
+        : Results.Ok(GameWindowResponseMapper.ToResponse(window));
+});
+
 
 app.MapPost("/api/settings/value", async (AppDbContext db, AppSetting setting) =>
 {

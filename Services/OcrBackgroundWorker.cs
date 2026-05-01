@@ -55,10 +55,17 @@ public sealed class OcrBackgroundWorker : BackgroundService
         var coordinateParser = scope.ServiceProvider.GetRequiredService<ICoordinateParser>();
         var cityParser = scope.ServiceProvider.GetRequiredService<ICityParser>();
         var priceParser = scope.ServiceProvider.GetRequiredService<IPriceParser>();
+        var zoneService = scope.ServiceProvider.GetRequiredService<IWindowRelativeOcrZoneService>();
 
-        var coordinateZone = await db.OcrZones.FirstOrDefaultAsync(x => x.Name == settings.CoordinateOcrZoneName, ct);
-        var cityZone = await db.OcrZones.FirstOrDefaultAsync(x => x.Name == settings.CityOcrZoneName, ct);
-        var priceZone = await db.OcrZones.FirstOrDefaultAsync(x => x.Name == settings.PriceOcrZoneName, ct);
+        var storedCoordinateZone = await db.OcrZones.FirstOrDefaultAsync(x => x.Name == settings.CoordinateOcrZoneName, ct);
+        var storedCityZone = await db.OcrZones.FirstOrDefaultAsync(x => x.Name == settings.CityOcrZoneName, ct);
+        var storedPriceZone = await db.OcrZones.FirstOrDefaultAsync(x => x.Name == settings.PriceOcrZoneName, ct);
+
+        // These zones are recalculated from relative-to-window data every cycle.
+        // If the game window moved, the absolute screen coordinates move with it automatically.
+        var coordinateZone = await zoneService.ResolveZoneAsync(db, storedCoordinateZone, ct);
+        var cityZone = await zoneService.ResolveZoneAsync(db, storedCityZone, ct);
+        var priceZone = await zoneService.ResolveZoneAsync(db, storedPriceZone, ct);
 
         var coordinateWasReadThisCycle = false;
 
@@ -70,33 +77,23 @@ public sealed class OcrBackgroundWorker : BackgroundService
             DateTime.UtcNow - _control.LastCoordinateReadUtc.Value < TimeSpan.FromSeconds(settings.CoordinateRecentlyVisibleSeconds);
 
         var wasInKnownCityBeforeCoordinate = PriceCaptureMergeService.IsKnownCity(latestCityBeforeCoordinate?.City);
-
-        // If we were in a known city/menu and coordinates appear again, this is a transition back to sea/map.
-        // In that case, ignore the max jump check for this first coordinate because the ship could now be far away
-        // from the last coordinate stored before entering the city.
         var ignoreCoordinateJumpThisRead = wasInKnownCityBeforeCoordinate && !coordinateRecentlyVisibleBeforeRead;
 
-        // 1. Coordinate OCR is the priority and uses the main loop interval.
         if (coordinateZone is not null)
         {
-            using var bitmap = capture.Capture(coordinateZone);
-            var raw = ocr.DetectText(bitmap);
-
             var previousCoordinate = ignoreCoordinateJumpThisRead
                 ? null
                 : await db.CoordinateCaptures
                     .OrderByDescending(x => x.CapturedAtUtc)
                     .FirstOrDefaultAsync(ct);
 
-            var parsed = coordinateParser.TryParse(
-                raw,
-                settings.WorldWidth,
-                settings.WorldHeight,
+            var parsed = CoordinateScreenSearchService.TryReadCoordinate(
+                capture,
+                ocr,
+                coordinateParser,
+                coordinateZone,
                 previousCoordinate,
-                new CoordinateCorrectionOptions(
-                    settings.EnableCoordinateCorrection,
-                    settings.MaxCoordinateJumpX,
-                    settings.MaxCoordinateJumpY));
+                settings);
 
             if (parsed is not null)
             {
@@ -104,11 +101,7 @@ public sealed class OcrBackgroundWorker : BackgroundService
                 _control.LastCoordinateReadUtc = DateTime.UtcNow;
 
                 await AddUniqueCoordinateAsync(db, parsed, ct);
-
-                // Important new rule:
-                // When coordinates are visible, we are no longer inside a city.
-                // Set current city to Unknown so price OCR/export/import logic keeps using the existing Unknown safeguards.
-                await SetLatestCityUnknownIfNeededAsync(db, latestCityBeforeCoordinate, raw, ct);
+                await SetLatestCityUnknownIfNeededAsync(db, latestCityBeforeCoordinate, parsed.RawText, ct);
 
                 if (ignoreCoordinateJumpThisRead)
                     Console.WriteLine("Coordinate appeared after known city. Ignored max jump range for this first coordinate read.");
@@ -118,7 +111,6 @@ public sealed class OcrBackgroundWorker : BackgroundService
         var coordinateRecentlyVisible = _control.LastCoordinateReadUtc is not null &&
             DateTime.UtcNow - _control.LastCoordinateReadUtc.Value < TimeSpan.FromSeconds(settings.CoordinateRecentlyVisibleSeconds);
 
-        // 2. City OCR only runs when coordinates are not visible/recent.
         var cityDue = _control.LastCityReadUtc is null ||
             DateTime.UtcNow - _control.LastCityReadUtc.Value >= TimeSpan.FromSeconds(settings.CityIntervalSeconds);
 
@@ -142,7 +134,6 @@ public sealed class OcrBackgroundWorker : BackgroundService
             }
         }
 
-        // 3. Price OCR only runs when we are not at sea/map, current city is known, and price interval is due.
         if (!coordinateRecentlyVisible && priceZone is not null)
         {
             var latestCity = await db.CityCaptures

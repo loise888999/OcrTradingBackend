@@ -52,7 +52,7 @@ public sealed class AppSetting
 public sealed class OcrRuntimeSettings
 {
     public bool Enabled { get; set; }
-    public int DefaultIntervalSeconds { get; set; } = 2;
+    public int DefaultIntervalSeconds { get; set; } = 1;
     public int CityIntervalSeconds { get; set; } = 8;
     public int PriceIntervalSeconds { get; set; } = 6;
     public int ActivePriceIntervalSeconds { get; set; } = 1;
@@ -64,15 +64,18 @@ public sealed class OcrRuntimeSettings
     public int CoordinateRecentlyVisibleSeconds { get; set; } = 10;
     public int MinCityNameLength { get; set; } = 5;
 
-    // Coordinate OCR correction settings.
     public bool EnableCoordinateCorrection { get; set; } = true;
-
-    // X is wrap-around, so jump distance is circular. Example with width 16500:
-    // X 1 to X 16250 is only 251 away, not 16249.
     public int MaxCoordinateJumpX { get; set; } = 1200;
-
-    // Y does not wrap, so this is a normal absolute jump limit.
     public int MaxCoordinateJumpY { get; set; } = 900;
+
+    // Screen-only coordinate detection settings.
+    // Fixed zone is always tried first. If it fails, the backend can OCR a padded search area.
+    public bool CoordinateSearchEnabled { get; set; } = true;
+    public int CoordinateSearchPadding { get; set; } = 140;
+
+    // Preprocessing helps when coordinate text is small: upscale + grayscale + threshold.
+    public bool CoordinateTryPreprocess { get; set; } = true;
+    public int CoordinateOcrUpscale { get; set; } = 3;
 
     public string CoordinateOcrZoneName { get; set; } = "Coordinate";
     public string CityOcrZoneName { get; set; } = "City";
