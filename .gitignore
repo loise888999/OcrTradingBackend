@@ -1,0 +1,67 @@
+## [ Visual Studio ]
+*.swp
+*.*~
+project.lock.json
+.DS_Store
+*.pyc
+nupkg/
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio 2015/2017/2019/2022 cache and settings
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userprefs
+
+## [ .NET Core / .NET 5+ ]
+project.fragment.lock.json
+project.lock.json
+*.nuget.props
+*.nuget.targets
+
+## [ Visual Studio Code ]
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+## [ Tools ]
+# Rider
+.idea/
+*.sln.iml
+
+# Unit test results
+TestResults/
+*.sequenced
+
+# NuGet Packages
+*.nupkg
+# The packages folder can be ignored as they are restored on build
+**/packages/*
+!**/packages/build/
+
+# Local settings
+appsettings.Development.json
+appsettings.Local.json

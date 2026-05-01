@@ -1,0 +1,1242 @@
+[
+  {
+    "id": "5f3aa5de5d25459fa934954b9f65f5a7",
+    "name": "Marke",
+    "normalizedName": "marke",
+    "suggestedType": "Wares",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:27:26.4303037Z",
+    "lastSeenAtUtc": "2026-04-30T20:27:26.4303037Z",
+    "lastRawText": "Marke | 394100%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 394,
+    "lastMultiplier": 100,
+    "similar": [
+      {
+        "name": "Marble",
+        "type": "Wares",
+        "score": 0.667,
+        "aliases": []
+      },
+      {
+        "name": "Bark",
+        "type": "Wares",
+        "score": 0.6,
+        "aliases": []
+      },
+      {
+        "name": "Mace",
+        "type": "Spices",
+        "score": 0.6,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:28:44.2395512Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "1c5218e7f5d44bbaa8e708da0c4415a8",
+    "name": "Market",
+    "normalizedName": "market",
+    "suggestedType": "Firearms",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:27:32.0378371Z",
+    "lastSeenAtUtc": "2026-04-30T20:27:32.0378371Z",
+    "lastRawText": "Market | 394100%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 394,
+    "lastMultiplier": 100,
+    "similar": [
+      {
+        "name": "Muskets",
+        "type": "Firearms",
+        "score": 0.571,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:28:05.1706989Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "3f6c25a8d74448538437f26a945f3f73",
+    "name": "African Shell Perfumearket",
+    "normalizedName": "african shell perfumearket",
+    "suggestedType": "Fragrances",
+    "confidence": 0.9000000000000001,
+    "seenCount": 9,
+    "firstSeenAtUtc": "2026-04-30T20:27:37.650215Z",
+    "lastSeenAtUtc": "2026-04-30T20:28:21.8364861Z",
+    "lastRawText": "African Shell Perfumearket | 1.210(135%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1210,
+    "lastMultiplier": 135,
+    "similar": [
+      {
+        "name": "African Shell Perfume",
+        "type": "Fragrances",
+        "score": 0.808,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:28:22.6668559Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "8f1e9d71ccee465eb3d3107c97a9524d",
+    "name": "Emerall",
+    "normalizedName": "emerall",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 10,
+    "firstSeenAtUtc": "2026-04-30T20:27:37.6551164Z",
+    "lastSeenAtUtc": "2026-04-30T20:28:27.3375998Z",
+    "lastRawText": "Emerall | 4,860((153%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 4860,
+    "lastMultiplier": 153,
+    "similar": [
+      {
+        "name": "Emerald",
+        "type": "Precious Stones",
+        "score": 0.857,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:28:32.3944144Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "200826da6e9d4b46b181e4508cdb54ee",
+    "name": "Malacbitelb",
+    "normalizedName": "malacbitelb",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 10,
+    "firstSeenAtUtc": "2026-04-30T20:27:37.6601958Z",
+    "lastSeenAtUtc": "2026-04-30T20:28:27.3379867Z",
+    "lastRawText": "Malacbitelb | 1.520(88%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1520,
+    "lastMultiplier": 88,
+    "similar": [
+      {
+        "name": "Malachite",
+        "type": "Precious Stones",
+        "score": 0.727,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:28:27.491522Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "a7c95417d7064f699b55590640146199",
+    "name": "African Shell Perfumearket",
+    "normalizedName": "african shell perfumearket",
+    "suggestedType": "Fragrances",
+    "confidence": 0.9000000000000001,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-04-30T20:28:27.3328112Z",
+    "lastSeenAtUtc": "2026-04-30T20:28:32.9139454Z",
+    "lastRawText": "African Shell Perfumearket | 1.210(135%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1210,
+    "lastMultiplier": 135,
+    "similar": [
+      {
+        "name": "African Shell Perfume",
+        "type": "Fragrances",
+        "score": 0.808,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:28:36.1983894Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "79db511b75ae4ca385cf78f2f96a31c8",
+    "name": "Emerall",
+    "normalizedName": "emerall",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-04-30T20:28:32.9144984Z",
+    "lastSeenAtUtc": "2026-04-30T20:28:38.5191018Z",
+    "lastRawText": "Emerall | 4,860((153%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 4860,
+    "lastMultiplier": 153,
+    "similar": [
+      {
+        "name": "Emerald",
+        "type": "Precious Stones",
+        "score": 0.857,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:28:39.6001964Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "d5021ad8738a4c57b90a04abd7fd56bd",
+    "name": "Malacbitelb",
+    "normalizedName": "malacbitelb",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:28:32.9195261Z",
+    "lastSeenAtUtc": "2026-04-30T20:28:32.9195261Z",
+    "lastRawText": "Malacbitelb | 1.520(88%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1520,
+    "lastMultiplier": 88,
+    "similar": [
+      {
+        "name": "Malachite",
+        "type": "Precious Stones",
+        "score": 0.727,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:28:37.4858179Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "e36818117b194fb28a0c029d0619dfe0",
+    "name": "African Shell Perfumearket",
+    "normalizedName": "african shell perfumearket",
+    "suggestedType": "Fragrances",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:28:38.5144102Z",
+    "lastSeenAtUtc": "2026-04-30T20:28:38.5144102Z",
+    "lastRawText": "African Shell Perfumearket | 1.210(135%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1210,
+    "lastMultiplier": 135,
+    "similar": [
+      {
+        "name": "African Shell Perfume",
+        "type": "Fragrances",
+        "score": 0.808,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:28:42.1699554Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "d9c5bb5ba43c4f9ca148146a8a0cc7c3",
+    "name": "Malacbitelb",
+    "normalizedName": "malacbitelb",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:28:38.5194637Z",
+    "lastSeenAtUtc": "2026-04-30T20:28:38.5194637Z",
+    "lastRawText": "Malacbitelb | 1.520(88%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1520,
+    "lastMultiplier": 88,
+    "similar": [
+      {
+        "name": "Malachite",
+        "type": "Precious Stones",
+        "score": 0.727,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:28:40.3429949Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "10ce38680ff54b7ebe62b57509452014",
+    "name": "African Shell Perfumearket",
+    "normalizedName": "african shell perfumearket",
+    "suggestedType": "Fragrances",
+    "confidence": 0.9000000000000001,
+    "seenCount": 5,
+    "firstSeenAtUtc": "2026-04-30T20:28:44.0393533Z",
+    "lastSeenAtUtc": "2026-04-30T20:29:06.0347115Z",
+    "lastRawText": "African Shell Perfumearket | 1.210(135%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1210,
+    "lastMultiplier": 135,
+    "similar": [
+      {
+        "name": "African Shell Perfume",
+        "type": "Fragrances",
+        "score": 0.808,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:29:07.1033179Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "1e8c2b7c21c14d29a83a4d1b2f157b89",
+    "name": "Emerall",
+    "normalizedName": "emerall",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 4,
+    "firstSeenAtUtc": "2026-04-30T20:28:44.0446789Z",
+    "lastSeenAtUtc": "2026-04-30T20:29:00.5062877Z",
+    "lastRawText": "Emerall | 4,860((153%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 4860,
+    "lastMultiplier": 153,
+    "similar": [
+      {
+        "name": "Emerald",
+        "type": "Precious Stones",
+        "score": 0.857,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:29:05.804297Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "bc4a2afd97ac461eb7f51e912801c051",
+    "name": "Malacbitelb",
+    "normalizedName": "malacbitelb",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 4,
+    "firstSeenAtUtc": "2026-04-30T20:28:44.050454Z",
+    "lastSeenAtUtc": "2026-04-30T20:29:00.5068206Z",
+    "lastRawText": "Malacbitelb | 1.520(88%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1520,
+    "lastMultiplier": 88,
+    "similar": [
+      {
+        "name": "Malachite",
+        "type": "Precious Stones",
+        "score": 0.727,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:29:05.2490782Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "42cd89aac364421bab8eed9694a9732e",
+    "name": "Emerall",
+    "normalizedName": "emerall",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:29:06.0353176Z",
+    "lastSeenAtUtc": "2026-04-30T20:29:06.0353176Z",
+    "lastRawText": "Emerall | 4,860((153%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 4860,
+    "lastMultiplier": 153,
+    "similar": [
+      {
+        "name": "Emerald",
+        "type": "Precious Stones",
+        "score": 0.857,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:29:08.4682499Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "16f8b9cad7204d0db1740ad1b478d56c",
+    "name": "Malacbitelb",
+    "normalizedName": "malacbitelb",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:29:06.0405259Z",
+    "lastSeenAtUtc": "2026-04-30T20:29:06.0405259Z",
+    "lastRawText": "Malacbitelb | 1.520(88%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1520,
+    "lastMultiplier": 88,
+    "similar": [
+      {
+        "name": "Malachite",
+        "type": "Precious Stones",
+        "score": 0.727,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:29:07.7514737Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "22729e69f8c643d7a1c5aa00b9225662",
+    "name": "African Shell Perfumearket",
+    "normalizedName": "african shell perfumearket",
+    "suggestedType": "Fragrances",
+    "confidence": 0.9000000000000001,
+    "seenCount": 7,
+    "firstSeenAtUtc": "2026-04-30T20:29:11.5320731Z",
+    "lastSeenAtUtc": "2026-04-30T20:29:44.5548698Z",
+    "lastRawText": "African Shell Perfumearket | 1.210(135%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1210,
+    "lastMultiplier": 135,
+    "similar": [
+      {
+        "name": "African Shell Perfume",
+        "type": "Fragrances",
+        "score": 0.808,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:37:55.9690761Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "694716a8d1fe488b983e00f2d65e0765",
+    "name": "Emerall",
+    "normalizedName": "emerall",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 7,
+    "firstSeenAtUtc": "2026-04-30T20:29:11.5367914Z",
+    "lastSeenAtUtc": "2026-04-30T20:29:44.5554822Z",
+    "lastRawText": "Emerall | 4,860((153%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 4860,
+    "lastMultiplier": 153,
+    "similar": [
+      {
+        "name": "Emerald",
+        "type": "Precious Stones",
+        "score": 0.857,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:37:51.7473494Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "3640f0c184ba4822bd0e9eed215e9a75",
+    "name": "Malacbitelb",
+    "normalizedName": "malacbitelb",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 7,
+    "firstSeenAtUtc": "2026-04-30T20:29:11.542034Z",
+    "lastSeenAtUtc": "2026-04-30T20:29:44.5560148Z",
+    "lastRawText": "Malacbitelb | 1.52088%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1520,
+    "lastMultiplier": 88,
+    "similar": [
+      {
+        "name": "Malachite",
+        "type": "Precious Stones",
+        "score": 0.727,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:37:51.2065809Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "2a73d917086449dfa7903fd23279c774",
+    "name": "Market",
+    "normalizedName": "market",
+    "suggestedType": "Firearms",
+    "confidence": 0.9000000000000001,
+    "seenCount": 6,
+    "firstSeenAtUtc": "2026-04-30T20:29:50.0171327Z",
+    "lastSeenAtUtc": "2026-04-30T20:30:17.6618244Z",
+    "lastRawText": "Market | 264(94%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 264,
+    "lastMultiplier": 94,
+    "similar": [
+      {
+        "name": "Muskets",
+        "type": "Firearms",
+        "score": 0.571,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:37:53.2610647Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "89314172a52e4e2f860a2bbe95786ee6",
+    "name": "mmerale",
+    "normalizedName": "mmerale",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:30:12.0331505Z",
+    "lastSeenAtUtc": "2026-04-30T20:30:12.0331505Z",
+    "lastRawText": "mmerale | 4,860153%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 4860,
+    "lastMultiplier": 153,
+    "similar": [
+      {
+        "name": "Emerald",
+        "type": "Precious Stones",
+        "score": 0.714,
+        "aliases": []
+      },
+      {
+        "name": "Marble",
+        "type": "Wares",
+        "score": 0.571,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:37:52.7406726Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "985a4c223ece4834b6213946fb53628d",
+    "name": "mmeral",
+    "normalizedName": "mmeral",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:30:17.6624606Z",
+    "lastSeenAtUtc": "2026-04-30T20:30:17.6624606Z",
+    "lastRawText": "mmeral | 4,860153%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 4860,
+    "lastMultiplier": 153,
+    "similar": [
+      {
+        "name": "Emerald",
+        "type": "Precious Stones",
+        "score": 0.714,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:37:53.7952127Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "2a3a76c5e96f451d8dd73de5421f82c0",
+    "name": "Emerale",
+    "normalizedName": "emerale",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:30:23.1893676Z",
+    "lastSeenAtUtc": "2026-04-30T20:30:23.1893676Z",
+    "lastRawText": "Emerale | 4,860153%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 4860,
+    "lastMultiplier": 153,
+    "similar": [
+      {
+        "name": "Emerald",
+        "type": "Precious Stones",
+        "score": 0.857,
+        "aliases": []
+      },
+      {
+        "name": "Marble",
+        "type": "Wares",
+        "score": 0.571,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:37:54.4164072Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "a5a26ba5d66640cb8f6adc640109e287",
+    "name": "Boomerang",
+    "normalizedName": "boomerang",
+    "suggestedType": "",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:38:13.5245472Z",
+    "lastSeenAtUtc": "2026-04-30T20:38:13.5245472Z",
+    "lastRawText": "Boomerang | 150",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 50,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:38:57.3106254Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "7a7a3b89393843dbb8e5fe6377de20e7",
+    "name": "Throwing Torches",
+    "normalizedName": "throwing torches",
+    "suggestedType": "",
+    "confidence": 0.75,
+    "seenCount": 3,
+    "firstSeenAtUtc": "2026-04-30T20:38:13.5274002Z",
+    "lastSeenAtUtc": "2026-04-30T20:38:24.6213997Z",
+    "lastRawText": "Throwing Torches | 150",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 50,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:38:53.9744341Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "7f27fd63cbd1402989cfa65eae2d3f61",
+    "name": "cYhanel",
+    "normalizedName": "cyhanel",
+    "suggestedType": "Livestock",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:38:19.0161884Z",
+    "lastSeenAtUtc": "2026-04-30T20:38:19.0161884Z",
+    "lastRawText": "cYhanel | 150",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 50,
+    "similar": [
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.571,
+        "aliases": []
+      },
+      {
+        "name": "Cochineal",
+        "type": "Dyes",
+        "score": 0.556,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:38:55.7517538Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "278b7ffac25e4f1abbd0d2baaabf1135",
+    "name": "Shopk",
+    "normalizedName": "shopk",
+    "suggestedType": "",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:38:24.6189714Z",
+    "lastSeenAtUtc": "2026-04-30T20:38:24.6189714Z",
+    "lastRawText": "Shopk | 150",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 50,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:38:54.5109767Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "a04763d32a0641e1a1704e4cc83db023",
+    "name": "Camel Hair",
+    "normalizedName": "camel hair",
+    "suggestedType": "Livestock",
+    "confidence": 0.9000000000000001,
+    "seenCount": 10,
+    "firstSeenAtUtc": "2026-04-30T20:39:23.5346944Z",
+    "lastSeenAtUtc": "2026-04-30T20:40:13.5255268Z",
+    "lastRawText": "Camel Hair | 31487%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 314,
+    "lastMultiplier": 87,
+    "similar": [
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.5,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-04-30T20:40:13.7661363Z",
+    "resolutionMessage": "Trade good \u0027Camel Hair\u0027 was added."
+  },
+  {
+    "id": "f321b82eabe7486a96740fe4ed6ca3ac",
+    "name": "ype:",
+    "normalizedName": "ype",
+    "suggestedType": "",
+    "confidence": 0.8200000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:39:45.7893932Z",
+    "lastSeenAtUtc": "2026-04-30T20:39:45.7893932Z",
+    "lastRawText": "ype: | Fibres5 \u5366(112%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 5,
+    "lastMultiplier": 112,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:42:30.6713967Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "ac25803d5fd744d5b27b2804c0aabdb9",
+    "name": "Georgette Fabric",
+    "normalizedName": "georgette fabric",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 10,
+    "firstSeenAtUtc": "2026-04-30T20:40:30.3466308Z",
+    "lastSeenAtUtc": "2026-04-30T20:41:26.0225738Z",
+    "lastRawText": "Georgette Fabric | 3.50093%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 3500,
+    "lastMultiplier": 93,
+    "similar": [],
+    "status": 1,
+    "resolvedAtUtc": "2026-04-30T20:41:29.7031206Z",
+    "resolutionMessage": "Trade good \u0027Georgette Fabric\u0027 was added."
+  },
+  {
+    "id": "740490ea641a4cf1b5936d0142310d27",
+    "name": "Pearl",
+    "normalizedName": "pearl",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 10,
+    "firstSeenAtUtc": "2026-04-30T20:41:37.1292593Z",
+    "lastSeenAtUtc": "2026-04-30T20:42:26.8784982Z",
+    "lastRawText": "Pearl | 5.220\u91CC(100%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 5220,
+    "lastMultiplier": 100,
+    "similar": [
+      {
+        "name": "Pearls",
+        "type": "Precious Stones",
+        "score": 0.833,
+        "aliases": []
+      },
+      {
+        "name": "Conch Pearl",
+        "type": "Precious Stones",
+        "score": 0.455,
+        "aliases": []
+      },
+      {
+        "name": "Pearl Millet",
+        "type": "Foodstuffs",
+        "score": 0.417,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:42:32.3150902Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "6fd7fb39fc0441cf9b9e8bc292f4624a",
+    "name": "African Wood Carving",
+    "normalizedName": "african wood carving",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 9,
+    "firstSeenAtUtc": "2026-04-30T20:41:37.1319116Z",
+    "lastSeenAtUtc": "2026-04-30T20:42:21.3868998Z",
+    "lastRawText": "African Wood Carving | 2.510 (124%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 2510,
+    "lastMultiplier": 124,
+    "similar": [],
+    "status": 1,
+    "resolvedAtUtc": "2026-04-30T20:42:25.3172403Z",
+    "resolutionMessage": "Trade good \u0027African Wood Carving\u0027 was added."
+  },
+  {
+    "id": "d273ea4e06ca48b0ae88d21f6c3c5d0d",
+    "name": "Pearl",
+    "normalizedName": "pearl",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 14,
+    "firstSeenAtUtc": "2026-04-30T20:42:32.472513Z",
+    "lastSeenAtUtc": "2026-04-30T20:43:44.791813Z",
+    "lastRawText": "Pearl | 5.220(100%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 5220,
+    "lastMultiplier": 100,
+    "similar": [
+      {
+        "name": "Pearls",
+        "type": "Precious Stones",
+        "score": 0.833,
+        "aliases": []
+      },
+      {
+        "name": "Conch Pearl",
+        "type": "Precious Stones",
+        "score": 0.455,
+        "aliases": []
+      },
+      {
+        "name": "Pearl Millet",
+        "type": "Foodstuffs",
+        "score": 0.417,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T20:44:29.722725Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "f1e542d5ce0a478997f5f8fb89c096a2",
+    "name": "Rooibos",
+    "normalizedName": "rooibos",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 6,
+    "firstSeenAtUtc": "2026-04-30T20:44:22.4382926Z",
+    "lastSeenAtUtc": "2026-04-30T20:44:50.0211541Z",
+    "lastRawText": "Rooibos | 1,170(112%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 1170,
+    "lastMultiplier": 112,
+    "similar": [],
+    "status": 1,
+    "resolvedAtUtc": "2026-04-30T20:44:52.5865033Z",
+    "resolutionMessage": "Trade good \u0027Rooibos\u0027 was added."
+  },
+  {
+    "id": "94b39fcccddb4fc7ade79e7d2a32da3b",
+    "name": "ype:",
+    "normalizedName": "ype",
+    "suggestedType": "",
+    "confidence": 0.8200000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:47:53.3172832Z",
+    "lastSeenAtUtc": "2026-04-30T20:47:53.3172832Z",
+    "lastRawText": "ype: | Fibres5 (112%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 5,
+    "lastMultiplier": 112,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T22:05:23.1067598Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "6d61a1575ffa4f4dafc601872989d8b8",
+    "name": "Lumber",
+    "normalizedName": "lumber",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 6,
+    "firstSeenAtUtc": "2026-04-30T20:50:32.1564796Z",
+    "lastSeenAtUtc": "2026-04-30T20:50:59.5468003Z",
+    "lastRawText": "Lumber | 789(127%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 789,
+    "lastMultiplier": 127,
+    "similar": [
+      {
+        "name": "Amber",
+        "type": "Precious Stones",
+        "score": 0.667,
+        "aliases": []
+      },
+      {
+        "name": "Rubber",
+        "type": "Wares",
+        "score": 0.667,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-04-30T20:51:01.8861107Z",
+    "resolutionMessage": "Trade good \u0027Lumber\u0027 was added."
+  },
+  {
+    "id": "8d73577186024cffa69e10cfed9384e0",
+    "name": "Doibosge Oil",
+    "normalizedName": "doibosge oil",
+    "suggestedType": "Fragrances",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T20:51:27.2836337Z",
+    "lastSeenAtUtc": "2026-04-30T20:51:27.2836337Z",
+    "lastRawText": "Doibosge Oil | ype:Medicine(110%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 1,
+    "lastMultiplier": 10,
+    "similar": [
+      {
+        "name": "Orange Oil",
+        "type": "Fragrances",
+        "score": 0.583,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T22:05:21.8733408Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "b4965f1cfdff47c1b9a8be920ec443d9",
+    "name": "Welcome!",
+    "normalizedName": "welcome",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-04-30T22:02:31.0625978Z",
+    "lastSeenAtUtc": "2026-04-30T22:02:36.5315268Z",
+    "lastRawText": "Welcome! | 775(130%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 775,
+    "lastMultiplier": 130,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T22:05:20.7068599Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "96ec68b74e1e4233b265e66bf8c1b354",
+    "name": "Beef",
+    "normalizedName": "beef",
+    "suggestedType": "Alcohol",
+    "confidence": 0.9000000000000001,
+    "seenCount": 17,
+    "firstSeenAtUtc": "2026-04-30T22:02:42.2282556Z",
+    "lastSeenAtUtc": "2026-04-30T22:05:08.1460869Z",
+    "lastRawText": "Beef | 775(130%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 775,
+    "lastMultiplier": 130,
+    "similar": [
+      {
+        "name": "Beer",
+        "type": "Alcohol",
+        "score": 0.75,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-04-30T22:05:10.9327983Z",
+    "resolutionMessage": "Trade good \u0027Beef\u0027 was added."
+  },
+  {
+    "id": "2b53f61a810b4ea887f44e16853b609f",
+    "name": "Leather",
+    "normalizedName": "leather",
+    "suggestedType": "Fibres",
+    "confidence": 0.9000000000000001,
+    "seenCount": 6,
+    "firstSeenAtUtc": "2026-04-30T22:05:30.694701Z",
+    "lastSeenAtUtc": "2026-04-30T22:05:58.9345108Z",
+    "lastRawText": "Leather | 398(102%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 398,
+    "lastMultiplier": 102,
+    "similar": [
+      {
+        "name": "Feathers",
+        "type": "Fibres",
+        "score": 0.75,
+        "aliases": []
+      },
+      {
+        "name": "Heathers",
+        "type": "Medicine",
+        "score": 0.75,
+        "aliases": []
+      },
+      {
+        "name": "Leather Cord",
+        "type": "Crafts",
+        "score": 0.583,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-04-30T22:06:03.6930962Z",
+    "resolutionMessage": "Trade good \u0027Leather\u0027 was added."
+  },
+  {
+    "id": "cad958408e7341c2bdc907158856bd07",
+    "name": "ergamotette Fabric",
+    "normalizedName": "ergamotette fabric",
+    "suggestedType": "Fabrics",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T22:06:21.6270969Z",
+    "lastSeenAtUtc": "2026-04-30T22:06:21.6270969Z",
+    "lastRawText": "ergamotette Fabric | ype:Spices0(72%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 0,
+    "lastMultiplier": 72,
+    "similar": [
+      {
+        "name": "Georgette Fabric",
+        "type": "Fabrics",
+        "score": 0.667,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T22:08:55.4161816Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "3b5a3c360f9d4254857d1b086d349df3",
+    "name": "lemon:n Books",
+    "normalizedName": "lemon n books",
+    "suggestedType": "Wares",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T22:06:21.6311391Z",
+    "lastSeenAtUtc": "2026-04-30T22:06:21.6311391Z",
+    "lastRawText": "lemon:n Books | 18/1Z2%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 18,
+    "lastMultiplier": 12,
+    "similar": [
+      {
+        "name": "Western Books",
+        "type": "Wares",
+        "score": 0.615,
+        "aliases": []
+      },
+      {
+        "name": "Lemon",
+        "type": "Foodstuffs",
+        "score": 0.385,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T22:08:52.6901332Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "7ea591b1bc064055abd8e979d9243a7a",
+    "name": "Durability",
+    "normalizedName": "durability",
+    "suggestedType": "",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T22:20:40.963313Z",
+    "lastSeenAtUtc": "2026-04-30T22:20:40.963313Z",
+    "lastRawText": "Durability | 30/30)",
+    "lastTradeType": "Buy",
+    "lastPrice": 30,
+    "lastMultiplier": 30,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T22:21:04.28875Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "3d3d92840f0a4aa9be43b243e01554b4",
+    "name": "Sailing iGuide ells",
+    "normalizedName": "sailing iguide ells",
+    "suggestedType": "",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T22:20:46.5765351Z",
+    "lastSeenAtUtc": "2026-04-30T22:20:46.5765351Z",
+    "lastRawText": "Sailing iGuide ells | Durability10/10",
+    "lastTradeType": "Buy",
+    "lastPrice": 10,
+    "lastMultiplier": 10,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-04-30T22:21:06.3275096Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "8ce1b3da4b62476d9ad00b79f9acaf64",
+    "name": "Pomegranate",
+    "normalizedName": "pomegranate",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 6,
+    "firstSeenAtUtc": "2026-04-30T22:27:28.2530006Z",
+    "lastSeenAtUtc": "2026-04-30T22:27:56.9430325Z",
+    "lastRawText": "Pomegranate | 378(105%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 378,
+    "lastMultiplier": 105,
+    "similar": [],
+    "status": 1,
+    "resolvedAtUtc": "2026-04-30T22:28:00.6899222Z",
+    "resolutionMessage": "Trade good \u0027Pomegranate\u0027 was added."
+  },
+  {
+    "id": "7895d9ca8f0f44038003cd657096ca1b",
+    "name": "Berqamot",
+    "normalizedName": "berqamot",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 5,
+    "firstSeenAtUtc": "2026-04-30T22:49:27.0601013Z",
+    "lastSeenAtUtc": "2026-04-30T22:49:55.3547963Z",
+    "lastRawText": "Berqamot | 95668%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 956,
+    "lastMultiplier": 68,
+    "similar": [
+      {
+        "name": "Bergamot",
+        "type": "Spices",
+        "score": 0.875,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T00:22:45.2015786Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "67781aeb4f1c44b9a3581cf5c4249a86",
+    "name": "cWenalwb",
+    "normalizedName": "cwenalwb",
+    "suggestedType": "",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T22:49:38.2587717Z",
+    "lastSeenAtUtc": "2026-04-30T22:49:38.2587717Z",
+    "lastRawText": "cWenalwb | 1~29",
+    "lastTradeType": "Sell",
+    "lastPrice": 1,
+    "lastMultiplier": 29,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T00:22:46.9405344Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "a599fbaed03745dba1d833359205c6da",
+    "name": "cWanawb",
+    "normalizedName": "cwanawb",
+    "suggestedType": "",
+    "confidence": 0.75,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-04-30T22:49:43.9343983Z",
+    "lastSeenAtUtc": "2026-04-30T22:49:55.3555114Z",
+    "lastRawText": "cWanawb | 1~29",
+    "lastTradeType": "Sell",
+    "lastPrice": 1,
+    "lastMultiplier": 29,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T00:22:44.2385177Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "92b64bca7b2647d79ccc09c5fc38727c",
+    "name": "cWananob",
+    "normalizedName": "cwananob",
+    "suggestedType": "",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-04-30T22:49:49.6720887Z",
+    "lastSeenAtUtc": "2026-04-30T22:49:49.6720887Z",
+    "lastRawText": "cWananob | 1~29",
+    "lastTradeType": "Sell",
+    "lastPrice": 1,
+    "lastMultiplier": 29,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T00:22:46.0194368Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "ee47ebdb45fe44759b91c1f56ea072b8",
+    "name": "Oil",
+    "normalizedName": "oil",
+    "suggestedType": "Seasonings",
+    "confidence": 0.8200000000000001,
+    "seenCount": 9,
+    "firstSeenAtUtc": "2026-05-01T00:21:46.3207202Z",
+    "lastSeenAtUtc": "2026-05-01T00:22:31.1951052Z",
+    "lastRawText": "Oil | 640((120%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 640,
+    "lastMultiplier": 120,
+    "similar": [
+      {
+        "name": "Herb Oil",
+        "type": "Seasonings",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Olive Oil",
+        "type": "Seasonings",
+        "score": 0.333,
+        "aliases": []
+      },
+      {
+        "name": "Orange Oil",
+        "type": "Fragrances",
+        "score": 0.3,
+        "aliases": []
+      },
+      {
+        "name": "Oil Paintings",
+        "type": "Artwork",
+        "score": 0.231,
+        "aliases": []
+      },
+      {
+        "name": "Vegetable Oil",
+        "type": "Seasonings",
+        "score": 0.231,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-01T00:22:33.9020317Z",
+    "resolutionMessage": "Trade good \u0027Oil\u0027 was added."
+  },
+  {
+    "id": "48c28550e4e64df1af07de11121a371b",
+    "name": "Stone",
+    "normalizedName": "stone",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 5,
+    "firstSeenAtUtc": "2026-05-01T00:21:46.3274132Z",
+    "lastSeenAtUtc": "2026-05-01T00:22:08.7797406Z",
+    "lastRawText": "Stone | 840(140%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 840,
+    "lastMultiplier": 140,
+    "similar": [],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-01T00:22:10.0002447Z",
+    "resolutionMessage": "Trade good \u0027Stone\u0027 was added."
+  }
+]
