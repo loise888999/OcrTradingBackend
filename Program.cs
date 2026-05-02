@@ -220,16 +220,59 @@ app.MapGet("/api/trading/recommendations", async (
     return Results.Ok(await s.GetRecommendationsAsync(filter));
 });
 
-app.MapGet("/api/export/prices.csv", async (AppDbContext db) => Results.Text(CsvExportService.ExportPrices(await db.PriceCaptures.OrderByDescending(x => x.CapturedAtUtc).ToListAsync()), "text/csv"));
+app.MapGet("/api/export/prices.csv", async (AppDbContext db) =>
+{
+    var csv = CsvExportService.ExportPrices(
+        await db.PriceCaptures
+            .OrderByDescending(x => x.CapturedAtUtc)
+            .ToListAsync());
+
+    var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+    return Results.File(bytes, "text/csv", "prices.csv");
+});
 
 app.MapPost("/api/import/prices.csv", async (HttpRequest request, AppDbContext db, CancellationToken ct) =>
 {
-    if (!request.HasFormContentType) return Results.BadRequest(new { message = "Expected multipart/form-data with a file field named 'file'." });
+    if (!request.HasFormContentType)
+        return Results.BadRequest(new { message = "Expected multipart/form-data with a file field named 'file'." });
+
     var form = await request.ReadFormAsync(ct);
     var file = form.Files.GetFile("file");
-    if (file is null || file.Length == 0) return Results.BadRequest(new { message = "No CSV file was uploaded." });
+
+    if (file is null || file.Length == 0)
+        return Results.BadRequest(new { message = "No CSV file was uploaded." });
+
     await using var stream = file.OpenReadStream();
     var result = await PriceCsvImportService.ImportAsync(db, stream, ct);
+
+    return Results.Ok(result);
+});
+
+app.MapGet("/api/export/trade-goods.csv", (ITradeGoodCatalog catalog) =>
+{
+    var csv = TradeGoodsCsvService.Export(catalog.GetAll());
+    var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+
+    return Results.File(bytes, "text/csv", "trade-goods.csv");
+});
+
+app.MapPost("/api/import/trade-goods.csv", async (
+    HttpRequest request,
+    ITradeGoodCatalog catalog,
+    CancellationToken ct) =>
+{
+    if (!request.HasFormContentType)
+        return Results.BadRequest(new { message = "Expected multipart/form-data with a file field named 'file'." });
+
+    var form = await request.ReadFormAsync(ct);
+    var file = form.Files.GetFile("file");
+
+    if (file is null || file.Length == 0)
+        return Results.BadRequest(new { message = "No CSV file was uploaded." });
+
+    await using var stream = file.OpenReadStream();
+    var result = await TradeGoodsCsvService.ImportAsync(catalog, stream, ct);
+
     return Results.Ok(result);
 });
 
