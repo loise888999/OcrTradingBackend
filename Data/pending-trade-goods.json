@@ -3373,9 +3373,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T00:34:48.0666194Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "01df2e2e5dab41299b4732efabbd1b2e",
@@ -3398,9 +3398,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T00:34:42.2481847Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "a25c9e9a72614b5d8af091613e68b99a",
@@ -3416,9 +3416,9 @@
     "lastPrice": 276,
     "lastMultiplier": 103,
     "similar": [],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T00:34:42.8028161Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "86db2aa4af5b47afab45e492e0886b69",
@@ -3459,9 +3459,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T00:34:43.135535Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "ba366122310c4ef281e6ebc64aa8ba1a",
@@ -3502,8 +3502,57 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T00:34:43.3803247Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "b76f2dcf4d684571aca6ea9389b3bc1c",
+    "name": "Dried Mango",
+    "normalizedName": "dried mango",
+    "suggestedType": "Foodstuffs",
+    "confidence": 0.9000000000000001,
+    "seenCount": 12,
+    "firstSeenAtUtc": "2026-05-02T00:33:51.9947863Z",
+    "lastSeenAtUtc": "2026-05-02T00:34:24.9459725Z",
+    "lastRawText": "Dried Mango | 376(115%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 376,
+    "lastMultiplier": 115,
+    "similar": [
+      {
+        "name": "Dried Figs",
+        "type": "Foodstuffs",
+        "score": 0.636,
+        "aliases": []
+      },
+      {
+        "name": "Mango",
+        "type": "Foodstuffs",
+        "score": 0.455,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-02T00:34:31.3341117Z",
+    "resolutionMessage": "Trade good \u0027Dried Mango\u0027 was added."
+  },
+  {
+    "id": "10ecec6d33184864862dfa8cd366367a",
+    "name": "cDried a",
+    "normalizedName": "cdried a",
+    "suggestedType": "",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T00:33:57.3119951Z",
+    "lastSeenAtUtc": "2026-05-02T00:33:57.3119951Z",
+    "lastRawText": "cDried a | 1~23",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 23,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T00:34:43.6469233Z",
+    "resolutionMessage": "Dismissed by user."
   }
 ]
