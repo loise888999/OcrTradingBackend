@@ -49,6 +49,7 @@ public sealed class OcrBackgroundWorker : BackgroundService
     private async Task RunOneCycleAsync(OcrRuntimeSettings settings, CancellationToken ct)
     {
         using var scope = _scopeFactory.CreateScope();
+
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var capture = scope.ServiceProvider.GetRequiredService<IScreenCaptureService>();
         var ocr = scope.ServiceProvider.GetRequiredService<IPaddleOcrService>();
@@ -163,7 +164,6 @@ public sealed class OcrBackgroundWorker : BackgroundService
     {
         var now = DateTime.UtcNow;
         var fastModeActive = _control.PriceFastModeUntilUtc is not null && _control.PriceFastModeUntilUtc.Value > now;
-
         var intervalSeconds = fastModeActive
             ? Math.Max(1, settings.ActivePriceIntervalSeconds)
             : Math.Max(1, settings.PriceIntervalSeconds);
@@ -209,7 +209,7 @@ public sealed class OcrBackgroundWorker : BackgroundService
         {
             if (!PriceCaptureMergeService.IsKnownTradeType(price.TradeType))
             {
-                Console.WriteLine($"Skipped price because trade type is unknown: {price.ItemName} | {price.Price} | {price.Multiplier}%");
+                Console.WriteLine($"Skipped price because trade type is unknown: {price.ItemName} {price.Price} {price.Multiplier}%");
                 continue;
             }
 
@@ -218,7 +218,7 @@ public sealed class OcrBackgroundWorker : BackgroundService
                 City = latestCity.City,
                 ItemName = price.ItemName,
                 TradeGoodType = price.TradeGoodType,
-                Price = price.Price,
+                Price = DecimalToInt(price.Price),
                 Multiplier = price.Multiplier,
                 TradeType = price.TradeType,
                 RawText = price.RawText,
@@ -232,7 +232,7 @@ public sealed class OcrBackgroundWorker : BackgroundService
             else if (mergeResult.Action == PriceCaptureMergeAction.UpdatedExisting)
                 hadUpdatedExistingState = true;
 
-            Console.WriteLine($"{mergeResult.Action}: {price.TradeType} {price.ItemName} | {price.TradeGoodType} | {price.Price} | {price.Multiplier}% | {mergeResult.Message}");
+            Console.WriteLine($"{mergeResult.Action}: {price.TradeType} {price.ItemName} {price.TradeGoodType} {price.Price} {price.Multiplier}% {mergeResult.Message}");
         }
 
         if (hadNewPriceState)
@@ -279,5 +279,10 @@ public sealed class OcrBackgroundWorker : BackgroundService
             RawText = parsed.RawText,
             CapturedAtUtc = DateTime.UtcNow
         });
+    }
+
+    private static int DecimalToInt(decimal value)
+    {
+        return decimal.ToInt32(decimal.Truncate(value));
     }
 }

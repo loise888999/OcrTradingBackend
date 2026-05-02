@@ -34,7 +34,7 @@ public sealed class PriceCapture
     public string City { get; set; } = "";
     public string ItemName { get; set; } = "";
     public string TradeGoodType { get; set; } = "";
-    public decimal Price { get; set; }
+    public int Price { get; set; }
     public decimal? Multiplier { get; set; }
     public string TradeType { get; set; } = "Unknown";
     public string RawText { get; set; } = "";

@@ -13,7 +13,11 @@ public sealed record TradingRegionFilter(
     string? BuySeaTradeRegion,
     string? SellMainRegion,
     string? SellSubRegion,
-    string? SellSeaTradeRegion);
+    string? SellSeaTradeRegion,
+    string? ItemName = null,
+    int RoutesPerItem = 1,
+    int Take = 50,
+    int MinProfit = 1);
 
 public interface ITradingRecommendationService
 {
@@ -39,11 +43,20 @@ public sealed class TradingRecommendationService : ITradingRecommendationService
 
     public async Task<IReadOnlyList<TradingRecommendation>> GetRecommendationsAsync(TradingRegionFilter filter)
     {
-        var rows = await _db.PriceCaptures
+        var routesPerItem = Math.Clamp(filter.RoutesPerItem, 1, 100);
+        var take = Math.Clamp(filter.Take, 1, 500);
+        var minProfit = Math.Max(1, filter.MinProfit);
+
+        var query = _db.PriceCaptures
             .AsNoTracking()
-            .Where(x => x.TradeType == "Buy" || x.TradeType == "Sell")
+            .Where(x => x.TradeType == "Buy" || x.TradeType == "Sell");
+
+        if (!string.IsNullOrWhiteSpace(filter.ItemName))
+            query = query.Where(x => x.ItemName.Contains(filter.ItemName));
+
+        var rows = await query
             .OrderByDescending(x => x.CapturedAtUtc)
-            .Take(10000)
+            .Take(20000)
             .ToListAsync();
 
         rows = rows
@@ -59,38 +72,58 @@ public sealed class TradingRecommendationService : ITradingRecommendationService
 
         foreach (var itemGroup in latestPerCityItemTradeType.GroupBy(x => x.ItemName))
         {
-            var buy = itemGroup
+            var buyCandidates = itemGroup
                 .Where(x => x.TradeType == "Buy")
                 .Where(x => CityMatches(x.City, filter.BuyMainRegion, filter.BuySubRegion, filter.BuySeaTradeRegion))
                 .OrderBy(x => x.Price)
                 .ThenBy(x => x.City)
-                .FirstOrDefault();
+                .ToList();
 
-            var sell = itemGroup
+            var sellCandidates = itemGroup
                 .Where(x => x.TradeType == "Sell")
                 .Where(x => CityMatches(x.City, filter.SellMainRegion, filter.SellSubRegion, filter.SellSeaTradeRegion))
                 .OrderByDescending(x => x.Price)
                 .ThenBy(x => x.City)
-                .FirstOrDefault();
+                .ToList();
 
-            if (buy is null || sell is null) continue;
+            var itemRoutes = new List<TradingRecommendation>();
 
-            var profit = sell.Price - buy.Price;
-            if (profit <= 0) continue;
+            foreach (var buy in buyCandidates)
+            {
+                foreach (var sell in sellCandidates)
+                {
+                    if (string.Equals(buy.City, sell.City, StringComparison.OrdinalIgnoreCase))
+                        continue;
 
-            recommendations.Add(new TradingRecommendation(
-                buy.ItemName,
-                string.IsNullOrWhiteSpace(buy.TradeGoodType) ? sell.TradeGoodType : buy.TradeGoodType,
-                buy.City,
-                buy.Price,
-                sell.City,
-                sell.Price,
-                profit,
-                buy.Multiplier,
-                sell.Multiplier));
+                    var profit = sell.Price - buy.Price;
+                    if (profit < minProfit)
+                        continue;
+
+                    itemRoutes.Add(new TradingRecommendation(
+                        buy.ItemName,
+                        string.IsNullOrWhiteSpace(buy.TradeGoodType) ? sell.TradeGoodType : buy.TradeGoodType,
+                        buy.City,
+                        buy.Price,
+                        sell.City,
+                        sell.Price,
+                        profit,
+                        buy.Multiplier,
+                        sell.Multiplier));
+                }
+            }
+
+            recommendations.AddRange(itemRoutes
+                .OrderByDescending(x => x.Profit)
+                .ThenBy(x => x.BuyPrice)
+                .ThenByDescending(x => x.SellPrice)
+                .Take(routesPerItem));
         }
 
-        return recommendations.OrderByDescending(x => x.Profit).Take(50).ToList();
+        return recommendations
+            .OrderByDescending(x => x.Profit)
+            .ThenBy(x => x.ItemName)
+            .Take(take)
+            .ToList();
     }
 
     private bool CityMatches(string cityName, string? mainRegion, string? subRegion, string? seaTradeRegion)

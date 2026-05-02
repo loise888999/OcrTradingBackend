@@ -3554,5 +3554,299 @@
     "status": 2,
     "resolvedAtUtc": "2026-05-02T00:34:43.6469233Z",
     "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "a79d610246c842bf93347336fdbe61fe",
+    "name": "Turmeric",
+    "normalizedName": "turmeric",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.9000000000000001,
+    "seenCount": 7,
+    "firstSeenAtUtc": "2026-05-02T02:00:51.8506037Z",
+    "lastSeenAtUtc": "2026-05-02T02:02:55.2633304Z",
+    "lastRawText": "Turmeric | 199(97%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 199,
+    "lastMultiplier": 97,
+    "similar": [
+      {
+        "name": "Tourmaline",
+        "type": "Precious Stones",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Turquoise",
+        "type": "Precious Stones",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Ceramic",
+        "type": "Wares",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Cummin",
+        "type": "Spices",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Garlic",
+        "type": "Foodstuffs",
+        "score": 0.375,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-02T02:02:58.4325593Z",
+    "resolutionMessage": "Added trade good \u0027Turmeric\u0027."
+  },
+  {
+    "id": "53c2afbbfd6c49e0898e82d130ac4340",
+    "name": "Dilll",
+    "normalizedName": "dilll",
+    "suggestedType": "Fragrances",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T02:01:02.9068918Z",
+    "lastSeenAtUtc": "2026-05-02T02:01:02.9068918Z",
+    "lastRawText": "Dilll | 15492%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 154,
+    "lastMultiplier": 92,
+    "similar": [
+      {
+        "name": "Lilac",
+        "type": "Fragrances",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Milk",
+        "type": "Foodstuffs",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Oil",
+        "type": "Wares",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Sisal",
+        "type": "Fibres",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Bombilla",
+        "type": "Crafts",
+        "score": 0.375,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T02:03:02.7234213Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "f43bf2b7af3b4adea0d27c06f401894e",
+    "name": "Dill",
+    "normalizedName": "dill",
+    "suggestedType": "Foodstuffs",
+    "confidence": 0.9000000000000001,
+    "seenCount": 3,
+    "firstSeenAtUtc": "2026-05-02T02:02:18.9757854Z",
+    "lastSeenAtUtc": "2026-05-02T02:02:33.4909147Z",
+    "lastRawText": "Dill | 15492%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 154,
+    "lastMultiplier": 92,
+    "similar": [
+      {
+        "name": "Milk",
+        "type": "Foodstuffs",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Oil",
+        "type": "Wares",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Lilac",
+        "type": "Fragrances",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Sisal",
+        "type": "Fibres",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Bombilla",
+        "type": "Crafts",
+        "score": 0.375,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-02T02:02:37.7361805Z",
+    "resolutionMessage": "Added trade good \u0027Dill\u0027."
+  },
+  {
+    "id": "be3bbccfc7484701ad3fcf39fc79d9a6",
+    "name": "rmerign Indigo Dyeb",
+    "normalizedName": "rmerign indigo dyeb",
+    "suggestedType": "Dyes",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T02:03:21.6400491Z",
+    "lastSeenAtUtc": "2026-05-02T02:03:21.6400491Z",
+    "lastRawText": "rmerign Indigo Dyeb | ype: Dyes|41(125%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 41,
+    "lastMultiplier": 125,
+    "similar": [
+      {
+        "name": "Indian Indigo Dye",
+        "type": "Dyes",
+        "score": 0.6842105263157895,
+        "aliases": []
+      },
+      {
+        "name": "Indian Madder",
+        "type": "Dyes",
+        "score": 0.3157894736842105,
+        "aliases": []
+      },
+      {
+        "name": "Ammonium Nitrate",
+        "type": "Ores",
+        "score": 0.26315789473684215,
+        "aliases": []
+      },
+      {
+        "name": "Aubergine",
+        "type": "Luxury Goods",
+        "score": 0.26315789473684215,
+        "aliases": []
+      },
+      {
+        "name": "Cherimoya",
+        "type": "Foodstuffs",
+        "score": 0.26315789473684215,
+        "aliases": []
+      }
+    ],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
+  },
+  {
+    "id": "66ad79eb0703487bbf8398495bacf354",
+    "name": "edicine.o",
+    "normalizedName": "edicine o",
+    "suggestedType": "Livestock",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T02:03:21.6992407Z",
+    "lastSeenAtUtc": "2026-05-02T02:03:21.6992407Z",
+    "lastRawText": "edicine.o | /511/Z%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 5,
+    "lastMultiplier": 11,
+    "similar": [
+      {
+        "name": "Chickens",
+        "type": "Livestock",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Chicle",
+        "type": "Wares",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Cochineal",
+        "type": "Dyes",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Crickets",
+        "type": "Livestock",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Herb Vinegar",
+        "type": "Seasonings",
+        "score": 0.33333333333333337,
+        "aliases": []
+      }
+    ],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
+  },
+  {
+    "id": "8ec977c94e2d48349a2a7e6d0da8cc31",
+    "name": "ype:",
+    "normalizedName": "ype",
+    "suggestedType": "Wares",
+    "confidence": 0.8200000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T02:03:27.2381292Z",
+    "lastSeenAtUtc": "2026-05-02T02:03:27.2381292Z",
+    "lastRawText": "ype: | Dyes751 \u6211(172%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 751,
+    "lastMultiplier": 172,
+    "similar": [
+      {
+        "name": "Paper",
+        "type": "Wares",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Apples",
+        "type": "Foodstuffs",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Pepper",
+        "type": "Spices",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Yosegi",
+        "type": "Crafts",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Oysters",
+        "type": "Foodstuffs",
+        "score": 0.2857142857142857,
+        "aliases": []
+      }
+    ],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
   }
 ]

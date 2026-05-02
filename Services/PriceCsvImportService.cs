@@ -1,7 +1,7 @@
-using System.Globalization;
-using System.Text;
 using OcrTradingBackend.Data;
 using OcrTradingBackend.Models;
+using System.Globalization;
+using System.Text;
 
 namespace OcrTradingBackend.Services;
 
@@ -101,7 +101,7 @@ public static class PriceCsvImportService
                     City = city,
                     ItemName = itemName,
                     TradeGoodType = tradeGoodType,
-                    Price = price,
+                    Price = DecimalToInt(price),
                     Multiplier = multiplier,
                     TradeType = NormalizeTradeType(tradeType),
                     RawText = rawText,
@@ -250,5 +250,10 @@ public static class PriceCsvImportService
 
         result.Add(current.ToString());
         return result;
+    }
+
+    private static int DecimalToInt(decimal value)
+    {
+        return decimal.ToInt32(decimal.Truncate(value));
     }
 }

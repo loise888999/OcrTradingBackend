@@ -13,6 +13,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.UseUrls("https://localhost:5001", "http://localhost:5000");
 
+static IReadOnlyList<string> SplitMulti(string? value) =>
+    string.IsNullOrWhiteSpace(value)
+        ? Array.Empty<string>()
+        : value.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
 builder.Services.Configure<OcrRuntimeSettings>(builder.Configuration.GetSection("OcrSettings"));
 builder.Services.Configure<GameWindowSettings>(builder.Configuration.GetSection("GameWindow"));
 
@@ -30,6 +35,7 @@ builder.Services.AddSingleton<IPaddleOcrService, PaddleOcrSharpService>();
 builder.Services.AddSingleton<IGameWindowLocator, GameWindowLocatorService>();
 builder.Services.AddScoped<IWindowRelativeOcrZoneService, WindowRelativeOcrZoneService>();
 builder.Services.AddScoped<ITradingRecommendationService, TradingRecommendationService>();
+builder.Services.AddScoped<ITradingAdvancedService, TradingAdvancedService>();
 builder.Services.AddHostedService<OcrBackgroundWorker>();
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
@@ -180,9 +186,37 @@ app.MapGet("/api/trading/city-goods", async (AppDbContext db, ICityCatalog citie
 app.MapGet("/api/trading/good-locations", async (AppDbContext db, ICityCatalog cities, string item, string? tradeType, string? mainRegion, string? subRegion, string? seaTradeRegion, int take = 250) =>
     Results.Ok(await TradingQueryService.SearchAsync(db, cities, null, item, tradeType, mainRegion, subRegion, seaTradeRegion, take)));
 
-app.MapGet("/api/trading/recommendations", async (ITradingRecommendationService s, string? mainRegion, string? subRegion, string? seaTradeRegion, string? buyMainRegion, string? buySubRegion, string? buySeaTradeRegion, string? sellMainRegion, string? sellSubRegion, string? sellSeaTradeRegion) =>
+app.MapGet("/api/trading/recommendations", async (
+    ITradingRecommendationService s,
+    string? mainRegion,
+    string? subRegion,
+    string? seaTradeRegion,
+    string? buyMainRegion,
+    string? buySubRegion,
+    string? buySeaTradeRegion,
+    string? sellMainRegion,
+    string? sellSubRegion,
+    string? sellSeaTradeRegion,
+    string? item,
+    int routesPerItem = 1,
+    int take = 50,
+    int minProfit = 1) =>
 {
-    var filter = new TradingRegionFilter(mainRegion, subRegion, seaTradeRegion, buyMainRegion, buySubRegion, buySeaTradeRegion, sellMainRegion, sellSubRegion, sellSeaTradeRegion);
+    var filter = new TradingRegionFilter(
+        mainRegion,
+        subRegion,
+        seaTradeRegion,
+        buyMainRegion,
+        buySubRegion,
+        buySeaTradeRegion,
+        sellMainRegion,
+        sellSubRegion,
+        sellSeaTradeRegion,
+        item,
+        routesPerItem,
+        take,
+        minProfit);
+
     return Results.Ok(await s.GetRecommendationsAsync(filter));
 });
 
@@ -198,5 +232,48 @@ app.MapPost("/api/import/prices.csv", async (HttpRequest request, AppDbContext d
     var result = await PriceCsvImportService.ImportAsync(db, stream, ct);
     return Results.Ok(result);
 });
+
+
+app.MapGet("/api/trading/good-lookup", async (
+    ITradingAdvancedService service,
+    string? item,
+    string? type,
+    string? mainRegion,
+    string? subRegion,
+    int take = 250) =>
+    Results.Ok(await service.LookupBuyGoodsAsync(item, type, mainRegion, subRegion, take)));
+
+app.MapGet("/api/trading/known-prices", async (
+    ITradingAdvancedService service,
+    string? item,
+    string? type,
+    string? tradeType,
+    string? mainRegion,
+    string? subRegion,
+    string? seaTradeRegion,
+    int take = 500) =>
+    Results.Ok(await service.GetKnownPricesAsync(item, type, tradeType, mainRegion, subRegion, seaTradeRegion, take)));
+
+app.MapGet("/api/trading/advanced-routes", async (
+    ITradingAdvancedService service,
+    string? item,
+    string? type,
+    string? buyRegions,
+    string? sellRegions,
+    int minProfit = 1,
+    int routesPerItem = 25,
+    int take = 100) =>
+    Results.Ok(await service.GetAdvancedRoutesAsync(item, type, SplitMulti(buyRegions), SplitMulti(sellRegions), minProfit, routesPerItem, take)));
+
+app.MapGet("/api/trading/multi-good-routes", async (
+    ITradingAdvancedService service,
+    string? type,
+    string? buyRegions,
+    string? sellRegions,
+    int minProfitPerGood = 1,
+    int minTotalProfit = 1,
+    int minItems = 2,
+    int take = 100) =>
+    Results.Ok(await service.GetMultiGoodRoutesAsync(type, SplitMulti(buyRegions), SplitMulti(sellRegions), minProfitPerGood, minTotalProfit, minItems, take)));
 
 app.Run();
