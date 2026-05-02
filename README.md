@@ -1,4 +1,5 @@
 # OCR Trading Companion Backend
+# Uncharted Water Online tool
 
 .NET 8 Windows backend for the OCR Trading Companion app.
 
