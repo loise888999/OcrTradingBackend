@@ -3747,9 +3747,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:45.1696669Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "66ad79eb0703487bbf8398495bacf354",
@@ -3796,9 +3796,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:45.0820133Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "8ec977c94e2d48349a2a7e6d0da8cc31",
@@ -3845,9 +3845,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:44.9752348Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "9ab0d9ca904a47a1b814610c14bbfa67",
@@ -3894,9 +3894,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:44.8874953Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "d2e76d40b2a34b78bbada35b96efa715",
@@ -3943,9 +3943,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:44.7376653Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "b68fe7061a7d420b857799f21a518077",
@@ -3992,9 +3992,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:44.6180706Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "9cc3824590b04a8aa49af3e0ff3aadf6",
@@ -4041,9 +4041,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:44.5239727Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "4705188ec3dd47d89260e85225edd624",
@@ -4090,9 +4090,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:44.4241655Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "8a5603c6a2674b7185ce38e941e28c03",
@@ -4139,9 +4139,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:44.330195Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "7a066064d46d4bcfae996c4c3a88264d",
@@ -4188,9 +4188,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:44.2428751Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "8eaa5a9f60b94855ba86b376001dc102",
@@ -4237,9 +4237,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:44.1522561Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "a0bf6d1e98734bfaaae850170d7dc007",
@@ -4286,9 +4286,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:43.9631829Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "db32c0a4f422487db0bb5bfce035113c",
@@ -4335,9 +4335,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:43.4234994Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "aaabeba4118d44a5aad9566d04a0ee67",
@@ -4384,9 +4384,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:43.8746545Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "d0198c0b9f2c4dc8818bed2406395f4a",
@@ -4433,9 +4433,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:43.6914886Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "5e0f80a1a77f444d9a9b481007035cc3",
@@ -4482,9 +4482,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:43.5913054Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "0a889a4c779c4eeb83b3dafad7d77630",
@@ -4531,9 +4531,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:43.2200131Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "b98e77218fd642c8aa023bc3e8e1de3b",
@@ -4580,9 +4580,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:43.0235416Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "77073a1228fc40d99c6d5e7234bdb76b",
@@ -4629,9 +4629,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:42.9199021Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "aa45cc44474f497a813e3194d674c2d5",
@@ -4678,9 +4678,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:42.8127933Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "7969884c70c841f1a899689b9ce01e84",
@@ -4727,9 +4727,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:42.2436211Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "0ae1415ecf5b459c837e3ca24623be0b",
@@ -4776,9 +4776,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:42.0295322Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "eed9f636350b4472ac5743b47c391989",
@@ -4825,9 +4825,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:41.8738392Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "bcc9a5d5284c4767b7d86da6b6a8c79d",
@@ -4874,9 +4874,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:41.5058801Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "d872c4f889b94524a199ed4362e92fdc",
@@ -4923,9 +4923,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:41.0461538Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "762d5e8b1d18455482a355cdf633b64d",
@@ -4972,9 +4972,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:40.7355662Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "e99c8c8971bc4897a91016f1b0967813",
@@ -5021,9 +5021,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:40.3506122Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "f67f50a12f9849cb9ec98752935f10aa",
@@ -5070,9 +5070,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:40.5247853Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "66f3cea07ac4471e9387bf1170b5705d",
@@ -5119,9 +5119,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:40.1606101Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "8caeec057b1943c997425203ee9e6713",
@@ -5168,9 +5168,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:39.8326094Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "a96b1b7aaefd4c4dbc2e51b42edc05e4",
@@ -5213,6 +5213,1625 @@
       {
         "name": "Indian Mackerel",
         "type": "Foodstuffs",
+        "score": 0.33333333333333337,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:34.6492634Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "fd6d05dbfebb49979ee9cb978c114c5f",
+    "name": "Sardine",
+    "normalizedName": "sardine",
+    "suggestedType": "Fragrances",
+    "confidence": 0.9000000000000001,
+    "seenCount": 3,
+    "firstSeenAtUtc": "2026-05-02T16:55:58.2914937Z",
+    "lastSeenAtUtc": "2026-05-02T16:56:02.9081723Z",
+    "lastRawText": "Sardine | 15(100%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 15,
+    "lastMultiplier": 100,
+    "similar": [
+      {
+        "name": "Jasmine",
+        "type": "Fragrances",
+        "score": 0.5714285714285714,
+        "aliases": []
+      },
+      {
+        "name": "Sapphire",
+        "type": "Precious Stones",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Sugar Cane",
+        "type": "Foodstuffs",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Aubergine",
+        "type": "Luxury Goods",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Palm Wine",
+        "type": "Alcohol",
+        "score": 0.4444444444444444,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:27.4772014Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "63c13b38d5b642acb906200933269d74",
+    "name": "nopkeepe",
+    "normalizedName": "nopkeepe",
+    "suggestedType": "Ores",
+    "confidence": 0.9000000000000001,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-05-02T19:02:50.9968127Z",
+    "lastSeenAtUtc": "2026-05-02T19:02:55.7351304Z",
+    "lastRawText": "nopkeepe | 130 ((97%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 130,
+    "lastMultiplier": 97,
+    "similar": [
+      {
+        "name": "Copper Ore",
+        "type": "Ores",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Cheese",
+        "type": "Foodstuffs",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Coffee",
+        "type": "Luxury Goods",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Mookaite",
+        "type": "Precious Stones",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Okpa",
+        "type": "Foodstuffs",
+        "score": 0.375,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:15.1137372Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "a1b55c04b7cc46cb9574b420bc3a012f",
+    "name": "iopkeep",
+    "normalizedName": "iopkeep",
+    "suggestedType": "Luxury Goods",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T19:02:53.39729Z",
+    "lastSeenAtUtc": "2026-05-02T19:02:53.39729Z",
+    "lastRawText": "iopkeep | 130 ((97%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 130,
+    "lastMultiplier": 97,
+    "similar": [
+      {
+        "name": "Coffee",
+        "type": "Luxury Goods",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Sheep",
+        "type": "Livestock",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Copper Ore",
+        "type": "Ores",
+        "score": 0.30000000000000004,
+        "aliases": []
+      },
+      {
+        "name": "Goldenseal",
+        "type": "Medicine",
+        "score": 0.30000000000000004,
+        "aliases": []
+      },
+      {
+        "name": "Mangosteen",
+        "type": "Foodstuffs",
+        "score": 0.30000000000000004,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:13.852032Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "f2af354819424443b53c09dfcadbf0da",
+    "name": "nopkeep",
+    "normalizedName": "nopkeep",
+    "suggestedType": "Luxury Goods",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T19:03:00.3082394Z",
+    "lastSeenAtUtc": "2026-05-02T19:03:00.3082394Z",
+    "lastRawText": "nopkeep | 130 ((97%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 130,
+    "lastMultiplier": 97,
+    "similar": [
+      {
+        "name": "Coffee",
+        "type": "Luxury Goods",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Sheep",
+        "type": "Livestock",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Mangosteen",
+        "type": "Foodstuffs",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Copper Ore",
+        "type": "Ores",
+        "score": 0.30000000000000004,
+        "aliases": []
+      },
+      {
+        "name": "Goldenseal",
+        "type": "Medicine",
+        "score": 0.30000000000000004,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:15.7055846Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "a3d98c648e75427e87f3ae5612fced0f",
+    "name": "Raisins",
+    "normalizedName": "raisins",
+    "suggestedType": "Wares",
+    "confidence": 0.9000000000000001,
+    "seenCount": 26,
+    "firstSeenAtUtc": "2026-05-02T19:57:08.2557137Z",
+    "lastSeenAtUtc": "2026-05-02T21:00:46.9413437Z",
+    "lastRawText": "Raisins | 241(116%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 241,
+    "lastMultiplier": 116,
+    "similar": [
+      {
+        "name": "Resin",
+        "type": "Wares",
+        "score": 0.5714285714285714,
+        "aliases": []
+      },
+      {
+        "name": "Narcissus",
+        "type": "Fragrances",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Shamshirs",
+        "type": "Arms",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Basil",
+        "type": "Spices",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Jasmine",
+        "type": "Fragrances",
+        "score": 0.4285714285714286,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-02T21:00:51.6130714Z",
+    "resolutionMessage": "Added trade good \u0027Raisins\u0027."
+  },
+  {
+    "id": "1935781b8fdd4379ab002a4bc010e4b1",
+    "name": "Logs",
+    "normalizedName": "logs",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 4,
+    "firstSeenAtUtc": "2026-05-02T19:57:22.1811663Z",
+    "lastSeenAtUtc": "2026-05-02T19:57:29.1351921Z",
+    "lastRawText": "Logs | 319(100%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 319,
+    "lastMultiplier": 100,
+    "similar": [
+      {
+        "name": "Cloves",
+        "type": "Spices",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Pigs",
+        "type": "Livestock",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Almonds",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Logwood",
+        "type": "Dyes",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Goats",
+        "type": "Livestock",
+        "score": 0.4,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:16.4886441Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "faf4405b570a40b9a034a1bf7bc9a4fc",
+    "name": "Eggs",
+    "normalizedName": "eggs",
+    "suggestedType": "Livestock",
+    "confidence": 0.9000000000000001,
+    "seenCount": 12,
+    "firstSeenAtUtc": "2026-05-02T20:08:56.2194746Z",
+    "lastSeenAtUtc": "2026-05-02T20:09:33.8459728Z",
+    "lastRawText": "Eggs | 2499%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 24,
+    "lastMultiplier": 99,
+    "similar": [
+      {
+        "name": "Pigs",
+        "type": "Livestock",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Ambergris",
+        "type": "Fragrances",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Leegangju",
+        "type": "Alcohol",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Dried Figs",
+        "type": "Foodstuffs",
+        "score": 0.30000000000000004,
+        "aliases": []
+      },
+      {
+        "name": "Lemongrass",
+        "type": "Spices",
+        "score": 0.30000000000000004,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:28.1679235Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "b476568148f546e1987e78eb744db218",
+    "name": "Arquebuses",
+    "normalizedName": "arquebuses",
+    "suggestedType": "Foodstuffs",
+    "confidence": 0.9000000000000001,
+    "seenCount": 4,
+    "firstSeenAtUtc": "2026-05-02T20:29:18.0994366Z",
+    "lastSeenAtUtc": "2026-05-02T20:29:24.774433Z",
+    "lastRawText": "Arquebuses | 1.840 (105%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1840,
+    "lastMultiplier": 105,
+    "similar": [
+      {
+        "name": "Prunes",
+        "type": "Foodstuffs",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Rubber",
+        "type": "Wares",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Turquoise",
+        "type": "Precious Stones",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Cranberries",
+        "type": "Luxury Goods",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Strawberries",
+        "type": "Foodstuffs",
+        "score": 0.33333333333333337,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:28.6518448Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "038d4126294a4347ac7e173620ed1a90",
+    "name": "Shot",
+    "normalizedName": "shot",
+    "suggestedType": "Seasonings",
+    "confidence": 0.9000000000000001,
+    "seenCount": 13,
+    "firstSeenAtUtc": "2026-05-02T20:29:18.1528963Z",
+    "lastSeenAtUtc": "2026-05-02T20:29:45.2103794Z",
+    "lastRawText": "Shot | 772 (100%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 772,
+    "lastMultiplier": 100,
+    "similar": [
+      {
+        "name": "Salt",
+        "type": "Seasonings",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Saori",
+        "type": "Fabrics",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Sheep",
+        "type": "Livestock",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Stone",
+        "type": "Wares",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Wheat",
+        "type": "Foodstuffs",
+        "score": 0.4,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:29.1775816Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "4f2e11cb5cbb4c3080c166c7daf1fe06",
+    "name": "Duck Meat",
+    "normalizedName": "duck meat",
+    "suggestedType": "Luxury Goods",
+    "confidence": 0.9000000000000001,
+    "seenCount": 6,
+    "firstSeenAtUtc": "2026-05-02T20:40:41.6254497Z",
+    "lastSeenAtUtc": "2026-05-02T20:40:57.3212101Z",
+    "lastRawText": "Duck Meat | 346(123%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 346,
+    "lastMultiplier": 123,
+    "similar": [
+      {
+        "name": "Black Tea",
+        "type": "Luxury Goods",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Ducks",
+        "type": "Livestock",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Nuoc Mam",
+        "type": "Seasonings",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Dutch Chintz",
+        "type": "Fabrics",
+        "score": 0.41666666666666663,
+        "aliases": []
+      },
+      {
+        "name": "Peacock Feather",
+        "type": "Fibres",
+        "score": 0.4,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:29.4070431Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "fc28a14b935d46da836bb7b8829191a9",
+    "name": "Cinnabar",
+    "normalizedName": "cinnabar",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 3,
+    "firstSeenAtUtc": "2026-05-02T20:40:52.8262733Z",
+    "lastSeenAtUtc": "2026-05-02T20:41:01.9226818Z",
+    "lastRawText": "Cinnabar | 74197%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 74,
+    "lastMultiplier": 197,
+    "similar": [
+      {
+        "name": "Cinnamon",
+        "type": "Spices",
+        "score": 0.625,
+        "aliases": []
+      },
+      {
+        "name": "Vinegar",
+        "type": "Seasonings",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Bananas",
+        "type": "Foodstuffs",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Cacao",
+        "type": "Foodstuffs",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Camas",
+        "type": "Foodstuffs",
+        "score": 0.375,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:29.6294467Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "be6e7af2b51d4353b166212af33d3476",
+    "name": "Lead Ore",
+    "normalizedName": "lead ore",
+    "suggestedType": "Ores",
+    "confidence": 0.9000000000000001,
+    "seenCount": 3,
+    "firstSeenAtUtc": "2026-05-02T20:45:20.529415Z",
+    "lastSeenAtUtc": "2026-05-02T20:45:43.3526582Z",
+    "lastRawText": "Lead Ore | 38293%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 382,
+    "lastMultiplier": 93,
+    "similar": [
+      {
+        "name": "Black Ore",
+        "type": "Ores",
+        "score": 0.5555555555555556,
+        "aliases": []
+      },
+      {
+        "name": "Iron Ore",
+        "type": "Ores",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Leather",
+        "type": "Fibres",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Leather Cord",
+        "type": "Crafts",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Tea Tree",
+        "type": "Medicine",
+        "score": 0.5,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:30.3610346Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "083de93e40534223bdaa0358a5b3d4fd",
+    "name": "Sinqle-handed Swords",
+    "normalizedName": "sinqle handed swords",
+    "suggestedType": "Crafts",
+    "confidence": 0.9000000000000001,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-05-02T20:45:20.582664Z",
+    "lastSeenAtUtc": "2026-05-02T20:45:25.3595729Z",
+    "lastRawText": "Sinqle-handed Swords | 1,300((140%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1300,
+    "lastMultiplier": 140,
+    "similar": [
+      {
+        "name": "Leather Cord",
+        "type": "Crafts",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Long Sword",
+        "type": "Arms",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Sesame Seeds",
+        "type": "Spices",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Sandalwood",
+        "type": "Fragrances",
+        "score": 0.35,
+        "aliases": []
+      },
+      {
+        "name": "Silverwork",
+        "type": "Wares",
+        "score": 0.35,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:29.8447329Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "926dc5eee09344548701090d6cb29bfb",
+    "name": "Gunpowdeb",
+    "normalizedName": "gunpowdeb",
+    "suggestedType": "Fragrances",
+    "confidence": 0.9000000000000001,
+    "seenCount": 3,
+    "firstSeenAtUtc": "2026-05-02T20:45:20.6311599Z",
+    "lastSeenAtUtc": "2026-05-02T20:45:43.4302988Z",
+    "lastRawText": "Gunpowdeb | 887110%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 887,
+    "lastMultiplier": 110,
+    "similar": [
+      {
+        "name": "Benzoate",
+        "type": "Fragrances",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Gamboge",
+        "type": "Dyes",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Ginger",
+        "type": "Spices",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Gold",
+        "type": "Precious Metals",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Graphite",
+        "type": "Ores",
+        "score": 0.33333333333333337,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:30.7783499Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "8db398388d0e4b61a269c4cda242a1e7",
+    "name": "Cannon Shot",
+    "normalizedName": "cannon shot",
+    "suggestedType": "Wares",
+    "confidence": 0.9000000000000001,
+    "seenCount": 3,
+    "firstSeenAtUtc": "2026-05-02T20:45:22.9365154Z",
+    "lastSeenAtUtc": "2026-05-02T20:45:57.3375569Z",
+    "lastRawText": "Cannon Shot | 1.600(104%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1600,
+    "lastMultiplier": 104,
+    "similar": [
+      {
+        "name": "Cayman Sea Salt",
+        "type": "Wares",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Kangaroo Meat",
+        "type": "Foodstuffs",
+        "score": 0.3846153846153846,
+        "aliases": []
+      },
+      {
+        "name": "Valentine Chocolate",
+        "type": "Luxury Goods",
+        "score": 0.368421052631579,
+        "aliases": []
+      },
+      {
+        "name": "Almonds",
+        "type": "Foodstuffs",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Bananas",
+        "type": "Foodstuffs",
+        "score": 0.36363636363636365,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:31.1245711Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "a9cc76b8b9554b88a28ce874b1fd4c92",
+    "name": "Market Keeper",
+    "normalizedName": "market keeper",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-05-02T20:45:22.9882174Z",
+    "lastSeenAtUtc": "2026-05-02T20:46:31.6858951Z",
+    "lastRawText": "Market Keeper | 4.240\u91CC(89%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 4240,
+    "lastMultiplier": 89,
+    "similar": [
+      {
+        "name": "Green Pepper",
+        "type": "Spices",
+        "score": 0.5384615384615384,
+        "aliases": []
+      },
+      {
+        "name": "Red Pepper",
+        "type": "Spices",
+        "score": 0.5384615384615384,
+        "aliases": []
+      },
+      {
+        "name": "Red Copper",
+        "type": "Ores",
+        "score": 0.46153846153846156,
+        "aliases": []
+      },
+      {
+        "name": "Eagle Feather",
+        "type": "Fibres",
+        "score": 0.3846153846153846,
+        "aliases": []
+      },
+      {
+        "name": "Mate Tea",
+        "type": "Luxury Goods",
+        "score": 0.3846153846153846,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:32.1092883Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "f35682729a11437c86ec94a98a51e7bd",
+    "name": "Single-handed Swords",
+    "normalizedName": "single handed swords",
+    "suggestedType": "Crafts",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T20:45:43.3576689Z",
+    "lastSeenAtUtc": "2026-05-02T20:45:43.3576689Z",
+    "lastRawText": "Single-handed Swords | 1,300((140%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1300,
+    "lastMultiplier": 140,
+    "similar": [
+      {
+        "name": "Leather Cord",
+        "type": "Crafts",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Long Sword",
+        "type": "Arms",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Sesame Seeds",
+        "type": "Spices",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Glasswork",
+        "type": "Crafts",
+        "score": 0.35,
+        "aliases": []
+      },
+      {
+        "name": "Sandalwood",
+        "type": "Fragrances",
+        "score": 0.35,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:30.5473548Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "a67eb22015774290ab1f7aae6718155d",
+    "name": "Gunpowder",
+    "normalizedName": "gunpowder",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-05-02T20:45:51.0655075Z",
+    "lastSeenAtUtc": "2026-05-02T20:45:57.334701Z",
+    "lastRawText": "Gunpowder | 887(110%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 887,
+    "lastMultiplier": 110,
+    "similar": [
+      {
+        "name": "Ginger",
+        "type": "Spices",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Green Pepper",
+        "type": "Spices",
+        "score": 0.41666666666666663,
+        "aliases": []
+      },
+      {
+        "name": "Sichuan Pepper",
+        "type": "Spices",
+        "score": 0.3571428571428571,
+        "aliases": []
+      },
+      {
+        "name": "Benzoate",
+        "type": "Fragrances",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Coriander",
+        "type": "Spices",
+        "score": 0.33333333333333337,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:30.9697224Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "8fc926d3c6b1413787ccaa4d9eb659e7",
+    "name": "Steel",
+    "normalizedName": "steel",
+    "suggestedType": "Livestock",
+    "confidence": 0.9000000000000001,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-05-02T20:45:51.1204396Z",
+    "lastSeenAtUtc": "2026-05-02T20:45:57.3439964Z",
+    "lastRawText": "Steel | 1.650154%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1650,
+    "lastMultiplier": 154,
+    "similar": [
+      {
+        "name": "Sheep",
+        "type": "Livestock",
+        "score": 0.6,
+        "aliases": []
+      },
+      {
+        "name": "Saltpeter",
+        "type": "Ores",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Oysters",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Beef",
+        "type": "Foodstuffs",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Beer",
+        "type": "Alcohol",
+        "score": 0.4,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:31.2952214Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "5bddf674e9ab4ba4b5051e41e1f733cf",
+    "name": "Keeper",
+    "normalizedName": "keeper",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 5,
+    "firstSeenAtUtc": "2026-05-02T20:46:10.1169384Z",
+    "lastSeenAtUtc": "2026-05-02T20:46:29.2457846Z",
+    "lastRawText": "Keeper | 4.240\u91CC(89%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 4240,
+    "lastMultiplier": 89,
+    "similar": [
+      {
+        "name": "Pepper",
+        "type": "Spices",
+        "score": 0.6666666666666667,
+        "aliases": []
+      },
+      {
+        "name": "Beer",
+        "type": "Alcohol",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Paper",
+        "type": "Wares",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Red Pepper",
+        "type": "Spices",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Leather",
+        "type": "Fibres",
+        "score": 0.4285714285714286,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:31.7830673Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "082029a5ae6c4d0fbb207029e4cc0655",
+    "name": "cYaaanel",
+    "normalizedName": "cyaaanel",
+    "suggestedType": "Livestock",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T20:46:17.3198174Z",
+    "lastSeenAtUtc": "2026-05-02T20:46:17.3198174Z",
+    "lastRawText": "cYaaanel | 4.300(80%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 4300,
+    "lastMultiplier": 80,
+    "similar": [
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Flannel",
+        "type": "Fabrics",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Cochineal",
+        "type": "Dyes",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Coriander",
+        "type": "Spices",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Agate",
+        "type": "Precious Stones",
+        "score": 0.375,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:31.4831442Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "7166e4a026704cd68504215a7be09f45",
+    "name": "ceeneel",
+    "normalizedName": "ceeneel",
+    "suggestedType": "Dyes",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T20:46:39.2480523Z",
+    "lastSeenAtUtc": "2026-05-02T20:46:39.2480523Z",
+    "lastRawText": "ceeneel | 4.300(80%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 4300,
+    "lastMultiplier": 80,
+    "similar": [
+      {
+        "name": "Cochineal",
+        "type": "Dyes",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Canella",
+        "type": "Spices",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Celery",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Cheese",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:04.8327756Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "d0c2d3861c98476891e624e0143c00f8",
+    "name": "KetKeeper",
+    "normalizedName": "ketkeeper",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T20:46:41.4828857Z",
+    "lastSeenAtUtc": "2026-05-02T20:46:41.4828857Z",
+    "lastRawText": "KetKeeper | 5.090((103%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 5090,
+    "lastMultiplier": 103,
+    "similar": [
+      {
+        "name": "Red Pepper",
+        "type": "Spices",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Pepper",
+        "type": "Spices",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Green Pepper",
+        "type": "Spices",
+        "score": 0.41666666666666663,
+        "aliases": []
+      },
+      {
+        "name": "Red Copper",
+        "type": "Ores",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Red Snapper",
+        "type": "Foodstuffs",
+        "score": 0.36363636363636365,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:01.7799418Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "0d12302b5e754027a2ef70f7a8295080",
+    "name": "Peony",
+    "normalizedName": "peony",
+    "suggestedType": "Foodstuffs",
+    "confidence": 0.9000000000000001,
+    "seenCount": 6,
+    "firstSeenAtUtc": "2026-05-02T20:55:31.9355375Z",
+    "lastSeenAtUtc": "2026-05-02T20:55:43.571714Z",
+    "lastRawText": "Peony | 237 (76%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 237,
+    "lastMultiplier": 76,
+    "similar": [
+      {
+        "name": "Peanuts",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Honey",
+        "type": "Seasonings",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Ivory",
+        "type": "Precious Stones",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Lemon",
+        "type": "Foodstuffs",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Noni",
+        "type": "Medicine",
+        "score": 0.4,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:01:32.2413359Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "250436c295f146c2873e2496d4592b5b",
+    "name": "Carrots",
+    "normalizedName": "carrots",
+    "suggestedType": "Luxury Goods",
+    "confidence": 0.9000000000000001,
+    "seenCount": 6,
+    "firstSeenAtUtc": "2026-05-02T20:55:31.9840305Z",
+    "lastSeenAtUtc": "2026-05-02T20:55:43.5742391Z",
+    "lastRawText": "Carrots | 105(132%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 105,
+    "lastMultiplier": 132,
+    "similar": [
+      {
+        "name": "Cranberries",
+        "type": "Luxury Goods",
+        "score": 0.4545454545454546,
+        "aliases": []
+      },
+      {
+        "name": "Carambola",
+        "type": "Foodstuffs",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Inca Rose",
+        "type": "Precious Stones",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Berries",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Cacao",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:00:15.3171318Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "ab655d8d8a1e40649d9504d320209ed1",
+    "name": "Peony",
+    "normalizedName": "peony",
+    "suggestedType": "Foodstuffs",
+    "confidence": 0.9000000000000001,
+    "seenCount": 9,
+    "firstSeenAtUtc": "2026-05-02T21:02:25.7754607Z",
+    "lastSeenAtUtc": "2026-05-02T21:03:23.3436881Z",
+    "lastRawText": "Peony | 218((70%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 218,
+    "lastMultiplier": 70,
+    "similar": [
+      {
+        "name": "Peanuts",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Honey",
+        "type": "Seasonings",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Ivory",
+        "type": "Precious Stones",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Lemon",
+        "type": "Foodstuffs",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Noni",
+        "type": "Medicine",
+        "score": 0.4,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-02T21:03:24.0989212Z",
+    "resolutionMessage": "Added trade good \u0027Peony\u0027."
+  },
+  {
+    "id": "3389c1daebc044caa888c6690c2a2180",
+    "name": "Carrots",
+    "normalizedName": "carrots",
+    "suggestedType": "Luxury Goods",
+    "confidence": 0.9000000000000001,
+    "seenCount": 12,
+    "firstSeenAtUtc": "2026-05-02T21:02:25.8239621Z",
+    "lastSeenAtUtc": "2026-05-02T21:03:35.2009164Z",
+    "lastRawText": "Carrots | 108136%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 108,
+    "lastMultiplier": 136,
+    "similar": [
+      {
+        "name": "Cranberries",
+        "type": "Luxury Goods",
+        "score": 0.4545454545454546,
+        "aliases": []
+      },
+      {
+        "name": "Carambola",
+        "type": "Foodstuffs",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Inca Rose",
+        "type": "Precious Stones",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Berries",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Cacao",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-02T21:03:36.7405151Z",
+    "resolutionMessage": "Added trade good \u0027Carrots\u0027."
+  },
+  {
+    "id": "1485d1d220a444a5a7cb4dff87c4515c",
+    "name": "Durability",
+    "normalizedName": "durability",
+    "suggestedType": "Livestock",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T21:03:56.4097321Z",
+    "lastSeenAtUtc": "2026-05-02T21:03:56.4097321Z",
+    "lastRawText": "Durability | 20/2",
+    "lastTradeType": "Buy",
+    "lastPrice": 2,
+    "lastMultiplier": 2,
+    "similar": [
+      {
+        "name": "Wild Rabbits",
+        "type": "Livestock",
+        "score": 0.41666666666666663,
+        "aliases": []
+      },
+      {
+        "name": "Durian",
+        "type": "Foodstuffs",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Graphite",
+        "type": "Ores",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Raisins",
+        "type": "Luxury Goods",
+        "score": 0.4,
+        "aliases": [
+          "Raisins"
+        ]
+      },
+      {
+        "name": "Dutch Calico",
+        "type": "Fabrics",
+        "score": 0.33333333333333337,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:07:36.7313274Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "b6affdef05734765a566198ae0e9d6b4",
+    "name": "cYnaane",
+    "normalizedName": "cynaane",
+    "suggestedType": "Spices",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T21:03:56.4615071Z",
+    "lastSeenAtUtc": "2026-05-02T21:03:56.4615071Z",
+    "lastRawText": "cYnaane | Required Total Fame 1030",
+    "lastTradeType": "Buy",
+    "lastPrice": 10,
+    "lastMultiplier": 30,
+    "similar": [
+      {
+        "name": "Coriander",
+        "type": "Spices",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Sugar Cane",
+        "type": "Foodstuffs",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Benzoate",
+        "type": "Fragrances",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Cinnamon",
+        "type": "Spices",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Cayman Sea Salt",
+        "type": "Wares",
+        "score": 0.33333333333333337,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:07:33.866494Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "be4a7a9ab8444f68931e3c328cadfef6",
+    "name": "Duck Meat",
+    "normalizedName": "duck meat",
+    "suggestedType": "Luxury Goods",
+    "confidence": 0.9000000000000001,
+    "seenCount": 9,
+    "firstSeenAtUtc": "2026-05-02T21:16:57.3113623Z",
+    "lastSeenAtUtc": "2026-05-02T21:17:33.7058036Z",
+    "lastRawText": "Duck Meat | 329123%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 329,
+    "lastMultiplier": 123,
+    "similar": [
+      {
+        "name": "Black Tea",
+        "type": "Luxury Goods",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Ducks",
+        "type": "Livestock",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Nuoc Mam",
+        "type": "Seasonings",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Dutch Chintz",
+        "type": "Fabrics",
+        "score": 0.41666666666666663,
+        "aliases": []
+      },
+      {
+        "name": "Peacock Feather",
+        "type": "Fibres",
+        "score": 0.4,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-02T21:17:36.1033972Z",
+    "resolutionMessage": "Added trade good \u0027Duck Meat\u0027."
+  },
+  {
+    "id": "11d8491ce671491cb9d2221ff9920020",
+    "name": "ck Meat",
+    "normalizedName": "ck meat",
+    "suggestedType": "Luxury Goods",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T21:17:27.3234174Z",
+    "lastSeenAtUtc": "2026-05-02T21:17:27.3234174Z",
+    "lastRawText": "ck Meat | ype: Foodstuffs110%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 10,
+    "similar": [
+      {
+        "name": "Black Tea",
+        "type": "Luxury Goods",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Camas",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Wheat",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Peacock Feather",
+        "type": "Fibres",
+        "score": 0.4,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:17:41.4561164Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "fdb1a1afaad840c1b91e1f0f355f229a",
+    "name": "eggs are also edible.",
+    "normalizedName": "eggs are also edible",
+    "suggestedType": "Foodstuffs",
+    "confidence": 0.8500000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T21:17:27.379509Z",
+    "lastSeenAtUtc": "2026-05-02T21:17:27.379509Z",
+    "lastRawText": "eggs are also edible. | 65610U%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 656,
+    "lastMultiplier": 10,
+    "similar": [
+      {
+        "name": "Pearl Millet",
+        "type": "Foodstuffs",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Sesame Seeds",
+        "type": "Spices",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Tiare Flower",
+        "type": "Fragrances",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Eagle Feather",
+        "type": "Fibres",
+        "score": 0.2857142857142857,
+        "aliases": []
+      },
+      {
+        "name": "Garam Masala",
+        "type": "Spices",
+        "score": 0.2857142857142857,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T21:17:39.933677Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "77229d08f50243d9b2cd0f6977a4943a",
+    "name": "Bronze Sculpture",
+    "normalizedName": "bronze sculpture",
+    "suggestedType": "Artwork",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T21:17:49.8723723Z",
+    "lastSeenAtUtc": "2026-05-02T21:17:49.8723723Z",
+    "lastRawText": "Bronze Sculpture | 1.250(145%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1250,
+    "lastMultiplier": 145,
+    "similar": [
+      {
+        "name": "Wood Sculpture",
+        "type": "Artwork",
+        "score": 0.6875,
+        "aliases": []
+      },
+      {
+        "name": "Bronze Hand Cannon",
+        "type": "Firearms",
+        "score": 0.38888888888888884,
+        "aliases": []
+      },
+      {
+        "name": "Iron Ore",
+        "type": "Ores",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Sulphur",
+        "type": "Wares",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "African Shell Perfume",
+        "type": "Fragrances",
         "score": 0.33333333333333337,
         "aliases": []
       }
