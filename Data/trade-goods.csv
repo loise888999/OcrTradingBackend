@@ -1,377 +1,384 @@
 Name,Type,Aliases
-Agate,Precious Stones,
-Akvavit,Alcohol,
-Allspice,Spices,
-Almonds,Foodstuffs,
-Alpaca Hair,Fibres,
-Amber,Precious Stones,
-Ambergris,Fragrances,
-Amethyst,Precious Stones,
-Ammonium Nitrate,Ores,
-Apple Cider Vinegar,Seasonings,
-Apple Vinegar,Seasonings,
-Apples,Foodstuffs,
-Apricot,Foodstuffs,
-Aquavit,Alcohol,
-Arnica,Medicine,
-Artwork,,Artwork,
-Aubergine,Luxury Goods,
-Autumn Crocus,Medicine,
-Aventurine,Precious Stones,
-Awaiyo,Fabrics,
-Aweotsang,Luxury Goods,
-Bananas,Foodstuffs,
-Bark,Wares,
-Bark Painting,Artwork,
-Barley,Foodstuffs,
-Basil,Spices,
-Batik,Fabrics,
-Bay Leaf,Seasonings,
-Beehives,Livestock,
-Beer,Alcohol,
-Benzoate,Fragrances,
-Beopju,Alcohol,
-Bergamot,Spices,
-Berries,Foodstuffs,
-Birch Tree,Wares,
-Black Ore,Ores,
-Black Raspberry,Foodstuffs,
-Black Tea,Luxury Goods,
-Blue Georgette Dress,Luxury,
-Blue Mackerel,Foodstuffs,
-Bombilla,Crafts,
-Bonito,Foodstuffs,
-Boulders,Wares,
-Brass Work,Crafts,
-Broad Beans,Foodstuffs,
-Bronze Hand Cannon,Firearms,
-Cacao,Foodstuffs,
-Cactus,Foodstuffs,
-Camas,Foodstuffs,
-Camel,Livestock,
-Camphor,Fragrances,
-Candy Craft,Crafts,
-Canella,Spices,
-Carambola,Foodstuffs,
-Cardamom,Spices,
-Cashew Nuts,Foodstuffs,
-Cashmere,Fibres,
-Cat's Eye,Precious Stones,
-Cattle,Livestock,
-Caviar,Foodstuffs,
-Cayman Sea Salt,Wares,
-Çaydanlik,Crafts,
-Celery,Foodstuffs,
-Ceramic,Wares,
-Chamomile,Medicine,
-Cherimoya,Foodstuffs,
-Chickens,Livestock,
-Chicle,Wares,
-Chinese Painting,Artwork,
-Chinese Tea,Luxury Goods,
-Cinnamon,Spices,
-Clay,Wares,
-Cloves,Spices,
-Coal,Ores,
-Cochineal,Dyes,
-Coconut Fibres,Fibres,
-Coconut Vinegar,Seasonings,
-Coconuts,Foodstuffs,
-Cod,Foodstuffs,
-Coffee,Luxury Goods,
-Conch Pearl,Precious Stones,
-Copper Ore,Ores,
-Coral,Precious Stones,
-Coriander,Spices,
-Corn,Foodstuffs,
-Cotton,Fibres,
-Cranberries,Luxury Goods,
-Crickets,Livestock
-Crystal Crafts,Crafts,
-Cummin,Spices,
-Daffodil,Fragrances,
-Damask Fabric,Fabrics,
-Diamond,Precious Stones,
-Dorian,Foodstuffs,
-Dried Apples,Foodstuffs,
-Dried Figs,Foodstuffs,
-Ducks,Livestock,
-Durian,Foodstuffs,
-Dutch Calico,Fabrics,
-Dutch Chintz,Fabrics,
-Eagle Feather,Fibres,
-Eastern Cannon,Firearms,
-Eider Feather,Fibres,
-Electrum,Precious Metals,
-Emu,Livestock,
-Eucalyptus,Medicine,
-Exotic Fruit,Foodstuffs,
-Feathers,Fibres,
-Fish,Foodstuffs,
-Flannel,Fabrics,
-Flax,Fibres,
-Frankincense,Fragrances,
-Fruit Brandy,Alcohol,
-Gamboge,Dyes,
-Garam Masala,Spices,
-Garlic,Foodstuffs,
-Gasatt sua,Fabrics,
-Gin,Alcohol,
-Ginger,Spices,
-Glasswork,Crafts,
-Goats,Livestock,
-Gold,Precious Metals,
-Goldenseal,Medicine,
-Gorsok,Foodstuffs,
-Graphite,Ores,
-Great Barracuda,Foodstuffs,
-Green Pepper,Spices,
-Guarana,Luxury Goods,
-Guinea Pig,Livestock,
-Gumo Ink,Dyes,
-Handwoven Fabric,Fabrics,
-Heathers,Medicine,
-Heavy Pumpkin,Luxury Goods,
-Hemp,Fibres,
-Herb Oil,Seasonings,
-Herb Salt,Seasonings,
-Herb Vinegar,Seasonings,
-Herring,Foodstuffs,
-Honey,Seasonings,
-Horse Mackerel,Foodstuffs,
-Horses,Livestock,
-Huzhou Brush,Crafts,
-Inca Rose,Precious Stones,
-Indian Indigo Dye,Dyes,
-India Calico,Fabrics,
-Indian Mackerel,Foodstuffs,
-Indian Madder,Dyes,
-Iron Ore,Ores,
-Ivory,Precious Stones,
-Jade,Precious Stones,
-Jambu,Foodstuffs,
-Japanese Cormorant,Livestock,
-Jasmine,Fragrances,
-Java Calico,Fabrics,
-Jute,Fibres,
-Kakadu Plum,Foodstuffs,
-Kangaroo Meat,Foodstuffs,
-Kauri Resin,Wares,
-Kenaf,Fibres,
-Koauau,Crafts,
-Korean Black Raspberry,Foodstuffs,
-Korean Tea,Luxury Goods,
-Lamb,Foodstuffs,
-Lambs,Livestock,
-Lapis Lazuli,Precious Stones,
-Laurel,Spices,
-Lavender,Spices,
-Leather Cord,Crafts,
-Leegangju,Alcohol,
-Lemon,Foodstuffs,
-Lemon Myrtle,Luxury Goods,
-Lemongrass,Spices,
-Lilac,Fragrances,
-Lily Of the Valley,Fragrances,
-Logwood,Dyes,
-Long Sword,Arms
-Luxury Furniture,Wares,
-Mace,Spices,
-Macadamia,Foodstuffs,
-Mahogany,Wares,
-Mako Shark,Foodstuffs,
-Mango,Foodstuffs,
-Mangosteen,Foodstuffs,
-Marble,Wares,
-Marble Doll,Crafts,
-Mastic,Medicine,
-Mate Tea,Luxury Goods,
-Mayanburu,Dyes,
-Meadow Saffron,Medicine,
-Mercury,Ores,
-Meteorite,Precious Stones,
-Mianzhu nian hua,Crafts,
-Milk,Foodstuffs,
-Mimosa,Dyes,
-Mohair,Fibres,
-Mookaite,Precious Stones,
-Moose,Livestock,
-Mortar,Wares,
-Mule,Livestock,
-Mullet,Foodstuffs,
-Mushrooms,Foodstuffs,
-Musk,Fragrances,
-Muskets,Firearms,
-Mustard,Spices,
-Myrrh,Medicine,
-Myrtus,Fragrances,
-Nam Pla,Seasonings,
-Nanduti,Fabrics,
-Narcissus,Fragrances,
-Neroli,Fragrances,
-Noni,Medicine,
-Nuoc Mam,Seasonings,
-Nutmeg,Spices,
-Oil Paintings,Artwork,
-Okpa,Foodstuffs,
-Olive Oil,Seasonings,
-Olives,Foodstuffs,
-Onions,Foodstuffs,
-Opal,Precious Stones,
-Orange Daylily,Foodstuffs,
-Orange Oil,Fragrances,
-Oregano,Spices,
-Oyster Sauce,Seasonings,
-Oysters,Foodstuffs,
-Palepai,Crafts,
-Palm Wine,Alcohol,
-Paper,Wares,
-Paper Lantern,Wares,
-Papyrus,Wares,
-Parchment,Wares,
-Parsley,Spices,
-Pastry,Foodstuffs,
-Patchouli,Fragrances,
-Peacock Feather,Fibres,
-Peanuts,Foodstuffs,
-Pearl Millet,Foodstuffs,
-Pearl,Precious Stones,
-Pepper,Spices,
-Pepper Paste,Seasonings,
-Peridot,Precious Stones,
-Persian Rug,Fabrics,
-Peto,Foodstuffs,
-Pigs,Livestock,
-Pineapple,Foodstuffs,
-Pink Diamond,Precious Stones,
-Pipe,Wares,
-Pisco,Alcohol,
-Pistachio Nuts,Luxury Goods,
-Platinum,Precious Metals,
-Pork,Foodstuffs,
-Potatoes,Foodstuffs,
-Pottery,Crafts,
-Poultry,Foodstuffs,
-Prunes,Foodstuffs,
-Pumpkins,Foodstuffs,
-Qulliq,Crafts,
-Red Beans,Foodstuffs,
-Red Copper,Ores,
-Red Pepper,Spices,
-Red Snapper,Foodstuffs,
-Reeves's Muntjac,Livestock,
-Reseda Luteola,Dyes,
-Resin,Wares,
-Rhino Horns,Medicine,
-Rice,Foodstuffs,
-Rosemary,Spices,
-Rosewood,Wares,
-Rubber,Wares,
-Ruby,Precious Stones,
-Rum,Alcohol,
-Rye,Foodstuffs,
-Saffron,Spices,
-Sago,Foodstuffs,
-Sai Kaku,Medicine,
-Salt,Seasonings,
-Saltpeter,Ores,
-Sand,Wares,
-Sandalwood,Fragrances,
-Sanjiegun,Arms
-Saori,Fabrics,
-Sapphire,Precious Stones,
-Sarasa,Fabrics,
-Saury,Foodstuffs,
-Sesame Seeds,Spices,
-Shell Ornament,Crafts,
-Sherry,Alcohol,
-Shuri Ori,Fabrics,
-Sichuan Pepper,Spices,
-Silk Cotton,Fibres,
-Silver,Precious Metals,
-Silverwork,Wares,
-Sisal,Fibres,
-Soft Rush,Wares,
-Sofrito,Seasonings,
-Spanish Mackerel,Foodstuffs,
-Strawberries,Foodstuffs,
-Stroganina,Foodstuffs,
-Sugar,Seasonings,
-Sugar Cane,Foodstuffs,
-Sword of Damascus,Arms
-Taffeta,Fabrics,
-Taiwan Mijiu,Alcohol,
-Tamarind,Seasonings,
-Tapestries,Fabrics,
-Taro,Foodstuffs,
-Tea Olive,Fragrances,
-Tea Tree,Medicine,
-Tequila,Alcohol,
-Thyme,Spices,
-Tiare Flower,Fragrances,
-Tin,Ores,
-Tin Ore,Ores,
-Tobacco,Luxury Goods,
-Toddy,Alcohol,
-Tomatoes,Foodstuffs,
-Topaz,Precious Stones,
-Tourmaline,Precious Stones,
-Tuna,Foodstuffs,
-Turkish Carpet,Fabrics,
-Turkish Rugs,Fabrics,
-Turnips,Foodstuffs,
-Turquoise,Precious Stones,
-Urumi,Arms
-Valentine Chocolate,Luxury Goods,
-Vegetable Oil,Seasonings,
-Velvet,Fabrics,
-Venison,Foodstuffs,
-Vinegar,Seasonings,
-Vodka,Alcohol,
-Walnuts,Foodstuffs,
-Wampum,Fabrics,
-Water Caltrop,Foodstuffs,
-Western Armor,Arms
-Western Books,Wares,
-Western Cannon,Firearms,
-Wheat,Foodstuffs,
-Whiskey,Alcohol,
-White Ore,Ores,
-White Vinegar,Seasonings,
-Wild Oats,Foodstuffs,
-Wild Rabbits,Livestock,
-Wine,Alcohol,
-Woad,Dyes,
-Wool,Fibres,
-Yangzhou Chestnut,Foodstuffs,
-Ylang-ylang,Fragrances,
-Yosegi,Crafts,
-Zinc Ore,Ores,
-Upland Rice,Foodstuffs,
-Emerald,Precious Stones,
-Malachite,Precious Stones,
-African Shell Perfume,Fragrances,
-Camel Hair,Fibres,
-Georgette Fabric,Fabrics,
-African Wood Carving,Crafts,
-Rooibos,Medicine,
-Lumber,Wares,
-Beef,Foodstuffs,
-Leather,Fibres,
-Pomegranate,Dyes,
-Stone,Wares,
-Oil,Wares,
-Civet Musk,Fragrances,
-Sheep,Livestock,
-Cotton Fabric,Fabrics,
-Tyrian Purple,Dyes,
-Lemon Oil,Fragrances,
-Shamshirs,Arms,
-Persian Carpet,Fabrics,
-Senna,Medicine,
-Cheese,Foodstuffs,
-Persian Berry,Dyes,
-Sulphur,Wares,
-Silk Thread,Fibres,
-Wetland Rice,Foodstuffs,
-Wood Sculpture,Artwork,
+"African Shell Perfume","Fragrances",""
+"African Wood Carving","Crafts",""
+"Agate","Precious Stones",""
+"Akvavit","Alcohol",""
+"Allspice","Spices",""
+"Almonds","Foodstuffs",""
+"Alpaca Hair","Fibres",""
+"Amber","Precious Stones",""
+"Ambergris","Fragrances",""
+"Amethyst","Precious Stones",""
+"Ammonium Nitrate","Ores",""
+"Apple Cider Vinegar","Seasonings",""
+"Apple Vinegar","Seasonings",""
+"Apples","Foodstuffs",""
+"Apricot","Foodstuffs",""
+"Aquavit","Alcohol",""
+"Arnica","Medicine",""
+"Artwork","Unknown","Artwork"
+"Aubergine","Luxury Goods",""
+"Autumn Crocus","Medicine",""
+"Aventurine","Precious Stones",""
+"Awaiyo","Fabrics",""
+"Aweotsang","Luxury Goods",""
+"Bananas","Foodstuffs",""
+"Bark","Wares",""
+"Bark Painting","Artwork",""
+"Barley","Foodstuffs",""
+"Basil","Spices",""
+"Batik","Fabrics",""
+"Bay Leaf","Seasonings",""
+"Beef","Foodstuffs",""
+"Beehives","Livestock",""
+"Beer","Alcohol",""
+"Benzoate","Fragrances",""
+"Beopju","Alcohol",""
+"Bergamot","Spices",""
+"Berries","Foodstuffs",""
+"Birch Tree","Wares",""
+"Black Ore","Ores",""
+"Black Raspberry","Foodstuffs",""
+"Black Tea","Luxury Goods",""
+"Blue Georgette Dress","Luxury",""
+"Blue Mackerel","Foodstuffs",""
+"Bombilla","Crafts",""
+"Bonito","Foodstuffs",""
+"Boulders","Wares",""
+"Brass Work","Crafts",""
+"Broad Beans","Foodstuffs",""
+"Bronze Hand Cannon","Firearms",""
+"Cacao","Foodstuffs",""
+"Cactus","Foodstuffs",""
+"Camas","Foodstuffs",""
+"Camel","Livestock",""
+"Camel Hair","Fibres",""
+"Camphor","Fragrances",""
+"Candy Craft","Crafts",""
+"Canella","Spices",""
+"Carambola","Foodstuffs",""
+"Cardamom","Spices",""
+"Carrots","Foodstuffs","Carrots"
+"Cashew Nuts","Foodstuffs",""
+"Cashmere","Fibres",""
+"Cat's Eye","Precious Stones",""
+"Cattle","Livestock",""
+"Caviar","Foodstuffs",""
+"Cayman Sea Salt","Wares",""
+"Celery","Foodstuffs",""
+"Ceramic","Wares",""
+"Chamomile","Medicine",""
+"Cheese","Foodstuffs",""
+"Cherimoya","Foodstuffs",""
+"Chickens","Livestock",""
+"Chicle","Wares",""
+"Chinese Painting","Artwork",""
+"Chinese Tea","Luxury Goods",""
+"Cinnamon","Spices",""
+"Civet Musk","Fragrances",""
+"Clay","Wares",""
+"Cloves","Spices",""
+"Coal","Ores",""
+"Cochineal","Dyes",""
+"Coconut Fibres","Fibres",""
+"Coconut Vinegar","Seasonings",""
+"Coconuts","Foodstuffs",""
+"Cod","Foodstuffs",""
+"Coffee","Luxury Goods",""
+"Conch Pearl","Precious Stones",""
+"Copper Ore","Ores",""
+"Coral","Precious Stones",""
+"Coriander","Spices",""
+"Corn","Foodstuffs",""
+"Cotton","Fibres",""
+"Cotton Fabric","Fabrics",""
+"Cranberries","Luxury Goods",""
+"Crickets","Livestock",""
+"Crystal Crafts","Crafts",""
+"Cummin","Spices",""
+"Daffodil","Fragrances",""
+"Damask Fabric","Fabrics",""
+"Diamond","Precious Stones",""
+"Dill","Spices",""
+"Dorian","Foodstuffs",""
+"Dried Apples","Foodstuffs",""
+"Dried Figs","Foodstuffs",""
+"Dried Mango","Luxury Goods",""
+"Duck Meat","Foodstuffs",""
+"Ducks","Livestock",""
+"Durian","Foodstuffs",""
+"Dutch Calico","Fabrics",""
+"Dutch Chintz","Fabrics",""
+"Eagle Feather","Fibres",""
+"Eastern Cannon","Firearms",""
+"Eider Feather","Fibres",""
+"Electrum","Precious Metals",""
+"Emerald","Precious Stones",""
+"Emu","Livestock",""
+"Eucalyptus","Medicine",""
+"Exotic Fruit","Foodstuffs",""
+"Feathers","Fibres",""
+"Fish","Foodstuffs",""
+"Flannel","Fabrics",""
+"Flax","Fibres",""
+"Frankincense","Fragrances",""
+"Fruit Brandy","Alcohol",""
+"Gamboge","Dyes",""
+"Garam Masala","Spices",""
+"Garlic","Foodstuffs",""
+"Gasatt sua","Fabrics",""
+"Georgette Fabric","Fabrics",""
+"Gin","Alcohol",""
+"Ginger","Spices",""
+"Glasswork","Crafts",""
+"Goats","Livestock",""
+"Gold","Precious Metals",""
+"Goldenseal","Medicine",""
+"Gorsok","Foodstuffs",""
+"Graphite","Ores",""
+"Great Barracuda","Foodstuffs",""
+"Green Pepper","Spices",""
+"Guarana","Luxury Goods",""
+"Guinea Pig","Livestock",""
+"Gumo Ink","Dyes",""
+"Handwoven Fabric","Fabrics",""
+"Heathers","Medicine",""
+"Heavy Pumpkin","Luxury Goods",""
+"Hemp","Fibres",""
+"Herb Oil","Seasonings",""
+"Herb Salt","Seasonings",""
+"Herb Vinegar","Seasonings",""
+"Herring","Foodstuffs",""
+"Honey","Seasonings",""
+"Horse Mackerel","Foodstuffs",""
+"Horses","Livestock",""
+"Huzhou Brush","Crafts",""
+"Inca Rose","Precious Stones",""
+"India Calico","Fabrics",""
+"Indian Indigo Dye","Dyes",""
+"Indian Mackerel","Foodstuffs",""
+"Indian Madder","Dyes",""
+"Iron Ore","Ores",""
+"Ivory","Precious Stones",""
+"Jade","Precious Stones",""
+"Jambu","Foodstuffs",""
+"Japanese Cormorant","Livestock",""
+"Jasmine","Fragrances",""
+"Java Calico","Fabrics",""
+"Jute","Fibres",""
+"Kakadu Plum","Foodstuffs",""
+"Kangaroo Meat","Foodstuffs",""
+"Kauri Resin","Wares",""
+"Kenaf","Fibres",""
+"Koauau","Crafts",""
+"Korean Black Raspberry","Foodstuffs",""
+"Korean Tea","Luxury Goods",""
+"Lamb","Foodstuffs",""
+"Lambs","Livestock",""
+"Lapis Lazuli","Precious Stones",""
+"Laurel","Spices",""
+"Lavender","Spices",""
+"Leather","Fibres",""
+"Leather Cord","Crafts",""
+"Leegangju","Alcohol",""
+"Lemon","Foodstuffs",""
+"Lemon Myrtle","Luxury Goods",""
+"Lemon Oil","Fragrances",""
+"Lemongrass","Spices",""
+"Lilac","Fragrances",""
+"Lily Of the Valley","Fragrances",""
+"Logwood","Dyes",""
+"Long Sword","Arms",""
+"Lumber","Wares",""
+"Luxury Furniture","Wares",""
+"Macadamia","Foodstuffs",""
+"Mace","Spices",""
+"Mahogany","Wares",""
+"Mako Shark","Foodstuffs",""
+"Malachite","Precious Stones",""
+"Mango","Foodstuffs",""
+"Mangosteen","Foodstuffs",""
+"Marble","Wares",""
+"Marble Doll","Crafts",""
+"Mastic","Medicine",""
+"Mate Tea","Luxury Goods",""
+"Mayanburu","Dyes",""
+"Meadow Saffron","Medicine",""
+"Mercury","Ores",""
+"Meteorite","Precious Stones",""
+"Mianzhu nian hua","Crafts",""
+"Milk","Foodstuffs",""
+"Mimosa","Dyes",""
+"Mohair","Fibres",""
+"Mookaite","Precious Stones",""
+"Moose","Livestock",""
+"Mortar","Wares",""
+"Mule","Livestock",""
+"Mullet","Foodstuffs",""
+"Mushrooms","Foodstuffs",""
+"Musk","Fragrances",""
+"Muskets","Firearms",""
+"Mustard","Spices",""
+"Myrrh","Medicine",""
+"Myrtus","Fragrances",""
+"Nam Pla","Seasonings",""
+"Nanduti","Fabrics",""
+"Narcissus","Fragrances",""
+"Neroli","Fragrances",""
+"Noni","Medicine",""
+"Nuoc Mam","Seasonings",""
+"Nutmeg","Spices",""
+"Oil","Wares",""
+"Oil Paintings","Artwork",""
+"Okpa","Foodstuffs",""
+"Olive Oil","Seasonings",""
+"Olives","Foodstuffs",""
+"Onions","Foodstuffs",""
+"Opal","Precious Stones",""
+"Orange Daylily","Foodstuffs",""
+"Orange Oil","Fragrances",""
+"Oregano","Spices",""
+"Oyster Sauce","Seasonings",""
+"Oysters","Foodstuffs",""
+"Palepai","Crafts",""
+"Palm Wine","Alcohol",""
+"Paper","Wares",""
+"Paper Lantern","Wares",""
+"Papyrus","Wares",""
+"Parchment","Wares",""
+"Parsley","Spices",""
+"Pastry","Foodstuffs",""
+"Patchouli","Fragrances",""
+"Peacock Feather","Fibres",""
+"Peanuts","Foodstuffs",""
+"Pearl","Precious Stones",""
+"Pearl Millet","Foodstuffs",""
+"Peony","Medicine",""
+"Pepper","Spices",""
+"Pepper Paste","Seasonings",""
+"Peridot","Precious Stones",""
+"Persian Berry","Dyes",""
+"Persian Carpet","Fabrics",""
+"Persian Rug","Fabrics",""
+"Peto","Foodstuffs",""
+"Pigs","Livestock",""
+"Pineapple","Foodstuffs",""
+"Pink Diamond","Precious Stones",""
+"Pipe","Wares",""
+"Pisco","Alcohol",""
+"Pistachio Nuts","Luxury Goods",""
+"Platinum","Precious Metals",""
+"Pomegranate","Dyes",""
+"Pork","Foodstuffs",""
+"Potatoes","Foodstuffs",""
+"Pottery","Crafts",""
+"Poultry","Foodstuffs",""
+"Prunes","Foodstuffs",""
+"Pumpkins","Foodstuffs",""
+"Qulliq","Crafts",""
+"Raisins","Luxury Goods","Raisins"
+"Red Beans","Foodstuffs",""
+"Red Copper","Ores",""
+"Red Pepper","Spices",""
+"Red Snapper","Foodstuffs",""
+"Reeves's Muntjac","Livestock",""
+"Reseda Luteola","Dyes",""
+"Resin","Wares",""
+"Rhino Horns","Medicine",""
+"Rice","Foodstuffs",""
+"Rooibos","Medicine",""
+"Rosemary","Spices",""
+"Rosewood","Wares",""
+"Rubber","Wares",""
+"Ruby","Precious Stones",""
+"Rum","Alcohol",""
+"Rye","Foodstuffs",""
+"Saffron","Spices",""
+"Sago","Foodstuffs",""
+"Sai Kaku","Medicine",""
+"Salt","Seasonings",""
+"Saltpeter","Ores",""
+"Sand","Wares",""
+"Sandalwood","Fragrances",""
+"Sanjiegun","Arms",""
+"Saori","Fabrics",""
+"Sapphire","Precious Stones",""
+"Sarasa","Fabrics",""
+"Saury","Foodstuffs",""
+"Senna","Medicine",""
+"Sesame Seeds","Spices",""
+"Shamshirs","Arms",""
+"Sheep","Livestock",""
+"Shell Ornament","Crafts",""
+"Sherry","Alcohol",""
+"Shuri Ori","Fabrics",""
+"Sichuan Pepper","Spices",""
+"Silk Cotton","Fibres",""
+"Silk Thread","Fibres",""
+"Silver","Precious Metals",""
+"Silverwork","Wares",""
+"Sisal","Fibres",""
+"Sofrito","Seasonings",""
+"Soft Rush","Wares",""
+"Spanish Mackerel","Foodstuffs",""
+"Stone","Wares",""
+"Strawberries","Foodstuffs",""
+"Stroganina","Foodstuffs",""
+"Sugar","Seasonings",""
+"Sugar Cane","Foodstuffs",""
+"Sulphur","Wares",""
+"Sword of Damascus","Arms",""
+"Taffeta","Fabrics",""
+"Taiwan Mijiu","Alcohol",""
+"Tamarind","Seasonings",""
+"Tapestries","Fabrics",""
+"Taro","Foodstuffs",""
+"Tea Olive","Fragrances",""
+"Tea Tree","Medicine",""
+"Tequila","Alcohol",""
+"Thyme","Spices",""
+"Tiare Flower","Fragrances",""
+"Tin","Ores",""
+"Tin Ore","Ores",""
+"Tobacco","Luxury Goods",""
+"Toddy","Alcohol",""
+"Tomatoes","Foodstuffs",""
+"Topaz","Precious Stones",""
+"Tourmaline","Precious Stones",""
+"Tuna","Foodstuffs",""
+"Turkish Carpet","Fabrics",""
+"Turkish Rugs","Fabrics",""
+"Turmeric","Dyes",""
+"Turnips","Foodstuffs",""
+"Turquoise","Precious Stones",""
+"Tyrian Purple","Dyes",""
+"Upland Rice","Foodstuffs",""
+"Urumi","Arms",""
+"Valentine Chocolate","Luxury Goods",""
+"Vegetable Oil","Seasonings",""
+"Velvet","Fabrics",""
+"Venison","Foodstuffs",""
+"Vinegar","Seasonings",""
+"Vodka","Alcohol",""
+"Walnuts","Foodstuffs",""
+"Wampum","Fabrics",""
+"Water Caltrop","Foodstuffs",""
+"Western Armor","Arms",""
+"Western Books","Wares",""
+"Western Cannon","Firearms",""
+"Wetland Rice","Foodstuffs",""
+"Wheat","Foodstuffs",""
+"Whiskey","Alcohol",""
+"White Ore","Ores",""
+"White Vinegar","Seasonings",""
+"Wild Oats","Foodstuffs",""
+"Wild Rabbits","Livestock",""
+"Wine","Alcohol",""
+"Woad","Dyes",""
+"Wood Sculpture","Artwork",""
+"Wool","Fibres",""
+"Yangzhou Chestnut","Foodstuffs",""
+"Ylang-ylang","Fragrances",""
+"Yosegi","Crafts",""
+"Zinc Ore","Ores",""
+"ï¿½aydanlik","Crafts",""
