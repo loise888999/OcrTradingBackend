@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Hosting;
-
 namespace OcrTradingBackend.Services;
 
 public sealed record CityDefinition(
