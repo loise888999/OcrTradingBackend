@@ -2774,9 +2774,9 @@
         "aliases": []
       }
     ],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:40:42.0027627Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "9b44a9b614f54210b3ed3a861f597e96",
@@ -2792,9 +2792,9 @@
     "lastPrice": 1,
     "lastMultiplier": 18,
     "similar": [],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:27:21.1118637Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "ffbdfa165d1f40ab89229db2eb671355",
@@ -2810,9 +2810,9 @@
     "lastPrice": 3,
     "lastMultiplier": 3,
     "similar": [],
-    "status": 0,
-    "resolvedAtUtc": null,
-    "resolutionMessage": ""
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:27:20.5373638Z",
+    "resolutionMessage": "Dismissed by user."
   },
   {
     "id": "724e5980638546209b2d3d76f1db2b70",
@@ -2828,6 +2828,680 @@
     "lastPrice": 20,
     "lastMultiplier": 100,
     "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:27:19.7361346Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "960ef3fadea7496d8d94306746122b76",
+    "name": "Mohain",
+    "normalizedName": "mohain",
+    "suggestedType": "Fibres",
+    "confidence": 0.9000000000000001,
+    "seenCount": 8,
+    "firstSeenAtUtc": "2026-05-01T23:26:56.6997719Z",
+    "lastSeenAtUtc": "2026-05-01T23:27:14.6460081Z",
+    "lastRawText": "Mohain | 1.200(154%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1200,
+    "lastMultiplier": 154,
+    "similar": [
+      {
+        "name": "Mohair",
+        "type": "Fibres",
+        "score": 0.833,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:27:15.8652745Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "516874d702a449eba5b05d2788e4c63c",
+    "name": "Mohain",
+    "normalizedName": "mohain",
+    "suggestedType": "Fibres",
+    "confidence": 0.9000000000000001,
+    "seenCount": 2,
+    "firstSeenAtUtc": "2026-05-01T23:27:21.5923101Z",
+    "lastSeenAtUtc": "2026-05-01T23:27:33.7026032Z",
+    "lastRawText": "Mohain | 1,200((154%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1200,
+    "lastMultiplier": 154,
+    "similar": [
+      {
+        "name": "Mohair",
+        "type": "Fibres",
+        "score": 0.833,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:40:40.8528383Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "dd583d83cd2a45d7b1276353488101f3",
+    "name": "India Calico",
+    "normalizedName": "india calico",
+    "suggestedType": "Fabrics",
+    "confidence": 0.9000000000000001,
+    "seenCount": 24,
+    "firstSeenAtUtc": "2026-05-01T23:27:53.6172138Z",
+    "lastSeenAtUtc": "2026-05-01T23:30:00.321023Z",
+    "lastRawText": "India Calico | 846(105%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 846,
+    "lastMultiplier": 105,
+    "similar": [
+      {
+        "name": "Indian Calico",
+        "type": "Fabrics",
+        "score": 0.923,
+        "aliases": []
+      },
+      {
+        "name": "India Indigo",
+        "type": "Dyes",
+        "score": 0.667,
+        "aliases": []
+      },
+      {
+        "name": "Java Calico",
+        "type": "Fabrics",
+        "score": 0.667,
+        "aliases": []
+      },
+      {
+        "name": "Dutch Calico",
+        "type": "Fabrics",
+        "score": 0.583,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:40:42.7957114Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "28e538f0ca89422b930ed19714947630",
+    "name": "Tyrian Purplebl",
+    "normalizedName": "tyrian purplebl",
+    "suggestedType": "Dyes",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T23:30:50.4090885Z",
+    "lastSeenAtUtc": "2026-05-01T23:30:50.4090885Z",
+    "lastRawText": "Tyrian Purplebl | 5,790((145%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 5790,
+    "lastMultiplier": 145,
+    "similar": [
+      {
+        "name": "Tyrian Purple",
+        "type": "Dyes",
+        "score": 0.867,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:40:43.2987917Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "8fe43f91274d4d319ff74deab6e49e2c",
+    "name": "Berqamot",
+    "normalizedName": "berqamot",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T23:31:21.0857731Z",
+    "lastSeenAtUtc": "2026-05-01T23:31:21.0857731Z",
+    "lastRawText": "Berqamot | 1.37098%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 1370,
+    "lastMultiplier": 98,
+    "similar": [
+      {
+        "name": "Bergamot",
+        "type": "Spices",
+        "score": 0.875,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:40:43.9613866Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "919b6bb230e541f186b8104d06bc6756",
+    "name": "e increases greatlyiwith size",
+    "normalizedName": "e increases greatlyiwith size",
+    "suggestedType": "",
+    "confidence": 0.8500000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T23:41:19.3078633Z",
+    "lastSeenAtUtc": "2026-05-01T23:41:19.3078633Z",
+    "lastRawText": "e increases greatlyiwith size | 2.6/011Z%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 260,
+    "lastMultiplier": 11,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:42.052203Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "7006a9ad22c7491e8c81789980b88ed7",
+    "name": "Mohain",
+    "normalizedName": "mohain",
+    "suggestedType": "Fibres",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T23:41:45.8044964Z",
+    "lastSeenAtUtc": "2026-05-01T23:41:45.8044964Z",
+    "lastRawText": "Mohain | 60177%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 60,
+    "lastMultiplier": 177,
+    "similar": [
+      {
+        "name": "Mohair",
+        "type": "Fibres",
+        "score": 0.833,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:41.0777072Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "1ac4fc1aab824703be0f0ce43477854b",
+    "name": "cYa~lb",
+    "normalizedName": "cya lb",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T23:41:48.5386933Z",
+    "lastSeenAtUtc": "2026-05-01T23:41:48.5386933Z",
+    "lastRawText": "cYa~lb | (121%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 21,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:40.328054Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "33ba9efb5a2a439ea5c6febe325b4b21",
+    "name": "Max",
+    "normalizedName": "max",
+    "suggestedType": "",
+    "confidence": 0.8200000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T23:41:48.5421463Z",
+    "lastSeenAtUtc": "2026-05-01T23:41:48.5421463Z",
+    "lastRawText": "Max | (135%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 35,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:39.2587201Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "db4bcb0e3c944c5b98fffbed227afc10",
+    "name": "Cancel",
+    "normalizedName": "cancel",
+    "suggestedType": "Livestock",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T23:41:48.5473668Z",
+    "lastSeenAtUtc": "2026-05-01T23:41:48.5473668Z",
+    "lastRawText": "Cancel | X177%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 77,
+    "similar": [
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.667,
+        "aliases": []
+      },
+      {
+        "name": "Canella",
+        "type": "Spices",
+        "score": 0.571,
+        "aliases": []
+      },
+      {
+        "name": "Flannel",
+        "type": "Fabrics",
+        "score": 0.571,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:38.3109964Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "445ad35716d249d6a00d9601fd40ed79",
+    "name": "Jasmineb",
+    "normalizedName": "jasmineb",
+    "suggestedType": "Fragrances",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T23:41:56.5070106Z",
+    "lastSeenAtUtc": "2026-05-01T23:41:56.5070106Z",
+    "lastRawText": "Jasmineb | 1~19",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 19,
+    "similar": [
+      {
+        "name": "Jasmine",
+        "type": "Fragrances",
+        "score": 0.875,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:37.3544308Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "6db576adb01c4e1bad7064cc07bef2bb",
+    "name": "cnasmene",
+    "normalizedName": "cnasmene",
+    "suggestedType": "Fibres",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T23:41:59.2373884Z",
+    "lastSeenAtUtc": "2026-05-01T23:41:59.2373884Z",
+    "lastRawText": "cnasmene | 1~19",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 19,
+    "similar": [
+      {
+        "name": "Cashmere",
+        "type": "Fibres",
+        "score": 0.625,
+        "aliases": []
+      },
+      {
+        "name": "Jasmine",
+        "type": "Fragrances",
+        "score": 0.625,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:37.0207636Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "a021db1d3fbe4cfc926bd4129d2690e8",
+    "name": "estern Books",
+    "normalizedName": "estern books",
+    "suggestedType": "Wares",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T23:56:05.9060976Z",
+    "lastSeenAtUtc": "2026-05-01T23:56:05.9060976Z",
+    "lastRawText": "estern Books | ype:Sundries(106%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 1,
+    "lastMultiplier": 6,
+    "similar": [
+      {
+        "name": "Western Books",
+        "type": "Wares",
+        "score": 0.923,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:36.8100403Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "67567a0417db44abb0f977a2c2eb3997",
+    "name": "peae",
+    "normalizedName": "peae",
+    "suggestedType": "Precious Stones",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T23:56:13.5525516Z",
+    "lastSeenAtUtc": "2026-05-01T23:56:13.5525516Z",
+    "lastRawText": "peae | 1~11",
+    "lastTradeType": "Sell",
+    "lastPrice": 1,
+    "lastMultiplier": 11,
+    "similar": [
+      {
+        "name": "Pearl",
+        "type": "Precious Stones",
+        "score": 0.6,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:36.6107497Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "63e8a7e495c54d91bd5cb7963f225811",
+    "name": "CivetMusk",
+    "normalizedName": "civetmusk",
+    "suggestedType": "Fragrances",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T23:56:35.9032416Z",
+    "lastSeenAtUtc": "2026-05-01T23:56:35.9032416Z",
+    "lastRawText": "CivetMusk | 2.71089%)",
+    "lastTradeType": "Sell",
+    "lastPrice": 2710,
+    "lastMultiplier": 89,
+    "similar": [
+      {
+        "name": "Civet Musk",
+        "type": "Fragrances",
+        "score": 0.9,
+        "aliases": []
+      },
+      {
+        "name": "Musk",
+        "type": "Fragrances",
+        "score": 0.444,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:36.1623967Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "89b65a77746345ed9ce464cd5ff29689",
+    "name": "But do yo",
+    "normalizedName": "but do yo",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 3,
+    "firstSeenAtUtc": "2026-05-01T23:56:49.8446997Z",
+    "lastSeenAtUtc": "2026-05-01T23:56:55.4470505Z",
+    "lastRawText": "But do yo | 62893%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 628,
+    "lastMultiplier": 93,
+    "similar": [],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:35.188362Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "aeeb8f9749244250a1d1bc0776eeea08",
+    "name": "ppere",
+    "normalizedName": "ppere",
+    "suggestedType": "Wares",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T23:56:55.4480629Z",
+    "lastSeenAtUtc": "2026-05-01T23:56:55.4480629Z",
+    "lastRawText": "ppere | YaeeSpiaeeea121%",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 21,
+    "similar": [
+      {
+        "name": "Paper",
+        "type": "Wares",
+        "score": 0.6,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:34.1532047Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "a989407c517049058f428cef969ae35f",
+    "name": "vice originating in India.",
+    "normalizedName": "vice originating in india",
+    "suggestedType": "Alcohol",
+    "confidence": 0.8500000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-01T23:56:55.4533062Z",
+    "lastSeenAtUtc": "2026-05-01T23:56:55.4533062Z",
+    "lastRawText": "vice originating in India. | 35814U%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 358,
+    "lastMultiplier": 14,
+    "similar": [
+      {
+        "name": "Gin",
+        "type": "Alcohol",
+        "score": 0.12,
+        "aliases": []
+      },
+      {
+        "name": "Tin",
+        "type": "Ores",
+        "score": 0.12,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:33.4871486Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "ab4fc1479b77424ca87af07b3c0d8a82",
+    "name": "Cummin",
+    "normalizedName": "cummin",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 11,
+    "firstSeenAtUtc": "2026-05-01T23:57:00.8595584Z",
+    "lastSeenAtUtc": "2026-05-01T23:58:20.3848041Z",
+    "lastRawText": "Cummin | 790 (147%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 790,
+    "lastMultiplier": 147,
+    "similar": [
+      {
+        "name": "Cumin",
+        "type": "Spices",
+        "score": 0.833,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:28.3504145Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "eed29b2e858b498c815b9b7c16857a31",
+    "name": "Indian Indigo Dye",
+    "normalizedName": "indian indigo dye",
+    "suggestedType": "Dyes",
+    "confidence": 0.9000000000000001,
+    "seenCount": 11,
+    "firstSeenAtUtc": "2026-05-01T23:57:03.5681868Z",
+    "lastSeenAtUtc": "2026-05-01T23:58:20.3858644Z",
+    "lastRawText": "Indian Indigo Dye | 342 (97%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 342,
+    "lastMultiplier": 97,
+    "similar": [
+      {
+        "name": "India Indigo",
+        "type": "Dyes",
+        "score": 0.706,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-01T23:58:27.9397015Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "c0eecfa9224e4703bab23c3dc89a601c",
+    "name": "Cummin",
+    "normalizedName": "cummin",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 7,
+    "firstSeenAtUtc": "2026-05-01T23:58:50.8965969Z",
+    "lastSeenAtUtc": "2026-05-01T23:59:35.6645032Z",
+    "lastRawText": "Cummin | 790 (147%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 790,
+    "lastMultiplier": 147,
+    "similar": [
+      {
+        "name": "Cumin",
+        "type": "Spices",
+        "score": 0.833,
+        "aliases": []
+      }
+    ],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
+  },
+  {
+    "id": "01df2e2e5dab41299b4732efabbd1b2e",
+    "name": "Indian Indigo Dye",
+    "normalizedName": "indian indigo dye",
+    "suggestedType": "Dyes",
+    "confidence": 0.9000000000000001,
+    "seenCount": 7,
+    "firstSeenAtUtc": "2026-05-01T23:58:50.8995884Z",
+    "lastSeenAtUtc": "2026-05-01T23:59:35.6736922Z",
+    "lastRawText": "Indian Indigo Dye | 342 ((97%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 342,
+    "lastMultiplier": 97,
+    "similar": [
+      {
+        "name": "India Indigo",
+        "type": "Dyes",
+        "score": 0.706,
+        "aliases": []
+      }
+    ],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
+  },
+  {
+    "id": "a25c9e9a72614b5d8af091613e68b99a",
+    "name": "Welcome!",
+    "normalizedName": "welcome",
+    "suggestedType": "",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T00:00:38.4078187Z",
+    "lastSeenAtUtc": "2026-05-02T00:00:38.4078187Z",
+    "lastRawText": "Welcome! | 276 (103%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 276,
+    "lastMultiplier": 103,
+    "similar": [],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
+  },
+  {
+    "id": "86db2aa4af5b47afab45e492e0886b69",
+    "name": "Muse",
+    "normalizedName": "muse",
+    "suggestedType": "Livestock",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T00:01:24.9223432Z",
+    "lastSeenAtUtc": "2026-05-02T00:01:24.9223432Z",
+    "lastRawText": "Muse | 3.290a105%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 3290,
+    "lastMultiplier": 105,
+    "similar": [
+      {
+        "name": "Mule",
+        "type": "Livestock",
+        "score": 0.75,
+        "aliases": []
+      },
+      {
+        "name": "Musk",
+        "type": "Fragrances",
+        "score": 0.75,
+        "aliases": []
+      },
+      {
+        "name": "Moose",
+        "type": "Livestock",
+        "score": 0.6,
+        "aliases": []
+      },
+      {
+        "name": "Muskets",
+        "type": "Firearms",
+        "score": 0.571,
+        "aliases": []
+      }
+    ],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
+  },
+  {
+    "id": "ba366122310c4ef281e6ebc64aa8ba1a",
+    "name": "min",
+    "normalizedName": "min",
+    "suggestedType": "Alcohol",
+    "confidence": 0.8200000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T00:01:39.999906Z",
+    "lastSeenAtUtc": "2026-05-02T00:01:39.999906Z",
+    "lastRawText": "min | 1.770(93%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1770,
+    "lastMultiplier": 93,
+    "similar": [
+      {
+        "name": "Gin",
+        "type": "Alcohol",
+        "score": 0.667,
+        "aliases": []
+      },
+      {
+        "name": "Tin",
+        "type": "Ores",
+        "score": 0.667,
+        "aliases": []
+      },
+      {
+        "name": "Cummin",
+        "type": "Spices",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Jasmine",
+        "type": "Fragrances",
+        "score": 0.429,
+        "aliases": []
+      }
+    ],
     "status": 0,
     "resolvedAtUtc": null,
     "resolutionMessage": ""
