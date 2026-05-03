@@ -326,9 +326,9 @@ public sealed class CityCatalog : ICityCatalog
         return new CityDefinition(
             name,
             aliases,
-            Fallback(request.MainRegion, "Unassigned"),
-            Fallback(request.SubRegion, "Unassigned"),
-            Fallback(request.SeaTradeRegion, "Unassigned"),
+            CleanRegion(request.MainRegion),
+            CleanRegion(request.SubRegion),
+            CleanRegion(request.SeaTradeRegion),
             mapPixelX,
             mapPixelY,
             worldX,
@@ -362,6 +362,14 @@ public sealed class CityCatalog : ICityCatalog
     {
         return string.IsNullOrWhiteSpace(filter) ||
                string.Equals(value, filter, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string CleanRegion(string? value)
+    {
+        var trimmed = (value ?? string.Empty).Trim();
+        return string.Equals(trimmed, "Unassigned", StringComparison.OrdinalIgnoreCase)
+            ? string.Empty
+            : trimmed;
     }
 
     private static IEnumerable<CityDefinition> Load(string path)
