@@ -1,0 +1,213 @@
+Name,Aliases,MainRegion,SubRegion,SeaTradeRegion,MapPixelX,MapPixelY,WorldX,WorldY,CoordinateConfidence,CoordinateNotes
+Abidjan,,Africa,Gulf of Guinea,Gulf of Guinea,,,,,,
+Acapulco,,Americas,Mexico Pacific,Pacific Central America,,,,,,
+Aden,,Middle East,Gulf of Aden,Arabian Sea / Gulf of Aden,,,,,,
+Alexandria,,Africa,Egypt / Libya,Eastern Mediterranean / Nile,362,910,1448,3640,medium,visually checked Egypt coast
+Algiers,,Africa,Maghreb,Western Mediterranean / North Africa,30,828,120,3312,medium,visually checked North Africa coast
+Ambon,,Southeast Asia,Indonesia / Spice Islands,Java Sea / Spice Islands,,,,,,
+Amsterdam,,Europe,North Sea Low Countries,North Sea / English Channel,4018,610,16072,2440,medium,visually checked near Netherlands
+Ancona,,Europe,Adriatic,Adriatic Sea,,,,,,
+Anping,,East Asia,Taiwan,Taiwan Strait,,,,,,
+Antwerp,,Europe,North Sea Low Countries,North Sea / English Channel,4002,632,16008,2528,medium,visually checked near Belgium
+Arguin,,Africa,West Africa Atlantic,West Africa Atlantic,,,,,,
+Arkhangelsk,,Europe,Northern Russia,White Sea,205,275,820,1100,low,northern label is small
+Athens,,Europe,Aegean / Eastern Mediterranean,Eastern Mediterranean,226,850,904,3400,medium,visually checked near Greece
+Auckland,,Oceania,New Zealand,Tasman Sea / New Zealand,,,,,,
+Azores,,Atlantic Islands,Macaronesia,Atlantic Islands,,,,,,
+Bahia,,Americas,Brazil Atlantic,Brazil Atlantic,,,,,,
+Banda,,Southeast Asia,Indonesia / Spice Islands,Java Sea / Spice Islands,,,,,,
+Banda Aceh,,Southeast Asia,Sumatra / Aceh,Strait of Malacca / Andaman,,,,,,
+Banjarmasin,,Southeast Asia,Indonesia / Spice Islands,Java Sea / Spice Islands,,,,,,
+Barcelona,,Europe,Iberia Mediterranean,Western Mediterranean,4078,762,16312,3048,medium,visually checked near right map edge
+Basra,,Middle East,Persian Gulf / Oman,Persian Gulf / Arabian Sea,,,,,,
+Bathurst,,Africa,West Africa Atlantic,West Africa Atlantic,,,,,,
+Beirut,,Middle East,Levant,Eastern Mediterranean,376,858,1504,3432,low,dense Levant coast
+Benghazi,,Africa,Egypt / Libya,Eastern Mediterranean / Nile,286,882,1144,3528,low,Libya label is hard to separate
+Benguela,,Africa,Southwest Africa,South Atlantic Africa,,,,,,
+Benin,,Africa,Gulf of Guinea,Gulf of Guinea,,,,,,
+Bergen,,Europe,Scandinavia,North Sea / Baltic,42,484,168,1936,medium,visually checked on Norway coast
+Bilbao,,Europe,Iberia Atlantic,Iberian Atlantic,3976,720,15904,2880,medium,visually checked north Spain
+Bissau,,Africa,West Africa Atlantic,West Africa Atlantic,,,,,,
+Bordeaux,,Europe,France Atlantic,Bay of Biscay / Channel,3990,696,15960,2784,medium,visually checked west France
+Bremen,,Europe,North Sea Low Countries,North Sea / English Channel,4030,588,16120,2352,medium,visually checked north Germany
+Bristol,,Europe,British Isles,North Sea / English Channel,4034,632,16136,2528,low,dense UK area
+Brunei,,Southeast Asia,Malay Peninsula / Borneo,Strait of Malacca / Borneo,,,,,,
+Buenos Aires,,Americas,Rio de la Plata,South Atlantic / Plata,,,,,,
+Busan,,East Asia,Korea,Korea Strait / Yellow Sea,,,,,,
+Cabo Verde,,Africa,West Africa Atlantic,West Africa Atlantic,,,,,,
+Cagliari,,Europe,Italian Peninsula / Islands,Central Mediterranean,90,782,360,3128,medium,visually checked Sardinia
+Cairo,,Africa,Egypt / Libya,Eastern Mediterranean / Nile,356,940,1424,3760,low,dense Egypt area
+Calais,,Europe,North Sea Low Countries,North Sea / English Channel,4054,592,16216,2368,medium,visually checked channel coast
+Calcutta,,South Asia,East India / Bengal,Bay of Bengal,,,,,,
+Calicut,,South Asia,West India / Malabar,Arabian Sea / West India,,,,,,
+Calvi,,Europe,Southern France / Corsica,Western Mediterranean,66,735,264,2940,medium,visually checked Corsica
+Candia,,Europe,Aegean / Eastern Mediterranean,Eastern Mediterranean,224,886,896,3544,medium,visually checked Crete
+Cape Town,,Africa,Cape Region,Cape Sea Route,,,,,,
+Caracas,,Americas,Venezuela / Southern Caribbean,Southern Caribbean,,,,,,
+Casablanca,,Africa,Maghreb,Western Mediterranean / North Africa,3974,860,15896,3440,medium,visually checked Morocco coast
+Cayenne,,Americas,Amazon / Guianas,Amazon / Guianas,,,,,,
+Ceuta,,Africa,Maghreb,Western Mediterranean / North Africa,3994,844,15976,3376,medium,visually checked near Gibraltar
+Ceylon,,South Asia,Sri Lanka,Indian Ocean / Sri Lanka,,,,,,
+Changan,,East Asia,China Inland,China River / Coastal Trade,,,,,,
+Chersky,,Arctic / Siberia,Russian Arctic,Arctic Sea Route,,,,,,
+Chongqing,,East Asia,China Inland,China River / Coastal Trade,,,,,,
+Cochin,,South Asia,West India / Malabar,Arabian Sea / West India,,,,,,
+Cohasset,,North America,North Atlantic Coast,North Atlantic Coast,,,,,,
+Copenhagen,,Europe,Scandinavia,North Sea / Baltic,106,526,424,2104,medium,visually checked Denmark
+Copiapo,,Americas,Chile Pacific,Pacific South America,,,,,,
+Danzig,,Europe,Baltic,Baltic Sea,140,536,560,2144,medium,visually checked Baltic coast
+Davao City,,Southeast Asia,Philippines,Philippine Sea / Sulu Sea,,,,,,
+Dikson,,Arctic / Siberia,Russian Arctic,Arctic Sea Route,,,,,,
+Dili,,Southeast Asia,Timor,Timor Sea,,,,,,
+Diu,,South Asia,West India / Malabar,Arabian Sea / West India,,,,,,
+Douala,,Africa,Gulf of Guinea,Gulf of Guinea,,,,,,
+Dover,,Europe,British Isles,North Sea / English Channel,4014,606,16056,2424,medium,visually checked south England
+Dublin,,Europe,British Isles,North Sea / English Channel,3988,566,15952,2264,low,dense Ireland/UK area
+Edinburgh,,Europe,British Isles,North Sea / English Channel,4038,518,16152,2072,low,dense UK area
+Edo,,East Asia,Japan,Japan Sea / East China Sea,,,,,,
+El Dorado,,Americas,Northern South America Inland,Orinoco / Caribbean Trade,,,,,,
+Famagusta,,Europe,Aegean / Eastern Mediterranean,Eastern Mediterranean,372,858,1488,3432,low,Cyprus area is hard to separate
+Faro,,Europe,Iberia Atlantic,Iberian Atlantic,3946,818,15784,3272,medium,visually checked south Portugal
+Florence,,Europe,Italian Peninsula / Islands,Central Mediterranean,112,716,448,2864,medium,visually checked Italy
+Frankfurt,,Europe,Central Europe Inland,North Sea / Rhine Trade,102,620,408,2480,medium,visually checked central Europe
+Genoa,,Europe,Italian Peninsula / Islands,Central Mediterranean,74,728,296,2912,medium,visually checked north Italy coast
+Gia Dinh,,Southeast Asia,Mainland Southeast Asia,Indochina / Gulf of Thailand,,,,,,
+Gijon,,Europe,Iberia Atlantic,Iberian Atlantic,3974,704,15896,2816,medium,visually checked north Spain
+Goa,,South Asia,West India / Malabar,Arabian Sea / West India,,,,,,
+Grand Cayman,,Americas,Caribbean,Caribbean Sea,,,,,,
+Groningen,,Europe,North Sea Low Countries,North Sea / English Channel,4020,582,16080,2328,medium,visually checked north Netherlands
+Guam,,Oceania,Pacific Islands,Pacific Islands,,,,,,
+Guatemala,,Americas,Central America,Caribbean / Central America,,,,,,
+Hamburg,,Europe,North Sea Low Countries,North Sea / English Channel,4054,584,16216,2336,medium,visually checked north Germany
+Hangzhou,,East Asia,China Coast,South China Sea / East China Sea,,,,,,
+Hanyang,,East Asia,Korea,Korea Strait / Yellow Sea,,,,,,
+Havana,,Americas,Caribbean,Caribbean Sea,,,,,,
+Helder,,Europe,North Sea Low Countries,North Sea / English Channel,4006,590,16024,2360,medium,visually checked Netherlands coast
+Hiva Oa,,Oceania,Pacific Islands,Pacific Islands,,,,,,
+Hobart,,Oceania,Australia South,Australia Coastal Trade,,,,,,
+Hormuz,,Middle East,Persian Gulf / Oman,Persian Gulf / Arabian Sea,,,,,,
+Istanbul,,Europe,Black Sea,Black Sea,306,762,1224,3048,medium,visually checked Bosporus
+Jaffa,,Middle East,Levant,Eastern Mediterranean,372,882,1488,3528,low,dense Levant coast
+Jakarta,,Southeast Asia,Indonesia / Spice Islands,Java Sea / Spice Islands,,,,,,
+Jamaica,,Americas,Caribbean,Caribbean Sea,,,,,,
+Jambi,,Southeast Asia,Indonesia / Spice Islands,Java Sea / Spice Islands,,,,,,
+Jeddah,,Middle East,Red Sea / Hejaz,Red Sea,,,,,,
+Jofra,,Africa,Maghreb,Western Mediterranean / North Africa,274,886,1096,3544,low,inland Libya label is hard to place
+Jolo,,Southeast Asia,Philippines,Philippine Sea / Sulu Sea,,,,,,
+K'gari,,Oceania,Australia East,Australia Coastal Trade,,,,,,
+Kaffa,,Africa,Horn of Africa / Red Sea,Red Sea / Gulf of Aden,,,,,,
+Kakadu,,Oceania,Australia North,Australia Coastal Trade,,,,,,
+Karibib,,Africa,Southwest Africa,South Atlantic Africa,,,,,,
+Khatanga,,Arctic / Siberia,Russian Arctic,Arctic Sea Route,,,,,,
+Kilwa,,Africa,East Africa / Swahili Coast,Western Indian Ocean,,,,,,
+Korf,,Arctic / Siberia,Russian Far East,Sea of Okhotsk,,,,,,
+Kuching,,Southeast Asia,Malay Peninsula / Borneo,Strait of Malacca / Borneo,,,,,,
+Lambayeque,,Americas,Peru / Ecuador Pacific,Pacific South America,,,,,,
+Las Palmas,,Atlantic Islands,Macaronesia,Atlantic Islands,,,,,,
+Lima,,Americas,Peru / Ecuador Pacific,Pacific South America,,,,,,
+Lisbon,,Europe,Iberia Atlantic,Iberian Atlantic,3948,800,15792,3200,high,user confirmed anchor
+London,,Europe,British Isles,North Sea / English Channel,4078,610,16312,2440,low,right edge / dense UK area
+Lop Buri,,Southeast Asia,Mainland Southeast Asia,Indochina / Gulf of Thailand,,,,,,
+Luanda,,Africa,Southwest Africa,South Atlantic Africa,,,,,,
+Lubeck,,Europe,North Sea Low Countries,North Sea / English Channel,104,586,416,2344,medium,visually checked north Germany
+Macau,,East Asia,China Coast,South China Sea / East China Sea,,,,,,
+Machilipatnam,,South Asia,East India / Bengal,Bay of Bengal,,,,,,
+Madeira,,Atlantic Islands,Macaronesia,Atlantic Islands,,,,,,
+Makassar,,Southeast Asia,Indonesia / Spice Islands,Java Sea / Spice Islands,,,,,,
+Malacca,,Southeast Asia,Malay Peninsula / Borneo,Strait of Malacca / Borneo,,,,,,
+Malaga,,Europe,Iberia Mediterranean,Western Mediterranean,4066,820,16264,3280,medium,visually checked south Spain
+Malindi,,Africa,East Africa / Swahili Coast,Western Indian Ocean,,,,,,
+Manama,,Middle East,Persian Gulf / Oman,Persian Gulf / Arabian Sea,,,,,,
+Mangalore,,South Asia,West India / Malabar,Arabian Sea / West India,,,,,,
+Manila,,Southeast Asia,Philippines,Philippine Sea / Sulu Sea,,,,,,
+Maracaibo,,Americas,Venezuela / Southern Caribbean,Southern Caribbean,,,,,,
+Marseilles,,Europe,Southern France / Corsica,Western Mediterranean,24,730,96,2920,medium,visually checked south France
+Massawa,,Africa,Horn of Africa / Red Sea,Red Sea / Gulf of Aden,,,,,,
+Mecca,,Middle East,Red Sea / Hejaz,Red Sea,,,,,,
+Merida,,Americas,Mexico / Gulf Coast,Gulf of Mexico,,,,,,
+Mogadishu,,Africa,East Africa / Swahili Coast,Western Indian Ocean,,,,,,
+Mombasa,,Africa,East Africa / Swahili Coast,Western Indian Ocean,,,,,,
+Montevideo,,Americas,Rio de la Plata,South Atlantic / Plata,,,,,,
+Montpellier,,Europe,Southern France / Corsica,Western Mediterranean,7,751,28,3004,high,user confirmed anchor
+Mozambique,,Africa,East Africa / Swahili Coast,Western Indian Ocean,,,,,,
+Muscat,,Middle East,Persian Gulf / Oman,Persian Gulf / Arabian Sea,,,,,,
+Nagasaki,,East Asia,Japan,Japan Sea / East China Sea,,,,,,
+Nantes,,Europe,France Atlantic,Bay of Biscay / Channel,3980,674,15920,2696,medium,visually checked west France
+Naples,,Europe,Italian Peninsula / Islands,Central Mediterranean,155,776,620,3104,high,user confirmed anchor
+Nassau,,Americas,Caribbean,Caribbean Sea,,,,,,
+Natal,,Americas,Brazil Atlantic,Brazil Atlantic,,,,,,
+Nicosia,,Europe,Aegean / Eastern Mediterranean,Eastern Mediterranean,350,858,1400,3432,low,Cyprus area is hard to separate
+Odessa,,Europe,Black Sea,Black Sea,328,684,1312,2736,medium,visually checked Black Sea
+Okhotsk,,Arctic / Siberia,Russian Far East,Sea of Okhotsk,,,,,,
+Oslo,,Europe,Scandinavia,North Sea / Baltic,116,502,464,2008,medium,visually checked Norway
+Palembang,,Southeast Asia,Indonesia / Spice Islands,Java Sea / Spice Islands,,,,,,
+Palma,,Europe,Iberia Mediterranean,Western Mediterranean,50,724,200,2896,medium,visually checked Balearic Islands
+Panama,,Americas,Central America,Caribbean / Central America,,,,,,
+Paris,,Europe,France Atlantic,Bay of Biscay / Channel,4032,650,16128,2600,low,label/dot area is dense
+Pattani,,Southeast Asia,Mainland Southeast Asia,Indochina / Gulf of Thailand,,,,,,
+Pegu,,Southeast Asia,Mainland Southeast Asia,Indochina / Gulf of Thailand,,,,,,
+Pernambuco,,Americas,Brazil Atlantic,Brazil Atlantic,,,,,,
+Pinjarra,,Oceania,Australia West,Australia Coastal Trade,,,,,,
+Pisa,,Europe,Italian Peninsula / Islands,Central Mediterranean,100,730,400,2920,medium,visually checked Italy
+Plymouth,,Europe,British Isles,North Sea / English Channel,4014,646,16056,2584,medium,visually checked southwest England
+Pohang,,East Asia,Korea,Korea Strait / Yellow Sea,,,,,,
+Pondicherry,,South Asia,East India / Bengal,Bay of Bengal,,,,,,
+Port Pirie,,Oceania,Australia South,Australia Coastal Trade,,,,,,
+Port Royal,,Americas,Caribbean,Caribbean Sea,,,,,,
+Porto,,Europe,Iberia Atlantic,Iberian Atlantic,3940,768,15760,3072,medium,visually checked north Portugal
+Porto Velho,,Americas,Amazon / Guianas,Amazon / Guianas,,,,,,
+Portobelo,,Americas,Central America,Caribbean / Central America,,,,,,
+Portsmouth,,Europe,British Isles,North Sea / English Channel,4066,646,16264,2584,medium,visually checked south England
+Quanzhou,,East Asia,China Coast,South China Sea / East China Sea,,,,,,
+Quelimane,,Africa,East Africa / Swahili Coast,Western Indian Ocean,,,,,,
+Ragusa,,Europe,Adriatic,Adriatic Sea,224,746,896,2984,medium,visually checked Adriatic
+Riga,,Europe,Baltic,Baltic Sea,202,532,808,2128,medium,visually checked Baltic
+Rio de Janeiro,,Americas,Brazil Atlantic,Brazil Atlantic,,,,,,
+Rome,,Europe,Italian Peninsula / Islands,Central Mediterranean,136,758,544,3032,medium,visually checked Italy
+Run,,Southeast Asia,Indonesia / Spice Islands,Java Sea / Spice Islands,,,,,,
+Saint Petersburg,,Europe,Baltic,Baltic Sea,310,484,1240,1936,medium,visually checked Baltic / Russia
+Saint-Georges,,Americas,Amazon / Guianas,Amazon / Guianas,,,,,,
+Sakai,,East Asia,Japan,Japan Sea / East China Sea,,,,,,
+Salonika,,Europe,Aegean / Eastern Mediterranean,Eastern Mediterranean,254,798,1016,3192,medium,visually checked north Greece
+Samarai,,Oceania,Pacific Islands,Pacific Islands,,,,,,
+San Antonio,,Americas,Chile Pacific,Pacific South America,,,,,,
+San Juan,,Americas,Caribbean,Caribbean Sea,,,,,,
+Santiago,,Americas,Chile Pacific,Pacific South America,,,,,,
+Santo Domingo,,Americas,Caribbean,Caribbean Sea,,,,,,
+Sao Tome,,Africa,Gulf of Guinea,Gulf of Guinea,,,,,,
+Sassari,,Europe,Italian Peninsula / Islands,Central Mediterranean,76,754,304,3016,medium,visually checked Sardinia
+Saylac,,Africa,Horn of Africa / Red Sea,Red Sea / Gulf of Aden,,,,,,
+Sevastopol,,Europe,Black Sea,Black Sea,374,688,1496,2752,medium,visually checked Black Sea
+Seville,,Europe,Iberia Atlantic,Iberian Atlantic,3994,814,15976,3256,medium,visually checked south Spain
+Sierra Leone,,Africa,West Africa Atlantic,West Africa Atlantic,,,,,,
+Socotra,,Middle East,Gulf of Aden,Arabian Sea / Gulf of Aden,,,,,,
+Sofala,,Africa,East Africa / Swahili Coast,Western Indian Ocean,,,,,,
+Stockholm,,Europe,Scandinavia,North Sea / Baltic,166,484,664,1936,medium,visually checked Sweden
+Suez,,Middle East,Red Sea / Hejaz,Red Sea,368,936,1472,3744,low,dense Egypt/Suez area
+Surabaya,,Southeast Asia,Indonesia / Spice Islands,Java Sea / Spice Islands,,,,,,
+Syracuse,,Europe,Italian Peninsula / Islands,Central Mediterranean,178,828,712,3312,medium,visually checked Sicily
+Tamatave,,Africa,East Africa / Swahili Coast,Western Indian Ocean,,,,,,
+Tamsui,,East Asia,Taiwan,Taiwan Strait,,,,,,
+Tenochtitlan,,Americas,Mexico / Gulf Coast,Gulf of Mexico,,,,,,
+Ternate,,Southeast Asia,Indonesia / Spice Islands,Java Sea / Spice Islands,,,,,,
+Tiksi,,Arctic / Siberia,Russian Arctic,Arctic Sea Route,,,,,,
+Toamasina,,Africa,East Africa / Swahili Coast,Western Indian Ocean,,,,,,
+Trabzon,,Europe,Black Sea,Black Sea,438,762,1752,3048,medium,visually checked Black Sea east
+Trieste,,Europe,Adriatic,Adriatic Sea,166,696,664,2784,medium,visually checked Adriatic north
+Tripoli,,Africa,Maghreb,Western Mediterranean / North Africa,122,854,488,3416,medium,visually checked Libya coast
+Trujillo,,Americas,Peru / Ecuador Pacific,Pacific South America,,,,,,
+Tumbes,,Americas,Peru / Ecuador Pacific,Pacific South America,,,,,,
+Tunis,,Africa,Maghreb,Western Mediterranean / North Africa,78,822,312,3288,medium,visually checked Tunisia coast
+Valencia,,Europe,Iberia Mediterranean,Western Mediterranean,4050,786,16200,3144,medium,visually checked east Spain
+Valparaiso,,Americas,Chile Pacific,Pacific South America,,,,,,
+Venice,,Europe,Adriatic,Adriatic Sea,133,699,532,2796,high,user confirmed anchor
+Veracruz,,Americas,Mexico / Gulf Coast,Gulf of Mexico,,,,,,
+Visakhapatnam,,South Asia,West India / Malabar,Arabian Sea / West India,,,,,,
+Visby,,Europe,Scandinavia,North Sea / Baltic,180,526,720,2104,medium,visually checked Baltic island
+Whanganui,,Oceania,New Zealand,Tasman Sea / New Zealand,,,,,,
+Willemstad,,Americas,Caribbean,Caribbean Sea,,,,,,
+Yanbu,,Middle East,Red Sea / Hejaz,Red Sea,,,,,,
+Yuldo,,East Asia,Korea,Korea Strait / Yellow Sea,,,,,,
+Yuntaisha,,East Asia,China Coast,South China Sea / East China Sea,,,,,,
+Zadar,,Europe,Adriatic,Adriatic Sea,180,718,720,2872,medium,visually checked Adriatic
+Zanzibar,,Africa,East Africa / Swahili Coast,Western Indian Ocean,,,,,,

@@ -6836,6 +6836,1284 @@
         "aliases": []
       }
     ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T23:12:04.4506587Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "5c94c87cee40448b9967bcd65e55fbd1",
+    "name": "Eggs",
+    "normalizedName": "eggs",
+    "suggestedType": "Livestock",
+    "confidence": 0.9000000000000001,
+    "seenCount": 10,
+    "firstSeenAtUtc": "2026-05-02T23:11:31.4448795Z",
+    "lastSeenAtUtc": "2026-05-02T23:11:56.32193Z",
+    "lastRawText": "Eggs | 24 (96%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 24,
+    "lastMultiplier": 96,
+    "similar": [
+      {
+        "name": "Pigs",
+        "type": "Livestock",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Ambergris",
+        "type": "Fragrances",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Leegangju",
+        "type": "Alcohol",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Dried Figs",
+        "type": "Foodstuffs",
+        "score": 0.30000000000000004,
+        "aliases": []
+      },
+      {
+        "name": "Lemongrass",
+        "type": "Spices",
+        "score": 0.30000000000000004,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-02T23:11:58.7721526Z",
+    "resolutionMessage": "Added trade good \u0027Eggs\u0027."
+  },
+  {
+    "id": "a1ff72b2ef4c49d6be9d280343d57c66",
+    "name": "Liqueur",
+    "normalizedName": "liqueur",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 10,
+    "firstSeenAtUtc": "2026-05-02T23:27:45.4933313Z",
+    "lastSeenAtUtc": "2026-05-02T23:29:15.3458401Z",
+    "lastRawText": "Liqueur | 42485%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 424,
+    "lastMultiplier": 85,
+    "similar": [
+      {
+        "name": "Ginger",
+        "type": "Spices",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Lumber",
+        "type": "Wares",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Silver",
+        "type": "Precious Metals",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Silverwork",
+        "type": "Wares",
+        "score": 0.30000000000000004,
+        "aliases": []
+      },
+      {
+        "name": "Amber",
+        "type": "Precious Stones",
+        "score": 0.2857142857142857,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-02T23:29:19.162273Z",
+    "resolutionMessage": "Added trade good \u0027Liqueur\u0027."
+  },
+  {
+    "id": "d53f6c5d4bfa40498f649bfd2df36447",
+    "name": "Knitted Fabric",
+    "normalizedName": "knitted fabric",
+    "suggestedType": "Fabrics",
+    "confidence": 0.9000000000000001,
+    "seenCount": 26,
+    "firstSeenAtUtc": "2026-05-02T23:27:45.5509398Z",
+    "lastSeenAtUtc": "2026-05-02T23:28:53.3265298Z",
+    "lastRawText": "Knitted Fabric | 541 ((113%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 541,
+    "lastMultiplier": 113,
+    "similar": [
+      {
+        "name": "Cotton Fabric",
+        "type": "Fabrics",
+        "score": 0.6428571428571428,
+        "aliases": []
+      },
+      {
+        "name": "Georgette Fabric",
+        "type": "Fabrics",
+        "score": 0.5625,
+        "aliases": []
+      },
+      {
+        "name": "Handwoven Fabric",
+        "type": "Fabrics",
+        "score": 0.5625,
+        "aliases": []
+      },
+      {
+        "name": "Damask Fabric",
+        "type": "Fabrics",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Dried Figs",
+        "type": "Foodstuffs",
+        "score": 0.3571428571428571,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-02T23:28:53.4902211Z",
+    "resolutionMessage": "Added trade good \u0027Knitted Fabric\u0027."
+  },
+  {
+    "id": "c70efb2c9a2347f7b4b1be86960ea9de",
+    "name": "Fine Clothing",
+    "normalizedName": "fine clothing",
+    "suggestedType": "Fibres",
+    "confidence": 0.9000000000000001,
+    "seenCount": 17,
+    "firstSeenAtUtc": "2026-05-02T23:27:54.7884805Z",
+    "lastSeenAtUtc": "2026-05-02T23:28:37.2593978Z",
+    "lastRawText": "Fine Clothing | 5,900((154%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 5900,
+    "lastMultiplier": 154,
+    "similar": [
+      {
+        "name": "Silk Cotton",
+        "type": "Fibres",
+        "score": 0.46153846153846156,
+        "aliases": []
+      },
+      {
+        "name": "Chinese Painting",
+        "type": "Artwork",
+        "score": 0.4375,
+        "aliases": []
+      },
+      {
+        "name": "Aweotsang",
+        "type": "Luxury Goods",
+        "score": 0.3846153846153846,
+        "aliases": []
+      },
+      {
+        "name": "African Wood Carving",
+        "type": "Crafts",
+        "score": 0.35,
+        "aliases": []
+      },
+      {
+        "name": "Apple Cider Vinegar",
+        "type": "Seasonings",
+        "score": 0.3157894736842105,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-02T23:28:37.3467566Z",
+    "resolutionMessage": "Added trade good \u0027Fine Clothing\u0027."
+  },
+  {
+    "id": "286972f1299241f1b85157266c2379da",
+    "name": "Antique Art",
+    "normalizedName": "antique art",
+    "suggestedType": "Fabrics",
+    "confidence": 0.9000000000000001,
+    "seenCount": 8,
+    "firstSeenAtUtc": "2026-05-02T23:27:54.8387082Z",
+    "lastSeenAtUtc": "2026-05-02T23:28:11.6484231Z",
+    "lastRawText": "Antique Art | 5.100((148%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 5100,
+    "lastMultiplier": 148,
+    "similar": [
+      {
+        "name": "Handwoven Fabric",
+        "type": "Fabrics",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Aquavit",
+        "type": "Alcohol",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Tequila",
+        "type": "Alcohol",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Tin Ore",
+        "type": "Ores",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Vinegar",
+        "type": "Seasonings",
+        "score": 0.36363636363636365,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-02T23:28:17.8521704Z",
+    "resolutionMessage": "Added trade good \u0027Antique Art\u0027."
+  },
+  {
+    "id": "7c1687847f144d62ac1b741312cba544",
+    "name": "neClothingrt",
+    "normalizedName": "neclothingrt",
+    "suggestedType": "Dyes",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T23:28:22.6082175Z",
+    "lastSeenAtUtc": "2026-05-02T23:28:22.6082175Z",
+    "lastRawText": "neClothingrt | ype:Crafts)0\u91CC(148%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 0,
+    "lastMultiplier": 148,
+    "similar": [
+      {
+        "name": "Cochineal",
+        "type": "Dyes",
+        "score": 0.41666666666666663,
+        "aliases": []
+      },
+      {
+        "name": "Aweotsang",
+        "type": "Luxury Goods",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Coconut Vinegar",
+        "type": "Seasonings",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Cotton",
+        "type": "Fibres",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Feathers",
+        "type": "Fibres",
+        "score": 0.33333333333333337,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T23:28:55.6770591Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "27818235788c4ffd9189246e3d6c29b3",
+    "name": "ueurnder",
+    "normalizedName": "ueurnder",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T23:29:07.9246825Z",
+    "lastSeenAtUtc": "2026-05-02T23:29:07.9246825Z",
+    "lastRawText": "ueurnder | ype\uFF1AAlcohola110%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 10,
+    "similar": [
+      {
+        "name": "Lavender",
+        "type": "Spices",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Coriander",
+        "type": "Spices",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Beer",
+        "type": "Alcohol",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Berries",
+        "type": "Foodstuffs",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Boulders",
+        "type": "Wares",
+        "score": 0.375,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T23:29:21.911017Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "30d4aaba34a548f1a3258fbade7be1d9",
+    "name": "taYeeollenFabrl",
+    "normalizedName": "tayeeollenfabrl",
+    "suggestedType": "Fabrics",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-02T23:29:08.0186753Z",
+    "lastSeenAtUtc": "2026-05-02T23:29:08.0186753Z",
+    "lastRawText": "taYeeollenFabrl | 1.100129%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1100,
+    "lastMultiplier": 129,
+    "similar": [
+      {
+        "name": "Handwoven Fabric",
+        "type": "Fabrics",
+        "score": 0.4375,
+        "aliases": []
+      },
+      {
+        "name": "Bay Leaf",
+        "type": "Seasonings",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Camel Hair",
+        "type": "Fibres",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Canella",
+        "type": "Spices",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Goldenseal",
+        "type": "Medicine",
+        "score": 0.33333333333333337,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-02T23:29:21.1526563Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "b85f30dba99f4d59a8cb3e930c00ba64",
+    "name": "MusL",
+    "normalizedName": "musl",
+    "suggestedType": "Fragrances",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T00:40:27.0092392Z",
+    "lastSeenAtUtc": "2026-05-03T00:40:27.0092392Z",
+    "lastRawText": "MusL | 1~75",
+    "lastTradeType": "Sell",
+    "lastPrice": 1,
+    "lastMultiplier": 75,
+    "similar": [
+      {
+        "name": "Musk",
+        "type": "Fragrances",
+        "score": 0.75,
+        "aliases": []
+      },
+      {
+        "name": "Mule",
+        "type": "Livestock",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Mullet",
+        "type": "Foodstuffs",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Muskets",
+        "type": "Firearms",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Mustard",
+        "type": "Spices",
+        "score": 0.4285714285714286,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:17:08.1835485Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "f52028e01b3643b5a9de3d93caf5f10a",
+    "name": "CIICCSe",
+    "normalizedName": "ciiccse",
+    "suggestedType": "Wares",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T00:41:51.0208583Z",
+    "lastSeenAtUtc": "2026-05-03T00:41:51.0208583Z",
+    "lastRawText": "CIICCSe | 264(83%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 264,
+    "lastMultiplier": 83,
+    "similar": [
+      {
+        "name": "Chicle",
+        "type": "Wares",
+        "score": 0.5714285714285714,
+        "aliases": []
+      },
+      {
+        "name": "Cheese",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Rice",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Chickens",
+        "type": "Livestock",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Crickets",
+        "type": "Livestock",
+        "score": 0.375,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:17:07.658009Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "0a7441913e6b4c3995328f8bc6cf6e2a",
+    "name": "Mark",
+    "normalizedName": "mark",
+    "suggestedType": "Wares",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T00:41:53.4253797Z",
+    "lastSeenAtUtc": "2026-05-03T00:41:53.4253797Z",
+    "lastRawText": "Mark | 471 ((104%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 471,
+    "lastMultiplier": 104,
+    "similar": [
+      {
+        "name": "Bark",
+        "type": "Wares",
+        "score": 0.75,
+        "aliases": []
+      },
+      {
+        "name": "Mace",
+        "type": "Spices",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Marble",
+        "type": "Wares",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Milk",
+        "type": "Foodstuffs",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Musk",
+        "type": "Fragrances",
+        "score": 0.5,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:17:07.0889426Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "f28f55f4af2746018110ec57bd3aeef4",
+    "name": "ciauer",
+    "normalizedName": "ciauer",
+    "suggestedType": "Alcohol",
+    "confidence": 0.75,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T01:01:33.47523Z",
+    "lastSeenAtUtc": "2026-05-03T01:01:33.47523Z",
+    "lastRawText": "ciauer | 1~40",
+    "lastTradeType": "Buy",
+    "lastPrice": 1,
+    "lastMultiplier": 40,
+    "similar": [
+      {
+        "name": "Liqueur",
+        "type": "Alcohol",
+        "score": 0.5714285714285714,
+        "aliases": []
+      },
+      {
+        "name": "Coriander",
+        "type": "Spices",
+        "score": 0.5555555555555556,
+        "aliases": []
+      },
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Ginger",
+        "type": "Spices",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Paper",
+        "type": "Wares",
+        "score": 0.5,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:17:05.8438706Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "5a905aad6f10416a82192c6a03ecd277",
+    "name": "maurenclo",
+    "normalizedName": "maurenclo",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T01:16:31.1084328Z",
+    "lastSeenAtUtc": "2026-05-03T01:16:31.1084328Z",
+    "lastRawText": "maurenclo | 461(117%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 461,
+    "lastMultiplier": 117,
+    "similar": [
+      {
+        "name": "Laurel",
+        "type": "Spices",
+        "score": 0.5555555555555556,
+        "aliases": []
+      },
+      {
+        "name": "Mango",
+        "type": "Foodstuffs",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Marble",
+        "type": "Wares",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Marble Doll",
+        "type": "Crafts",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Eastern Cannon",
+        "type": "Firearms",
+        "score": 0.3571428571428571,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:17:04.1843356Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "4ae89a5a59d3439eb96cf80b52ac273c",
+    "name": "cYanananneel",
+    "normalizedName": "cyanananneel",
+    "suggestedType": "Foodstuffs",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T01:16:33.46042Z",
+    "lastSeenAtUtc": "2026-05-03T01:16:33.46042Z",
+    "lastRawText": "cYanananneel | 461(117%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 461,
+    "lastMultiplier": 117,
+    "similar": [
+      {
+        "name": "Bananas",
+        "type": "Foodstuffs",
+        "score": 0.41666666666666663,
+        "aliases": []
+      },
+      {
+        "name": "Flannel",
+        "type": "Fabrics",
+        "score": 0.41666666666666663,
+        "aliases": []
+      },
+      {
+        "name": "Indian Mackerel",
+        "type": "Foodstuffs",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Spanish Mackerel",
+        "type": "Foodstuffs",
+        "score": 0.375,
+        "aliases": []
+      },
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.33333333333333337,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:17:01.7883212Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "61f667fac3734588a30e5597bcc8a864",
+    "name": "cYaaneaneel",
+    "normalizedName": "cyaaneaneel",
+    "suggestedType": "Wares",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T01:16:35.7092176Z",
+    "lastSeenAtUtc": "2026-05-03T01:16:35.7092176Z",
+    "lastRawText": "cYaaneaneel | 461(117%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 461,
+    "lastMultiplier": 117,
+    "similar": [
+      {
+        "name": "Cayman Sea Salt",
+        "type": "Wares",
+        "score": 0.4666666666666667,
+        "aliases": []
+      },
+      {
+        "name": "Flannel",
+        "type": "Fabrics",
+        "score": 0.4545454545454546,
+        "aliases": []
+      },
+      {
+        "name": "Indian Mackerel",
+        "type": "Foodstuffs",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Bananas",
+        "type": "Foodstuffs",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.36363636363636365,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:16:59.4430051Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "6de66601f04e47ac80c84b0e4c4cf97c",
+    "name": "cYaanannell",
+    "normalizedName": "cyaanannell",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T01:16:38.1773947Z",
+    "lastSeenAtUtc": "2026-05-03T01:16:38.1773947Z",
+    "lastRawText": "cYaanannell | 461(117%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 461,
+    "lastMultiplier": 117,
+    "similar": [
+      {
+        "name": "Canella",
+        "type": "Spices",
+        "score": 0.4545454545454546,
+        "aliases": []
+      },
+      {
+        "name": "Flannel",
+        "type": "Fabrics",
+        "score": 0.4545454545454546,
+        "aliases": []
+      },
+      {
+        "name": "Cayman Sea Salt",
+        "type": "Wares",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Bananas",
+        "type": "Foodstuffs",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.36363636363636365,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:16:51.730467Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "9c8f2f1c32654ecbab8a888a051c79ba",
+    "name": "cYaananneel",
+    "normalizedName": "cyaananneel",
+    "suggestedType": "Fabrics",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T01:16:40.4509426Z",
+    "lastSeenAtUtc": "2026-05-03T01:16:40.4509426Z",
+    "lastRawText": "cYaananneel | 461(117%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 461,
+    "lastMultiplier": 117,
+    "similar": [
+      {
+        "name": "Flannel",
+        "type": "Fabrics",
+        "score": 0.4545454545454546,
+        "aliases": []
+      },
+      {
+        "name": "Indian Mackerel",
+        "type": "Foodstuffs",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Bananas",
+        "type": "Foodstuffs",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Canella",
+        "type": "Spices",
+        "score": 0.36363636363636365,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:16:46.410326Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "beef5cfbebe24672a5667598c5cb0785",
+    "name": "cYaanenncell",
+    "normalizedName": "cyaanenncell",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T01:16:42.9512109Z",
+    "lastSeenAtUtc": "2026-05-03T01:16:42.9512109Z",
+    "lastRawText": "cYaanenncell | 461(117%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 461,
+    "lastMultiplier": 117,
+    "similar": [
+      {
+        "name": "Canella",
+        "type": "Spices",
+        "score": 0.41666666666666663,
+        "aliases": []
+      },
+      {
+        "name": "Flannel",
+        "type": "Fabrics",
+        "score": 0.41666666666666663,
+        "aliases": []
+      },
+      {
+        "name": "Cayman Sea Salt",
+        "type": "Wares",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Cochineal",
+        "type": "Dyes",
+        "score": 0.33333333333333337,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:16:46.9591055Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "781f144d436b45908a0f989d98431118",
+    "name": "Eaurenceo",
+    "normalizedName": "eaurenceo",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T01:16:45.4705199Z",
+    "lastSeenAtUtc": "2026-05-03T01:16:45.4705199Z",
+    "lastRawText": "Eaurenceo | 461(117%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 461,
+    "lastMultiplier": 117,
+    "similar": [
+      {
+        "name": "Laurel",
+        "type": "Spices",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Lavender",
+        "type": "Spices",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Eastern Cannon",
+        "type": "Firearms",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Kauri Resin",
+        "type": "Wares",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Apricot",
+        "type": "Foodstuffs",
+        "score": 0.33333333333333337,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:16:47.8963404Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "a515a1d2d7064c05bffaab13802d07f9",
+    "name": "Yaarencle",
+    "normalizedName": "yaarencle",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T01:16:47.8435565Z",
+    "lastSeenAtUtc": "2026-05-03T01:16:47.8435565Z",
+    "lastRawText": "Yaarencle | 461(117%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 461,
+    "lastMultiplier": 117,
+    "similar": [
+      {
+        "name": "Laurel",
+        "type": "Spices",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Marble",
+        "type": "Wares",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Tiare Flower",
+        "type": "Fragrances",
+        "score": 0.41666666666666663,
+        "aliases": []
+      },
+      {
+        "name": "Apricot",
+        "type": "Foodstuffs",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Arnica",
+        "type": "Medicine",
+        "score": 0.33333333333333337,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:16:48.625856Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "9786b98e3dc4400d949873433c69a9a0",
+    "name": "cYaunenncle",
+    "normalizedName": "cyaunenncle",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T01:16:50.2140247Z",
+    "lastSeenAtUtc": "2026-05-03T01:16:50.2140247Z",
+    "lastRawText": "cYaunenncle | 461(117%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 461,
+    "lastMultiplier": 117,
+    "similar": [
+      {
+        "name": "Canella",
+        "type": "Spices",
+        "score": 0.4545454545454546,
+        "aliases": []
+      },
+      {
+        "name": "Aubergine",
+        "type": "Luxury Goods",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Camel",
+        "type": "Livestock",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Cattle",
+        "type": "Livestock",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Chamomile",
+        "type": "Medicine",
+        "score": 0.36363636363636365,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:16:52.3369411Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "5e95ce11f5bb4fb59207e1478298ab74",
+    "name": "acteristics differ between re",
+    "normalizedName": "acteristics differ between re",
+    "suggestedType": "Fibres",
+    "confidence": 0.8500000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T01:17:41.3261717Z",
+    "lastSeenAtUtc": "2026-05-03T01:17:41.3261717Z",
+    "lastRawText": "acteristics differ between re | 6199u%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 6,
+    "lastMultiplier": 199,
+    "similar": [
+      {
+        "name": "Eider Feather",
+        "type": "Fibres",
+        "score": 0.31034482758620685,
+        "aliases": []
+      },
+      {
+        "name": "Apple Cider Vinegar",
+        "type": "Seasonings",
+        "score": 0.27586206896551724,
+        "aliases": []
+      },
+      {
+        "name": "Exotic Fruit",
+        "type": "Foodstuffs",
+        "score": 0.27586206896551724,
+        "aliases": []
+      },
+      {
+        "name": "Peacock Feather",
+        "type": "Fibres",
+        "score": 0.27586206896551724,
+        "aliases": []
+      },
+      {
+        "name": "Persian Berry",
+        "type": "Dyes",
+        "score": 0.27586206896551724,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:20:18.3407225Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "8894d1264751430e88bfffbd30478f63",
+    "name": "Short Swords",
+    "normalizedName": "short swords",
+    "suggestedType": "Arms",
+    "confidence": 0.9000000000000001,
+    "seenCount": 13,
+    "firstSeenAtUtc": "2026-05-03T01:19:37.6389148Z",
+    "lastSeenAtUtc": "2026-05-03T01:20:11.1192408Z",
+    "lastRawText": "Short Swords | 930(116%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 930,
+    "lastMultiplier": 116,
+    "similar": [
+      {
+        "name": "Long Sword",
+        "type": "Arms",
+        "score": 0.5833333333333333,
+        "aliases": []
+      },
+      {
+        "name": "Shuri Ori",
+        "type": "Fabrics",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Artwork",
+        "type": "Unknown",
+        "score": 0.41666666666666663,
+        "aliases": [
+          "Artwork"
+        ]
+      },
+      {
+        "name": "Horses",
+        "type": "Livestock",
+        "score": 0.41666666666666663,
+        "aliases": []
+      },
+      {
+        "name": "Rhino Horns",
+        "type": "Medicine",
+        "score": 0.41666666666666663,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-03T01:20:12.9178596Z",
+    "resolutionMessage": "Added trade good \u0027Short Swords\u0027."
+  },
+  {
+    "id": "8936a32bfc844339b5e8cbfca1919c81",
+    "name": "Cannon Shot",
+    "normalizedName": "cannon shot",
+    "suggestedType": "Wares",
+    "confidence": 0.9000000000000001,
+    "seenCount": 9,
+    "firstSeenAtUtc": "2026-05-03T01:19:37.6995244Z",
+    "lastSeenAtUtc": "2026-05-03T01:19:57.100601Z",
+    "lastRawText": "Cannon Shot | 1.540100%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 1540,
+    "lastMultiplier": 100,
+    "similar": [
+      {
+        "name": "Cayman Sea Salt",
+        "type": "Wares",
+        "score": 0.4,
+        "aliases": []
+      },
+      {
+        "name": "Kangaroo Meat",
+        "type": "Foodstuffs",
+        "score": 0.3846153846153846,
+        "aliases": []
+      },
+      {
+        "name": "Valentine Chocolate",
+        "type": "Luxury Goods",
+        "score": 0.368421052631579,
+        "aliases": []
+      },
+      {
+        "name": "Almonds",
+        "type": "Foodstuffs",
+        "score": 0.36363636363636365,
+        "aliases": []
+      },
+      {
+        "name": "Bananas",
+        "type": "Foodstuffs",
+        "score": 0.36363636363636365,
+        "aliases": []
+      }
+    ],
+    "status": 1,
+    "resolvedAtUtc": "2026-05-03T01:20:02.1046676Z",
+    "resolutionMessage": "Added trade good \u0027Cannon Shot\u0027."
+  },
+  {
+    "id": "69bc7cb6da824807b85189d355e6b4ab",
+    "name": "ortSwords",
+    "normalizedName": "ortswords",
+    "suggestedType": "Unknown",
+    "confidence": 0.9000000000000001,
+    "seenCount": 1,
+    "firstSeenAtUtc": "2026-05-03T01:20:11.1223537Z",
+    "lastSeenAtUtc": "2026-05-03T01:20:11.1223537Z",
+    "lastRawText": "ortSwords | ype:Arms45a99%",
+    "lastTradeType": "Buy",
+    "lastPrice": 45,
+    "lastMultiplier": 99,
+    "similar": [
+      {
+        "name": "Artwork",
+        "type": "Unknown",
+        "score": 0.5555555555555556,
+        "aliases": [
+          "Artwork"
+        ]
+      },
+      {
+        "name": "Long Sword",
+        "type": "Arms",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Oysters",
+        "type": "Foodstuffs",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Rosewood",
+        "type": "Wares",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Brass Work",
+        "type": "Crafts",
+        "score": 0.4,
+        "aliases": []
+      }
+    ],
+    "status": 2,
+    "resolvedAtUtc": "2026-05-03T01:20:14.900521Z",
+    "resolutionMessage": "Dismissed by user."
+  },
+  {
+    "id": "836e56670c8d45cd87b3dc52001b6f54",
+    "name": "Gunpowder",
+    "normalizedName": "gunpowder",
+    "suggestedType": "Spices",
+    "confidence": 0.9000000000000001,
+    "seenCount": 14,
+    "firstSeenAtUtc": "2026-05-03T03:07:57.1756789Z",
+    "lastSeenAtUtc": "2026-05-03T03:08:44.6512427Z",
+    "lastRawText": "Gunpowder | 814(101%)",
+    "lastTradeType": "Buy",
+    "lastPrice": 814,
+    "lastMultiplier": 101,
+    "similar": [
+      {
+        "name": "Ginger",
+        "type": "Spices",
+        "score": 0.4444444444444444,
+        "aliases": []
+      },
+      {
+        "name": "Green Pepper",
+        "type": "Spices",
+        "score": 0.41666666666666663,
+        "aliases": []
+      },
+      {
+        "name": "Sichuan Pepper",
+        "type": "Spices",
+        "score": 0.3571428571428571,
+        "aliases": []
+      },
+      {
+        "name": "Benzoate",
+        "type": "Fragrances",
+        "score": 0.33333333333333337,
+        "aliases": []
+      },
+      {
+        "name": "Coriander",
+        "type": "Spices",
+        "score": 0.33333333333333337,
+        "aliases": []
+      }
+    ],
     "status": 0,
     "resolvedAtUtc": null,
     "resolutionMessage": ""

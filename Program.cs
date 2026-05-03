@@ -33,6 +33,7 @@ builder.Services.AddSingleton<IPriceParser, PriceParser>();
 builder.Services.AddSingleton<IScreenCaptureService, WindowsScreenCaptureService>();
 builder.Services.AddSingleton<IPaddleOcrService, PaddleOcrSharpService>();
 builder.Services.AddSingleton<IGameWindowLocator, GameWindowLocatorService>();
+builder.Services.AddSingleton<IMapRegionCatalog, MapRegionCatalog>();
 builder.Services.AddScoped<IWindowRelativeOcrZoneService, WindowRelativeOcrZoneService>();
 builder.Services.AddScoped<ITradingRecommendationService, TradingRecommendationService>();
 builder.Services.AddScoped<ITradingAdvancedService, TradingAdvancedService>();
@@ -151,7 +152,76 @@ app.MapGet("/api/prices/history", async (AppDbContext db, string? city, string? 
 
 app.MapGet("/api/cities/latest", async (AppDbContext db) => Results.Ok(await db.CityCaptures.OrderByDescending(x => x.CapturedAtUtc).FirstOrDefaultAsync()));
 app.MapGet("/api/cities", (ICityCatalog c) => Results.Ok(c.GetAll()));
+
+app.MapPost("/api/cities", (ICityCatalog c, SaveCityRequest request) =>
+{
+    var result = c.AddCity(request);
+    return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+});
+
+app.MapPut("/api/cities/{name}", (ICityCatalog c, string name, SaveCityRequest request) =>
+{
+    var result = c.UpdateCity(name, request);
+    return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+});
+
+app.MapDelete("/api/cities/{name}", (ICityCatalog c, string name) =>
+{
+    var result = c.DeleteCity(name);
+    return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+});
+
+app.MapGet("/api/export/cities.csv", (ICityCatalog c) =>
+{
+    var csv = c.ExportCsv();
+    var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+    return Results.File(bytes, "text/csv", "cities.csv");
+});
+
+app.MapPost("/api/import/cities.csv", async (
+    HttpRequest request,
+    ICityCatalog c,
+    CancellationToken ct) =>
+{
+    if (!request.HasFormContentType)
+        return Results.BadRequest(new { message = "Expected multipart/form-data with a file field named 'file'." });
+
+    var form = await request.ReadFormAsync(ct);
+    var file = form.Files.GetFile("file");
+
+    if (file is null || file.Length == 0)
+        return Results.BadRequest(new { message = "No CSV file was uploaded." });
+
+    await using var stream = file.OpenReadStream();
+    var result = await c.ImportCsvAsync(stream, ct);
+
+    return Results.Ok(result);
+});
+
+app.MapGet("/api/map-regions", (IMapRegionCatalog catalog) =>
+    Results.Ok(catalog.GetAll()));
+
+app.MapPost("/api/map-regions", (IMapRegionCatalog catalog, SaveMapRegionRequest request) =>
+{
+    var result = catalog.Upsert(request);
+    return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+});
+
+app.MapPut("/api/map-regions/{id}", (IMapRegionCatalog catalog, string id, SaveMapRegionRequest request) =>
+{
+    var result = catalog.Upsert(request, id);
+    return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+});
+
+app.MapDelete("/api/map-regions/{id}", (IMapRegionCatalog catalog, string id) =>
+{
+    var result = catalog.Delete(id);
+    return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+});
+
 app.MapGet("/api/regions/main", (ICityCatalog c) => Results.Ok(c.GetMainRegions()));
+app.MapGet("/api/regions/sub", (ICityCatalog c, string? mainRegion) => Results.Ok(c.GetSubRegions(mainRegion)));
+app.MapGet("/api/regions/sea-trade", (ICityCatalog c, string? mainRegion, string? subRegion) => Results.Ok(c.GetSeaTradeRegions(mainRegion, subRegion)));
 app.MapGet("/api/regions/sub", (ICityCatalog c, string? mainRegion) => Results.Ok(c.GetSubRegions(mainRegion)));
 app.MapGet("/api/regions/sea-trade", (ICityCatalog c, string? mainRegion, string? subRegion) => Results.Ok(c.GetSeaTradeRegions(mainRegion, subRegion)));
 
