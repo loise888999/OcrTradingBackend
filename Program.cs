@@ -443,6 +443,7 @@ app.MapPost("/api/ocr-layout", async (
 
 app.MapPost("/api/ocr-layout/test-box", async (
     OcrLayoutTestBoxRequest request,
+    IOcrLayoutService layoutService,
     IScreenCaptureService capture,
     IPaddleOcrService ocr,
     IOcrImagePreprocessingService preprocessor,
@@ -457,7 +458,19 @@ app.MapPost("/api/ocr-layout/test-box", async (
         });
     }
 
-    using var bitmap = capture.Capture(request.Box.ToZone(request.Kind));
+    var captureZone = layoutService.TryGetLayoutBoxZone(request.Box, request.Kind);
+
+    if (captureZone is null)
+    {
+        return Results.BadRequest(new
+        {
+            message = "Could not resolve layout box to screen coordinates. Make sure the game window is selected/found first.",
+            coordinateMode = "window-relative-pixels",
+            box = request.Box
+        });
+    }
+
+    using var bitmap = capture.Capture(captureZone);
 
     if (request.Preprocess)
     {
@@ -479,7 +492,8 @@ app.MapPost("/api/ocr-layout/test-box", async (
                     request.Kind,
                     preprocessedRaw,
                     preprocessedDebugPath,
-                    request.Box));
+                    request.Box,
+                    captureZone));
             }
         }
     }
@@ -496,7 +510,8 @@ app.MapPost("/api/ocr-layout/test-box", async (
         request.Kind,
         raw,
         debugPath,
-        request.Box));
+        request.Box,
+        captureZone));
 });
 
 

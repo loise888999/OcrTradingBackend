@@ -4,11 +4,18 @@ public sealed class OcrLayoutSettings
 {
     public int Version { get; set; } = 1;
     public bool Enabled { get; set; } = true;
+
+    // All layout boxes are stored as pixels relative to the selected game window,
+    // not absolute desktop/screen coordinates.
+    public string CoordinateMode { get; set; } = "window-relative-pixels";
+
     public bool UseLayoutForCity { get; set; } = true;
     public bool UseLayoutForCoordinate { get; set; } = true;
     public bool UseLayoutForPrice { get; set; } = true;
+
     public int? ScreenWidth { get; set; }
     public int? ScreenHeight { get; set; }
+
     public OcrBasicLayoutZones Zones { get; set; } = new();
     public OcrPriceLayout Price { get; set; } = new();
 }
@@ -44,8 +51,12 @@ public sealed class OcrPriceRowLayout
 public sealed class OcrLayoutBox
 {
     public string Name { get; set; } = "";
+
+    // X/Y are game-window-relative pixels.
+    // The backend adds the current game-window Left/Top at capture time.
     public int X { get; set; }
     public int Y { get; set; }
+
     public int Width { get; set; }
     public int Height { get; set; }
 
@@ -81,4 +92,5 @@ public sealed record OcrLayoutTestBoxResponse(
     string Kind,
     string RawText,
     string? DebugImagePath,
-    OcrLayoutBox Box);
+    OcrLayoutBox Box,
+    OcrZone CaptureZone);
