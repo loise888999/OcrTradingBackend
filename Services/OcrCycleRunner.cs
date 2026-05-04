@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using OcrTradingBackend.Data;
 using OcrTradingBackend.Models;
+using System.Text.RegularExpressions;
 
 namespace OcrTradingBackend.Services;
 
@@ -469,10 +470,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     }
 
     private async Task TryReadPricesAsync(
-        OcrZone priceZone,
-        CityCapture latestCity,
-        OcrRuntimeSettings settings,
-        CancellationToken ct)
+    OcrZone priceZone,
+    CityCapture latestCity,
+    OcrRuntimeSettings settings,
+    CancellationToken ct)
     {
         _control.LastPriceAttemptUtc = DateTime.UtcNow;
 
@@ -481,6 +482,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         var raw = _ocr.DetectText(bitmap);
         var debugPath = await _debug.SaveAsync("price", "direct", bitmap, raw, ct);
         var parsedPrices = _priceParser.ParseLines(raw, allowPendingCandidates: true);
+
+        var parsedPricesStrictCount = parsedPrices.Count(price =>
+            StrictTradeGoodMatcher.Find(GetStrictTradeGoodSourceText(price.RawText, price.ItemName)) is not null);
+
         var selectedSource = "direct";
         var selectedRaw = raw;
         var selectedDebugPath = debugPath;
@@ -502,9 +507,15 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                     preprocessedRaw,
                     allowPendingCandidates: true);
 
-                if (preprocessedPrices.Count > parsedPrices.Count)
+                var preprocessedPricesStrictCount = preprocessedPrices.Count(price =>
+                    StrictTradeGoodMatcher.Find(GetStrictTradeGoodSourceText(price.RawText, price.ItemName)) is not null);
+
+                if (preprocessedPricesStrictCount > parsedPricesStrictCount ||
+                    (preprocessedPricesStrictCount == parsedPricesStrictCount &&
+                     preprocessedPrices.Count > parsedPrices.Count))
                 {
                     parsedPrices = preprocessedPrices;
+                    parsedPricesStrictCount = preprocessedPricesStrictCount;
                     selectedSource = "preprocessed";
                     selectedRaw = preprocessedRaw;
                     selectedDebugPath = preprocessedDebugPath;
@@ -548,11 +559,34 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 continue;
             }
 
+            var strictTradeGood = StrictTradeGoodMatcher.Find(
+                GetStrictTradeGoodSourceText(price.RawText, price.ItemName));
+
+            if (strictTradeGood is null)
+            {
+                _logger.LogInformation(
+                    "Skipped price because no strict trade-good match was found. ParserItem={ParserItemName}; RawText={RawText}",
+                    price.ItemName,
+                    price.RawText);
+
+                continue;
+            }
+
+            if (!string.Equals(strictTradeGood.Name, price.ItemName, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation(
+                    "Strict trade-good match replaced parser item. ParserItem={ParserItemName}; StrictItem={StrictItemName}; MatchedText={MatchedText}; RawText={RawText}",
+                    price.ItemName,
+                    strictTradeGood.Name,
+                    strictTradeGood.MatchedText,
+                    price.RawText);
+            }
+
             var priceCapture = new PriceCapture
             {
                 City = latestCity.City,
-                ItemName = price.ItemName,
-                TradeGoodType = price.TradeGoodType,
+                ItemName = strictTradeGood.Name,
+                TradeGoodType = strictTradeGood.TradeGoodType,
                 Price = DecimalToInt(price.Price),
                 Multiplier = price.Multiplier,
                 TradeType = price.TradeType,
@@ -574,8 +608,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 "{Action}: {TradeType} {ItemName} {TradeGoodType} {Price} {Multiplier}% {Message}",
                 mergeResult.Action,
                 price.TradeType,
-                price.ItemName,
-                price.TradeGoodType,
+                strictTradeGood.Name,
+                strictTradeGood.TradeGoodType,
                 price.Price,
                 price.Multiplier,
                 mergeResult.Message);
@@ -596,6 +630,13 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             _logger.LogInformation(
                 "Price OCR saw the same latest price state; fast mode was not extended.");
         }
+    }
+
+    private static string GetStrictTradeGoodSourceText(string? rawText, string? parserItemName)
+    {
+        return !string.IsNullOrWhiteSpace(rawText)
+            ? rawText
+            : parserItemName ?? string.Empty;
     }
 
     private void SetLatestCityUnknownIfNeeded(
@@ -666,4 +707,187 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     {
         return decimal.ToInt32(decimal.Truncate(value));
     }
+}
+
+
+public sealed record StrictTradeGoodMatch(
+    string Name,
+    string TradeGoodType,
+    string MatchedText);
+
+internal static class StrictTradeGoodMatcher
+{
+    private static readonly Lazy<IReadOnlyList<StrictTradeGoodCandidate>> LazyCandidates = new(LoadCandidates);
+
+    public static StrictTradeGoodMatch? Find(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+
+        foreach (var candidate in LazyCandidates.Value)
+        {
+            if (candidate.Regex.IsMatch(text))
+            {
+                return new StrictTradeGoodMatch(
+                    candidate.Name,
+                    candidate.TradeGoodType,
+                    candidate.MatchedText);
+            }
+        }
+
+        return null;
+    }
+
+    private static IReadOnlyList<StrictTradeGoodCandidate> LoadCandidates()
+    {
+        var csvPath = ResolveTradeGoodsCsvPath();
+        if (csvPath is null)
+            return Array.Empty<StrictTradeGoodCandidate>();
+
+        var candidates = new List<StrictTradeGoodCandidate>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var line in File.ReadLines(csvPath).Skip(1))
+        {
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
+            var columns = ParseCsvLine(line);
+            if (columns.Count < 2)
+                continue;
+
+            var name = columns[0].Trim();
+            var type = columns[1].Trim();
+            var aliases = columns.Count >= 3 ? columns[2] : string.Empty;
+
+            AddCandidate(candidates, seen, name, name, type);
+
+            foreach (var alias in SplitAliases(aliases))
+                AddCandidate(candidates, seen, name, alias, type);
+        }
+
+        return candidates
+            .OrderByDescending(x => x.MatchedText.Length)
+            .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static void AddCandidate(
+        List<StrictTradeGoodCandidate> candidates,
+        HashSet<string> seen,
+        string canonicalName,
+        string matchedText,
+        string type)
+    {
+        if (string.IsNullOrWhiteSpace(canonicalName) ||
+            string.IsNullOrWhiteSpace(matchedText))
+        {
+            return;
+        }
+
+        var key = NormalizeKey(matchedText);
+        if (!seen.Add(key))
+            return;
+
+        var regex = BuildWholeNameRegex(matchedText);
+
+        candidates.Add(new StrictTradeGoodCandidate(
+            canonicalName,
+            type,
+            matchedText,
+            regex));
+    }
+
+    private static Regex BuildWholeNameRegex(string name)
+    {
+        var parts = Regex.Split(name.Trim(), @"\s+")
+            .Where(part => !string.IsNullOrWhiteSpace(part))
+            .Select(Regex.Escape);
+
+        var escapedNameWithFlexibleWhitespace = string.Join(@"\s+", parts);
+
+        // These boundaries prevent prefix bugs:
+        // "Salt" will not match "Saltpeter"
+        // "Leather" will not match "Leatherwork"
+        var pattern = $@"(?<![\p{{L}}\p{{N}}]){escapedNameWithFlexibleWhitespace}(?![\p{{L}}\p{{N}}])";
+
+        return new Regex(
+            pattern,
+            RegexOptions.IgnoreCase |
+            RegexOptions.CultureInvariant |
+            RegexOptions.Compiled);
+    }
+
+    private static IEnumerable<string> SplitAliases(string aliases)
+    {
+        if (string.IsNullOrWhiteSpace(aliases))
+            return Array.Empty<string>();
+
+        return aliases
+            .Split(
+                new[] { '|', ';' },
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(alias => !string.IsNullOrWhiteSpace(alias));
+    }
+
+    private static IReadOnlyList<string> ParseCsvLine(string line)
+    {
+        var values = new List<string>();
+        var current = new List<char>();
+        var inQuotes = false;
+
+        for (var i = 0; i < line.Length; i++)
+        {
+            var c = line[i];
+
+            if (c == '"')
+            {
+                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                {
+                    current.Add('"');
+                    i++;
+                }
+                else
+                {
+                    inQuotes = !inQuotes;
+                }
+
+                continue;
+            }
+
+            if (c == ',' && !inQuotes)
+            {
+                values.Add(new string(current.ToArray()));
+                current.Clear();
+                continue;
+            }
+
+            current.Add(c);
+        }
+
+        values.Add(new string(current.ToArray()));
+        return values;
+    }
+
+    private static string? ResolveTradeGoodsCsvPath()
+    {
+        var candidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "Data", "trade-goods.csv"),
+            Path.Combine(Directory.GetCurrentDirectory(), "Data", "trade-goods.csv")
+        };
+
+        return candidates.FirstOrDefault(File.Exists);
+    }
+
+    private static string NormalizeKey(string value)
+    {
+        return Regex.Replace(value.Trim(), @"\s+", " ");
+    }
+
+    private sealed record StrictTradeGoodCandidate(
+        string Name,
+        string TradeGoodType,
+        string MatchedText,
+        Regex Regex);
 }
