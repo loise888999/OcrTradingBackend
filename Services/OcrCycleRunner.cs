@@ -82,23 +82,29 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         try
         {
-            var storedCoordinateZone = await _db.OcrZones
-                .FirstOrDefaultAsync(x => x.Name == settings.CoordinateOcrZoneName, ct);
-
-            var storedCityZone = await _db.OcrZones
-                .FirstOrDefaultAsync(x => x.Name == settings.CityOcrZoneName, ct);
-
-            var storedPriceZone = await _db.OcrZones
-                .FirstOrDefaultAsync(x => x.Name == settings.PriceOcrZoneName, ct);
-
-            var coordinateZone = await _zoneService.ResolveZoneAsync(_db, storedCoordinateZone, ct);
-            var cityZone = await _zoneService.ResolveZoneAsync(_db, storedCityZone, ct);
-            var priceZone = await _zoneService.ResolveZoneAsync(_db, storedPriceZone, ct);
-
             var layout = await _layoutService.LoadAsync(ct);
 
-            coordinateZone = _layoutService.TryGetCoordinateZone(layout) ?? coordinateZone;
-            cityZone = _layoutService.TryGetCityZone(layout) ?? cityZone;
+            if (!layout.Enabled)
+            {
+                _logger.LogWarning(
+                    "OCR layout is disabled. Layout-only OCR mode requires the calibration layout to be enabled.");
+                return;
+            }
+
+            var coordinateZone = _layoutService.TryGetCoordinateZone(layout);
+            var cityZone = _layoutService.TryGetCityZone(layout);
+
+            if (coordinateZone is null)
+            {
+                _logger.LogWarning(
+                    "Coordinate OCR layout box is missing or the game window could not be resolved.");
+            }
+
+            if (cityZone is null)
+            {
+                _logger.LogWarning(
+                    "City OCR layout box is missing or the game window could not be resolved.");
+            }
 
             var coordinateWasReadThisCycle = false;
 
@@ -180,7 +186,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 }
             }
 
-            if (!coordinateRecentlyVisible && priceZone is not null)
+            if (!coordinateRecentlyVisible)
             {
                 var latestCity = await _db.CityCaptures
                     .OrderByDescending(x => x.CapturedAtUtc)
@@ -194,50 +200,24 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                     if (priceDue)
                     {
                         await TryReadPricesAsync(
-                            priceZone,
                             latestCity!,
                             settings,
                             layout,
                             ct);
                     }
-
-                    if (UsePriceBatchCapture())
-                    {
-                        var timedFlushSeconds = PriceBatchFlushEverySeconds();
-                        var idleFlushSeconds = PriceBatchIdleFlushSeconds();
-
-                        if (timedFlushSeconds > 0 &&
-                            _priceBatch.ShouldFlushByAge(TimeSpan.FromSeconds(timedFlushSeconds)))
-                        {
-                            await FlushPriceBatchAsync(settings, "timed", ct);
-                        }
-                        else if (idleFlushSeconds > 0 &&
-                                 _priceBatch.ShouldFlushIdle(TimeSpan.FromSeconds(idleFlushSeconds)))
-                        {
-                            await FlushPriceBatchAsync(settings, "idle", ct);
-                        }
-                    }
                 }
                 else
                 {
                     _priceRecentHashCache.NotifyCityStatus("Unknown");
-                    await FlushPriceBatchAsync(settings, "city-unknown", ct);
                     _logger.LogInformation("Skipped price OCR because current city is unknown.");
                 }
-            }
-            else if (coordinateRecentlyVisible)
-            {
-                _priceRecentHashCache.NotifyCityStatus("Unknown");
-
-                await FlushPriceBatchAsync(settings, "coordinate-visible", ct);
-
-                _logger.LogInformation(
-                    "Skipped price OCR because coordinate/map is visible recently; current city is treated as Unknown.");
             }
             else
             {
                 _priceRecentHashCache.NotifyCityStatus("Unknown");
-                await FlushPriceBatchAsync(settings, "price-zone-missing", ct);
+
+                _logger.LogInformation(
+                    "Skipped price OCR because coordinate/map is visible recently; current city is treated as Unknown.");
             }
 
             await _db.SaveChangesAsync(ct);
@@ -254,18 +234,33 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         var settings = _settings.CurrentValue;
         var normalized = zoneKind.Trim().ToLowerInvariant();
 
+        var layout = await _layoutService.LoadAsync(ct);
+
         var zoneName = normalized switch
         {
-            "coordinate" => settings.CoordinateOcrZoneName,
-            "city" => settings.CityOcrZoneName,
-            "price" => settings.PriceOcrZoneName,
+            "coordinate" => "Coordinate",
+            "city" => "City",
+            "price" => "PriceLayout",
             _ => throw new ArgumentException($"Unsupported OCR zone kind: {zoneKind}")
         };
 
-        var storedZone = await _db.OcrZones
-            .FirstOrDefaultAsync(x => x.Name == zoneName, ct);
+        var zone = normalized switch
+        {
+            "coordinate" => _layoutService.TryGetCoordinateZone(layout),
+            "city" => _layoutService.TryGetCityZone(layout),
+            "price" => null,
+            _ => null
+        };
 
-        var zone = await _zoneService.ResolveZoneAsync(_db, storedZone, ct);
+        if (normalized == "price")
+        {
+            return new OcrManualReadResponse(
+                ZoneKind: normalized,
+                ZoneName: zoneName,
+                ZoneFound: layout.Enabled && layout.UseLayoutForPrice && layout.Price.UseFieldBoxes,
+                Attempts: Array.Empty<OcrManualReadAttempt>(),
+                BestParsed: "Use /api/ocr-layout/test-box to test individual price layout boxes.");
+        }
 
         if (zone is null)
         {
@@ -624,17 +619,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     {
         var now = DateTime.UtcNow;
 
-        if (UsePriceBatchCapture())
-        {
-            var intervalMs = Math.Max(25, PriceBatchCaptureIntervalMs());
-
-            if (_control.LastPriceAttemptUtc is null)
-                return true;
-
-            return now - _control.LastPriceAttemptUtc.Value >=
-                   TimeSpan.FromMilliseconds(intervalMs);
-        }
-
         var fastModeActive =
             _control.PriceFastModeUntilUtc is not null &&
             _control.PriceFastModeUntilUtc.Value > now;
@@ -651,7 +635,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     }
 
     private async Task TryReadPricesAsync(
-        OcrZone priceZone,
         CityCapture latestCity,
         OcrRuntimeSettings settings,
         OcrLayoutSettings layout,
@@ -659,21 +642,17 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     {
         _control.LastPriceAttemptUtc = DateTime.UtcNow;
 
-        if (layout.Enabled &&
-            layout.UseLayoutForPrice &&
-            layout.Price.UseFieldBoxes)
+        if (!layout.Enabled ||
+            !layout.UseLayoutForPrice ||
+            !layout.Price.UseFieldBoxes)
         {
-            await TryReadPricesFromLayoutAsync(layout, latestCity, settings, ct);
+            _logger.LogWarning(
+                "Skipped price OCR because layout-only mode requires UseLayoutForPrice=true and Price.UseFieldBoxes=true.");
+
             return;
         }
 
-        if (UsePriceBatchCapture())
-        {
-            await TryCapturePriceForBatchAsync(priceZone, latestCity, settings, ct);
-            return;
-        }
-
-        await TryReadPricesImmediateAsync(priceZone, latestCity, settings, ct);
+        await TryReadPricesFromLayoutAsync(layout, latestCity, settings, ct);
     }
 
     private async Task TryReadPricesFromLayoutAsync(
@@ -830,7 +809,18 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         bool preprocess,
         CancellationToken ct)
     {
-        using var bitmap = _capture.Capture(box.ToZone(source));
+        var captureZone = _layoutService.TryGetLayoutBoxZone(box, source);
+
+        if (captureZone is null)
+        {
+            _logger.LogWarning(
+                "Skipped layout OCR box {Source} because the game window could not be resolved.",
+                source);
+
+            return string.Empty;
+        }
+
+        using var bitmap = _capture.Capture(captureZone);
 
         if (preprocess)
         {
