@@ -26,6 +26,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly IOcrDebugSnapshotService _debug;
     private readonly IOcrImagePreprocessingService _preprocessor;
     private readonly OcrLastResultState _lastResults;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<OcrCycleRunner> _logger;
 
     public OcrCycleRunner(
@@ -41,6 +42,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         IOcrDebugSnapshotService debug,
         IOcrImagePreprocessingService preprocessor,
         OcrLastResultState lastResults,
+        IConfiguration configuration,
         ILogger<OcrCycleRunner> logger)
     {
         _db = db;
@@ -55,6 +57,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _debug = debug;
         _preprocessor = preprocessor;
         _lastResults = lastResults;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -314,32 +317,56 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
+        var forcePreprocess = ForceCoordinatePreprocess();
+
         using (var fixedBitmap = _capture.Capture(coordinateZone))
         {
-            var direct = await TryOcrAndParseCoordinateAsync(
-                fixedBitmap,
-                "fixed",
-                previousCoordinate,
-                settings,
-                ct);
+            var fixedPreprocessed = _preprocessor.TryPrepareCoordinateImage(fixedBitmap, settings);
 
-            if (direct is not null)
-                return direct;
-
-            var preprocessed = _preprocessor.TryPrepareCoordinateImage(fixedBitmap, settings);
-            if (preprocessed is not null)
+            if (forcePreprocess && fixedPreprocessed is not null)
             {
-                using (preprocessed)
+                using (fixedPreprocessed)
                 {
                     var result = await TryOcrAndParseCoordinateAsync(
-                        preprocessed,
-                        "fixed-preprocessed",
+                        fixedPreprocessed,
+                        "fixed-preprocessed-forced",
                         previousCoordinate,
                         settings,
                         ct);
 
                     if (result is not null)
                         return result;
+                }
+            }
+            else
+            {
+                fixedPreprocessed?.Dispose();
+
+                var direct = await TryOcrAndParseCoordinateAsync(
+                    fixedBitmap,
+                    "fixed",
+                    previousCoordinate,
+                    settings,
+                    ct);
+
+                if (direct is not null)
+                    return direct;
+
+                var preprocessed = _preprocessor.TryPrepareCoordinateImage(fixedBitmap, settings);
+                if (preprocessed is not null)
+                {
+                    using (preprocessed)
+                    {
+                        var result = await TryOcrAndParseCoordinateAsync(
+                            preprocessed,
+                            "fixed-preprocessed",
+                            previousCoordinate,
+                            settings,
+                            ct);
+
+                        if (result is not null)
+                            return result;
+                    }
                 }
             }
         }
@@ -353,30 +380,52 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         using (var searchBitmap = _capture.Capture(searchZone))
         {
-            var direct = await TryOcrAndParseCoordinateAsync(
-                searchBitmap,
-                "search",
-                previousCoordinate,
-                settings,
-                ct);
+            var searchPreprocessed = _preprocessor.TryPrepareCoordinateImage(searchBitmap, settings);
 
-            if (direct is not null)
-                return direct;
-
-            var preprocessed = _preprocessor.TryPrepareCoordinateImage(searchBitmap, settings);
-            if (preprocessed is not null)
+            if (forcePreprocess && searchPreprocessed is not null)
             {
-                using (preprocessed)
+                using (searchPreprocessed)
                 {
                     var result = await TryOcrAndParseCoordinateAsync(
-                        preprocessed,
-                        "search-preprocessed",
+                        searchPreprocessed,
+                        "search-preprocessed-forced",
                         previousCoordinate,
                         settings,
                         ct);
 
                     if (result is not null)
                         return result;
+                }
+            }
+            else
+            {
+                searchPreprocessed?.Dispose();
+
+                var direct = await TryOcrAndParseCoordinateAsync(
+                    searchBitmap,
+                    "search",
+                    previousCoordinate,
+                    settings,
+                    ct);
+
+                if (direct is not null)
+                    return direct;
+
+                var preprocessed = _preprocessor.TryPrepareCoordinateImage(searchBitmap, settings);
+                if (preprocessed is not null)
+                {
+                    using (preprocessed)
+                    {
+                        var result = await TryOcrAndParseCoordinateAsync(
+                            preprocessed,
+                            "search-preprocessed",
+                            previousCoordinate,
+                            settings,
+                            ct);
+
+                        if (result is not null)
+                            return result;
+                    }
                 }
             }
         }
@@ -425,11 +474,57 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     {
         using var bitmap = _capture.Capture(cityZone);
 
-        var directRaw = _ocr.DetectText(bitmap);
-        var directDebugPath = await _debug.SaveAsync("city", "direct", bitmap, directRaw, ct);
-        var directCity = _cityParser.TryParse(directRaw, settings.MinCityNameLength);
+        var forcePreprocess = ForceCityPreprocess();
 
-        _lastResults.SetCity("direct", directRaw, directCity, directDebugPath);
+        if (forcePreprocess)
+        {
+            var forcedPreprocessed = _preprocessor.TryPrepareCityImage(bitmap);
+
+            if (forcedPreprocessed is not null)
+            {
+                using (forcedPreprocessed)
+                {
+                    var raw = _ocr.DetectText(forcedPreprocessed);
+                    var debugPath = await _debug.SaveAsync(
+                        "city",
+                        "preprocessed-forced",
+                        forcedPreprocessed,
+                        raw,
+                        ct);
+
+                    var city = _cityParser.TryParse(raw, settings.MinCityNameLength);
+
+                    _lastResults.SetCity(
+                        "preprocessed-forced",
+                        raw,
+                        city,
+                        debugPath);
+
+                    return city;
+                }
+            }
+
+            _logger.LogInformation(
+                "CityForcePreprocess was enabled, but city preprocessing returned null. Falling back to direct city OCR.");
+        }
+
+        var directRaw = _ocr.DetectText(bitmap);
+        var directDebugPath = await _debug.SaveAsync(
+            "city",
+            "direct",
+            bitmap,
+            directRaw,
+            ct);
+
+        var directCity = _cityParser.TryParse(
+            directRaw,
+            settings.MinCityNameLength);
+
+        _lastResults.SetCity(
+            "direct",
+            directRaw,
+            directCity,
+            directDebugPath);
 
         if (directCity is not null)
             return directCity;
@@ -441,10 +536,22 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         using (preprocessed)
         {
             var raw = _ocr.DetectText(preprocessed);
-            var debugPath = await _debug.SaveAsync("city", "preprocessed", preprocessed, raw, ct);
-            var city = _cityParser.TryParse(raw, settings.MinCityNameLength);
+            var debugPath = await _debug.SaveAsync(
+                "city",
+                "preprocessed",
+                preprocessed,
+                raw,
+                ct);
 
-            _lastResults.SetCity("preprocessed", raw, city, debugPath);
+            var city = _cityParser.TryParse(
+                raw,
+                settings.MinCityNameLength);
+
+            _lastResults.SetCity(
+                "preprocessed",
+                raw,
+                city,
+                debugPath);
 
             return city;
         }
@@ -470,59 +577,154 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     }
 
     private async Task TryReadPricesAsync(
-    OcrZone priceZone,
-    CityCapture latestCity,
-    OcrRuntimeSettings settings,
-    CancellationToken ct)
+        OcrZone priceZone,
+        CityCapture latestCity,
+        OcrRuntimeSettings settings,
+        CancellationToken ct)
     {
         _control.LastPriceAttemptUtc = DateTime.UtcNow;
 
         using var bitmap = _capture.Capture(priceZone);
 
-        var raw = _ocr.DetectText(bitmap);
-        var debugPath = await _debug.SaveAsync("price", "direct", bitmap, raw, ct);
-        var parsedPrices = _priceParser.ParseLines(raw, allowPendingCandidates: true);
+        var forcePreprocess = ForcePricePreprocess();
 
-        var parsedPricesStrictCount = parsedPrices.Count(price =>
-            StrictTradeGoodMatcher.Find(GetStrictTradeGoodSourceText(price.RawText, price.ItemName)) is not null);
-
-        var selectedSource = "direct";
-        var selectedRaw = raw;
-        var selectedDebugPath = debugPath;
-
-        var preprocessed = _preprocessor.TryPreparePriceImage(bitmap);
-        if (preprocessed is not null)
+        if (forcePreprocess)
         {
-            using (preprocessed)
+            var forcedPreprocessed = _preprocessor.TryPreparePriceImage(bitmap);
+
+            if (forcedPreprocessed is not null)
             {
-                var preprocessedRaw = _ocr.DetectText(preprocessed);
-                var preprocessedDebugPath = await _debug.SaveAsync(
-                    "price",
-                    "preprocessed",
-                    preprocessed,
-                    preprocessedRaw,
-                    ct);
-
-                var preprocessedPrices = _priceParser.ParseLines(
-                    preprocessedRaw,
-                    allowPendingCandidates: true);
-
-                var preprocessedPricesStrictCount = preprocessedPrices.Count(price =>
-                    StrictTradeGoodMatcher.Find(GetStrictTradeGoodSourceText(price.RawText, price.ItemName)) is not null);
-
-                if (preprocessedPricesStrictCount > parsedPricesStrictCount ||
-                    (preprocessedPricesStrictCount == parsedPricesStrictCount &&
-                     preprocessedPrices.Count > parsedPrices.Count))
+                using (forcedPreprocessed)
                 {
-                    parsedPrices = preprocessedPrices;
-                    parsedPricesStrictCount = preprocessedPricesStrictCount;
-                    selectedSource = "preprocessed";
-                    selectedRaw = preprocessedRaw;
-                    selectedDebugPath = preprocessedDebugPath;
+                    await ProcessPriceImageAsync(
+                        image: forcedPreprocessed,
+                        source: "preprocessed-forced",
+                        latestCity: latestCity,
+                        settings: settings,
+                        ct: ct);
                 }
+
+                return;
             }
+
+            _logger.LogInformation(
+                "PriceForcePreprocess was enabled, but price preprocessing returned null. Falling back to direct price OCR.");
         }
 
+        var directRaw = _ocr.DetectText(bitmap);
+        var directDebugPath = await _debug.SaveAsync(
+            "price",
+            "direct",
+            bitmap,
+            directRaw,
+            ct);
+
+        var directPrices = _priceParser.ParseLines(
+            directRaw,
+            allowPendingCandidates: true);
+
+        var directStrictCount = directPrices.Count(price =>
+            StrictTradeGoodMatcher.Find(
+                GetStrictTradeGoodSourceText(price.RawText, price.ItemName)) is not null);
+
+        var preprocessed = _preprocessor.TryPreparePriceImage(bitmap);
+        if (preprocessed is null)
+        {
+            await ProcessParsedPricesAsync(
+                selectedSource: "direct",
+                selectedRaw: directRaw,
+                selectedDebugPath: directDebugPath,
+                parsedPrices: directPrices,
+                latestCity: latestCity,
+                settings: settings,
+                ct: ct);
+
+            return;
+        }
+
+        using (preprocessed)
+        {
+            var preprocessedRaw = _ocr.DetectText(preprocessed);
+            var preprocessedDebugPath = await _debug.SaveAsync(
+                "price",
+                "preprocessed",
+                preprocessed,
+                preprocessedRaw,
+                ct);
+
+            var preprocessedPrices = _priceParser.ParseLines(
+                preprocessedRaw,
+                allowPendingCandidates: true);
+
+            var preprocessedStrictCount = preprocessedPrices.Count(price =>
+                StrictTradeGoodMatcher.Find(
+                    GetStrictTradeGoodSourceText(price.RawText, price.ItemName)) is not null);
+
+            if (preprocessedStrictCount > directStrictCount ||
+                (preprocessedStrictCount == directStrictCount &&
+                 preprocessedPrices.Count > directPrices.Count))
+            {
+                await ProcessParsedPricesAsync(
+                    selectedSource: "preprocessed",
+                    selectedRaw: preprocessedRaw,
+                    selectedDebugPath: preprocessedDebugPath,
+                    parsedPrices: preprocessedPrices,
+                    latestCity: latestCity,
+                    settings: settings,
+                    ct: ct);
+            }
+            else
+            {
+                await ProcessParsedPricesAsync(
+                    selectedSource: "direct",
+                    selectedRaw: directRaw,
+                    selectedDebugPath: directDebugPath,
+                    parsedPrices: directPrices,
+                    latestCity: latestCity,
+                    settings: settings,
+                    ct: ct);
+            }
+        }
+    }
+
+    private async Task ProcessPriceImageAsync(
+        Bitmap image,
+        string source,
+        CityCapture latestCity,
+        OcrRuntimeSettings settings,
+        CancellationToken ct)
+    {
+        var raw = _ocr.DetectText(image);
+        var debugPath = await _debug.SaveAsync(
+            "price",
+            source,
+            image,
+            raw,
+            ct);
+
+        var parsedPrices = _priceParser.ParseLines(
+            raw,
+            allowPendingCandidates: true);
+
+        await ProcessParsedPricesAsync(
+            selectedSource: source,
+            selectedRaw: raw,
+            selectedDebugPath: debugPath,
+            parsedPrices: parsedPrices,
+            latestCity: latestCity,
+            settings: settings,
+            ct: ct);
+    }
+
+    private async Task ProcessParsedPricesAsync(
+        string selectedSource,
+        string selectedRaw,
+        string? selectedDebugPath,
+        IReadOnlyList<ParsedPriceLine> parsedPrices,
+        CityCapture latestCity,
+        OcrRuntimeSettings settings,
+        CancellationToken ct)
+    {
         _lastResults.SetPrice(
             selectedSource,
             selectedRaw,
@@ -539,7 +741,18 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         }
 
         if (parsedPrices.Count == 0)
+        {
+            await OcrRejectedRowLogWriter.LogPriceRowAsync(
+                source: selectedSource,
+                city: latestCity.City,
+                reason: "No price rows parsed from OCR text",
+                rawText: selectedRaw,
+                parserItemName: null,
+                debugImagePath: selectedDebugPath,
+                ct: ct);
+
             return;
+        }
 
         _control.LastPriceReadUtc = DateTime.UtcNow;
 
@@ -556,6 +769,15 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                     price.Price,
                     price.Multiplier);
 
+                await OcrRejectedRowLogWriter.LogPriceRowAsync(
+                    source: selectedSource,
+                    city: latestCity.City,
+                    reason: "Unknown trade type",
+                    rawText: price.RawText,
+                    parserItemName: price.ItemName,
+                    debugImagePath: selectedDebugPath,
+                    ct: ct);
+
                 continue;
             }
 
@@ -569,10 +791,22 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                     price.ItemName,
                     price.RawText);
 
+                await OcrRejectedRowLogWriter.LogPriceRowAsync(
+                    source: selectedSource,
+                    city: latestCity.City,
+                    reason: "No strict trade-good match",
+                    rawText: price.RawText,
+                    parserItemName: price.ItemName,
+                    debugImagePath: selectedDebugPath,
+                    ct: ct);
+
                 continue;
             }
 
-            if (!string.Equals(strictTradeGood.Name, price.ItemName, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(
+                    strictTradeGood.Name,
+                    price.ItemName,
+                    StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogInformation(
                     "Strict trade-good match replaced parser item. ParserItem={ParserItemName}; StrictItem={StrictItemName}; MatchedText={MatchedText}; RawText={RawText}",
@@ -637,6 +871,27 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         return !string.IsNullOrWhiteSpace(rawText)
             ? rawText
             : parserItemName ?? string.Empty;
+    }
+
+    private bool ForceCoordinatePreprocess()
+    {
+        return _configuration.GetValue(
+            "OcrSettings:CoordinateForcePreprocess",
+            false);
+    }
+
+    private bool ForceCityPreprocess()
+    {
+        return _configuration.GetValue(
+            "OcrSettings:CityForcePreprocess",
+            false);
+    }
+
+    private bool ForcePricePreprocess()
+    {
+        return _configuration.GetValue(
+            "OcrSettings:PriceForcePreprocess",
+            true);
     }
 
     private void SetLatestCityUnknownIfNeeded(
@@ -708,7 +963,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         return decimal.ToInt32(decimal.Truncate(value));
     }
 }
-
 
 public sealed record StrictTradeGoodMatch(
     string Name,
@@ -806,9 +1060,6 @@ internal static class StrictTradeGoodMatcher
 
         var escapedNameWithFlexibleWhitespace = string.Join(@"\s+", parts);
 
-        // These boundaries prevent prefix bugs:
-        // "Salt" will not match "Saltpeter"
-        // "Leather" will not match "Leatherwork"
         var pattern = $@"(?<![\p{{L}}\p{{N}}]){escapedNameWithFlexibleWhitespace}(?![\p{{L}}\p{{N}}])";
 
         return new Regex(
