@@ -35,8 +35,13 @@ builder.Services.AddSingleton<IScreenCaptureService, WindowsScreenCaptureService
 builder.Services.AddSingleton<IPaddleOcrService, PaddleOcrSharpService>();
 builder.Services.AddSingleton<IGameWindowLocator, GameWindowLocatorService>();
 builder.Services.AddSingleton<IMapRegionCatalog, MapRegionCatalog>();
+builder.Services.AddSingleton<IPriceRecentHashCacheService, PriceRecentHashCacheService>();
+builder.Services.AddSingleton<IOcrImageHasher, OcrImageHasher>();
+builder.Services.AddSingleton<IOcrImageTextCache, OcrImageTextCache>();
+builder.Services.AddSingleton<IPriceOcrBatchService, PriceOcrBatchService>();
 builder.Services.AddSingleton<IOcrDebugSnapshotService, OcrDebugSnapshotService>();
 builder.Services.AddSingleton<IOcrImagePreprocessingService, OcrImagePreprocessingService>();
+builder.Services.AddSingleton<IOcrLayoutService, OcrLayoutService>();
 builder.Services.AddScoped<IWindowRelativeOcrZoneService, WindowRelativeOcrZoneService>();
 builder.Services.AddScoped<ITradingRecommendationService, TradingRecommendationService>();
 builder.Services.AddScoped<ITradingAdvancedService, TradingAdvancedService>();
@@ -418,5 +423,81 @@ app.MapGet("/api/trading/multi-good-routes", async (
     int minItems = 2,
     int take = 100) =>
     Results.Ok(await service.GetMultiGoodRoutesAsync(type, SplitMulti(buyRegions), SplitMulti(sellRegions), minProfitPerGood, minTotalProfit, minItems, take)));
+
+app.MapGet("/api/ocr-layout", async (
+    IOcrLayoutService layoutService,
+    CancellationToken ct) =>
+{
+    var layout = await layoutService.LoadAsync(ct);
+    return Results.Ok(layout);
+});
+
+app.MapPost("/api/ocr-layout", async (
+    IOcrLayoutService layoutService,
+    SaveOcrLayoutRequest request,
+    CancellationToken ct) =>
+{
+    var saved = await layoutService.SaveLocalAsync(request.Layout, ct);
+    return Results.Ok(saved);
+});
+
+app.MapPost("/api/ocr-layout/test-box", async (
+    OcrLayoutTestBoxRequest request,
+    IScreenCaptureService capture,
+    IPaddleOcrService ocr,
+    IOcrImagePreprocessingService preprocessor,
+    IOcrDebugSnapshotService debug,
+    CancellationToken ct) =>
+{
+    if (request.Box is null || !request.Box.IsValid)
+    {
+        return Results.BadRequest(new
+        {
+            message = "Box must have positive width and height."
+        });
+    }
+
+    using var bitmap = capture.Capture(request.Box.ToZone(request.Kind));
+
+    if (request.Preprocess)
+    {
+        var preprocessed = preprocessor.TryPreparePriceImage(bitmap);
+
+        if (preprocessed is not null)
+        {
+            using (preprocessed)
+            {
+                var preprocessedRaw = ocr.DetectText(preprocessed);
+                var preprocessedDebugPath = await debug.SaveAsync(
+                    request.Kind,
+                    "layout-test-preprocessed",
+                    preprocessed,
+                    preprocessedRaw,
+                    ct);
+
+                return Results.Ok(new OcrLayoutTestBoxResponse(
+                    request.Kind,
+                    preprocessedRaw,
+                    preprocessedDebugPath,
+                    request.Box));
+            }
+        }
+    }
+
+    var raw = ocr.DetectText(bitmap);
+    var debugPath = await debug.SaveAsync(
+        request.Kind,
+        "layout-test",
+        bitmap,
+        raw,
+        ct);
+
+    return Results.Ok(new OcrLayoutTestBoxResponse(
+        request.Kind,
+        raw,
+        debugPath,
+        request.Box));
+});
+
 
 app.Run();

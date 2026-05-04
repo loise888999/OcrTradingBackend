@@ -8,17 +8,20 @@ public sealed class OcrBackgroundWorker : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly OcrControlState _control;
     private readonly IOptionsMonitor<OcrRuntimeSettings> _settings;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<OcrBackgroundWorker> _logger;
 
     public OcrBackgroundWorker(
         IServiceScopeFactory scopeFactory,
         OcrControlState control,
         IOptionsMonitor<OcrRuntimeSettings> settings,
+        IConfiguration configuration,
         ILogger<OcrBackgroundWorker> logger)
     {
         _scopeFactory = scopeFactory;
         _control = control;
         _settings = settings;
+        _configuration = configuration;
         _logger = logger;
         _control.Enabled = settings.CurrentValue.Enabled;
     }
@@ -50,8 +53,21 @@ public sealed class OcrBackgroundWorker : BackgroundService
             }
 
             await Task.Delay(
-                TimeSpan.FromSeconds(Math.Max(1, settings.DefaultIntervalSeconds)),
+                GetLoopDelay(settings),
                 stoppingToken);
         }
+    }
+
+    private TimeSpan GetLoopDelay(OcrRuntimeSettings settings)
+    {
+        // This lets price batch capture run faster than the old 1-second minimum.
+        // If this setting is missing, the app keeps the old DefaultIntervalSeconds behavior.
+        var configuredMilliseconds = _configuration.GetValue<int?>(
+            "OcrSettings:DefaultIntervalMilliseconds");
+
+        if (configuredMilliseconds is not null)
+            return TimeSpan.FromMilliseconds(Math.Clamp(configuredMilliseconds.Value, 25, 60_000));
+
+        return TimeSpan.FromSeconds(Math.Max(1, settings.DefaultIntervalSeconds));
     }
 }

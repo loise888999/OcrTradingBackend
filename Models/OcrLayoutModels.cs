@@ -1,0 +1,84 @@
+namespace OcrTradingBackend.Models;
+
+public sealed class OcrLayoutSettings
+{
+    public int Version { get; set; } = 1;
+    public bool Enabled { get; set; } = true;
+    public bool UseLayoutForCity { get; set; } = true;
+    public bool UseLayoutForCoordinate { get; set; } = true;
+    public bool UseLayoutForPrice { get; set; } = true;
+    public int? ScreenWidth { get; set; }
+    public int? ScreenHeight { get; set; }
+    public OcrBasicLayoutZones Zones { get; set; } = new();
+    public OcrPriceLayout Price { get; set; } = new();
+}
+
+public sealed class OcrBasicLayoutZones
+{
+    public OcrLayoutBox? City { get; set; }
+    public OcrLayoutBox? Coordinate { get; set; }
+}
+
+public sealed class OcrPriceLayout
+{
+    public int VisibleRows { get; set; } = 4;
+
+    public bool UseFieldBoxes { get; set; } = false;
+
+    public OcrLayoutBox? BuyValidationBox { get; set; }
+    public OcrLayoutBox? SellValidationBox { get; set; }
+
+    public List<OcrPriceRowLayout> Rows { get; set; } = new();
+}
+
+public sealed class OcrPriceRowLayout
+{
+    public int Index { get; set; }
+    public bool Enabled { get; set; } = true;
+
+    public OcrLayoutBox? ItemName { get; set; }
+    public OcrLayoutBox? Price { get; set; }
+    public OcrLayoutBox? Multiplier { get; set; }
+}
+
+public sealed class OcrLayoutBox
+{
+    public string Name { get; set; } = "";
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+
+    public bool IsValid => Width > 0 && Height > 0;
+
+    public OcrZone ToZone(string fallbackName)
+    {
+        return new OcrZone
+        {
+            Name = string.IsNullOrWhiteSpace(Name) ? fallbackName : Name,
+            TopLeftX = X,
+            TopLeftY = Y,
+            BottomRightX = X + Width,
+            BottomRightY = Y + Height,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+    }
+}
+
+public sealed class SaveOcrLayoutRequest
+{
+    public OcrLayoutSettings Layout { get; set; } = new();
+}
+
+public sealed class OcrLayoutTestBoxRequest
+{
+    public OcrLayoutBox Box { get; set; } = new();
+    public string Kind { get; set; } = "custom";
+    public bool Preprocess { get; set; }
+}
+
+public sealed record OcrLayoutTestBoxResponse(
+    string Kind,
+    string RawText,
+    string? DebugImagePath,
+    OcrLayoutBox Box);

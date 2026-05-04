@@ -1,8 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
+using System.Drawing;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OcrTradingBackend.Data;
 using OcrTradingBackend.Models;
-using System.Text.RegularExpressions;
 
 namespace OcrTradingBackend.Services;
 
@@ -25,6 +28,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly IOptionsMonitor<OcrRuntimeSettings> _settings;
     private readonly IOcrDebugSnapshotService _debug;
     private readonly IOcrImagePreprocessingService _preprocessor;
+    private readonly IOcrLayoutService _layoutService;
+    private readonly IOcrImageTextCache _ocrTextCache;
+    private readonly IPriceOcrBatchService _priceBatch;
+    private readonly IPriceRecentHashCacheService _priceRecentHashCache;
     private readonly OcrLastResultState _lastResults;
     private readonly IConfiguration _configuration;
     private readonly ILogger<OcrCycleRunner> _logger;
@@ -41,6 +48,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         IOptionsMonitor<OcrRuntimeSettings> settings,
         IOcrDebugSnapshotService debug,
         IOcrImagePreprocessingService preprocessor,
+        IOcrLayoutService layoutService,
+        IOcrImageTextCache ocrTextCache,
+        IPriceOcrBatchService priceBatch,
+        IPriceRecentHashCacheService priceRecentHashCache,
         OcrLastResultState lastResults,
         IConfiguration configuration,
         ILogger<OcrCycleRunner> logger)
@@ -56,6 +67,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _settings = settings;
         _debug = debug;
         _preprocessor = preprocessor;
+        _layoutService = layoutService;
+        _ocrTextCache = ocrTextCache;
+        _priceBatch = priceBatch;
+        _priceRecentHashCache = priceRecentHashCache;
         _lastResults = lastResults;
         _configuration = configuration;
         _logger = logger;
@@ -79,6 +94,11 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             var coordinateZone = await _zoneService.ResolveZoneAsync(_db, storedCoordinateZone, ct);
             var cityZone = await _zoneService.ResolveZoneAsync(_db, storedCityZone, ct);
             var priceZone = await _zoneService.ResolveZoneAsync(_db, storedPriceZone, ct);
+
+            var layout = await _layoutService.LoadAsync(ct);
+
+            coordinateZone = _layoutService.TryGetCoordinateZone(layout) ?? coordinateZone;
+            cityZone = _layoutService.TryGetCityZone(layout) ?? cityZone;
 
             var coordinateWasReadThisCycle = false;
 
@@ -154,6 +174,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                         CapturedAtUtc = DateTime.UtcNow
                     });
 
+                    _priceRecentHashCache.NotifyCityStatus(city);
+
                     _control.LastCityReadUtc = DateTime.UtcNow;
                 }
             }
@@ -164,6 +186,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                     .OrderByDescending(x => x.CapturedAtUtc)
                     .FirstOrDefaultAsync(ct);
 
+                _priceRecentHashCache.NotifyCityStatus(latestCity?.City);
+
                 if (PriceCaptureMergeService.IsKnownCity(latestCity?.City))
                 {
                     var priceDue = IsPriceOcrDue(settings);
@@ -173,18 +197,47 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                             priceZone,
                             latestCity!,
                             settings,
+                            layout,
                             ct);
+                    }
+
+                    if (UsePriceBatchCapture())
+                    {
+                        var timedFlushSeconds = PriceBatchFlushEverySeconds();
+                        var idleFlushSeconds = PriceBatchIdleFlushSeconds();
+
+                        if (timedFlushSeconds > 0 &&
+                            _priceBatch.ShouldFlushByAge(TimeSpan.FromSeconds(timedFlushSeconds)))
+                        {
+                            await FlushPriceBatchAsync(settings, "timed", ct);
+                        }
+                        else if (idleFlushSeconds > 0 &&
+                                 _priceBatch.ShouldFlushIdle(TimeSpan.FromSeconds(idleFlushSeconds)))
+                        {
+                            await FlushPriceBatchAsync(settings, "idle", ct);
+                        }
                     }
                 }
                 else
                 {
+                    _priceRecentHashCache.NotifyCityStatus("Unknown");
+                    await FlushPriceBatchAsync(settings, "city-unknown", ct);
                     _logger.LogInformation("Skipped price OCR because current city is unknown.");
                 }
             }
             else if (coordinateRecentlyVisible)
             {
+                _priceRecentHashCache.NotifyCityStatus("Unknown");
+
+                await FlushPriceBatchAsync(settings, "coordinate-visible", ct);
+
                 _logger.LogInformation(
                     "Skipped price OCR because coordinate/map is visible recently; current city is treated as Unknown.");
+            }
+            else
+            {
+                _priceRecentHashCache.NotifyCityStatus("Unknown");
+                await FlushPriceBatchAsync(settings, "price-zone-missing", ct);
             }
 
             await _db.SaveChangesAsync(ct);
@@ -282,7 +335,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
-        var raw = _ocr.DetectText(bitmap);
+        var read = ReadOcrText(kind, source, bitmap);
+        var raw = read.Text;
+
         var debugPath = await _debug.SaveAsync(kind, source, bitmap, raw, ct);
 
         object? parsed = kind switch
@@ -440,7 +495,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
-        var raw = _ocr.DetectText(bitmap);
+        var read = ReadOcrText("coordinate", source, bitmap);
+        var raw = read.Text;
+
         var debugPath = await _debug.SaveAsync("coordinate", source, bitmap, raw, ct);
 
         if (string.IsNullOrWhiteSpace(raw))
@@ -484,7 +541,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             {
                 using (forcedPreprocessed)
                 {
-                    var raw = _ocr.DetectText(forcedPreprocessed);
+                    var read = ReadOcrText("city", "preprocessed-forced", forcedPreprocessed);
+                    var raw = read.Text;
+
                     var debugPath = await _debug.SaveAsync(
                         "city",
                         "preprocessed-forced",
@@ -508,7 +567,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 "CityForcePreprocess was enabled, but city preprocessing returned null. Falling back to direct city OCR.");
         }
 
-        var directRaw = _ocr.DetectText(bitmap);
+        var directRead = ReadOcrText("city", "direct", bitmap);
+        var directRaw = directRead.Text;
+
         var directDebugPath = await _debug.SaveAsync(
             "city",
             "direct",
@@ -535,7 +596,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         using (preprocessed)
         {
-            var raw = _ocr.DetectText(preprocessed);
+            var read = ReadOcrText("city", "preprocessed", preprocessed);
+            var raw = read.Text;
+
             var debugPath = await _debug.SaveAsync(
                 "city",
                 "preprocessed",
@@ -561,6 +624,17 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     {
         var now = DateTime.UtcNow;
 
+        if (UsePriceBatchCapture())
+        {
+            var intervalMs = Math.Max(25, PriceBatchCaptureIntervalMs());
+
+            if (_control.LastPriceAttemptUtc is null)
+                return true;
+
+            return now - _control.LastPriceAttemptUtc.Value >=
+                   TimeSpan.FromMilliseconds(intervalMs);
+        }
+
         var fastModeActive =
             _control.PriceFastModeUntilUtc is not null &&
             _control.PriceFastModeUntilUtc.Value > now;
@@ -580,10 +654,626 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrZone priceZone,
         CityCapture latestCity,
         OcrRuntimeSettings settings,
+        OcrLayoutSettings layout,
         CancellationToken ct)
     {
         _control.LastPriceAttemptUtc = DateTime.UtcNow;
 
+        if (layout.Enabled &&
+            layout.UseLayoutForPrice &&
+            layout.Price.UseFieldBoxes)
+        {
+            await TryReadPricesFromLayoutAsync(layout, latestCity, settings, ct);
+            return;
+        }
+
+        if (UsePriceBatchCapture())
+        {
+            await TryCapturePriceForBatchAsync(priceZone, latestCity, settings, ct);
+            return;
+        }
+
+        await TryReadPricesImmediateAsync(priceZone, latestCity, settings, ct);
+    }
+
+    private async Task TryReadPricesFromLayoutAsync(
+        OcrLayoutSettings layout,
+        CityCapture latestCity,
+        OcrRuntimeSettings settings,
+        CancellationToken ct)
+    {
+        var tradeType = await DetectTradeTypeFromLayoutAsync(layout, ct);
+
+        if (!PriceCaptureMergeService.IsKnownTradeType(tradeType))
+        {
+            if (OcrBenchmarkLogging())
+            {
+                _logger.LogInformation(
+                    "Layout price OCR skipped because Buy/Sell validation was not detected.");
+            }
+
+            await FlushPriceBatchAsync(settings, "layout-price-menu-not-detected", ct);
+            return;
+        }
+
+        var parsed = new List<ParsedPriceLine>();
+        var rawRows = new List<string>();
+
+        foreach (var row in layout.Price.Rows
+                     .Where(x => x.Enabled)
+                     .OrderBy(x => x.Index)
+                     .Take(Math.Max(1, layout.Price.VisibleRows)))
+        {
+            var parsedRow = await TryReadLayoutPriceRowAsync(
+                row,
+                tradeType,
+                ct);
+
+            if (parsedRow is null)
+                continue;
+
+            parsed.Add(parsedRow);
+            rawRows.Add(parsedRow.RawText);
+        }
+
+        var rawText = rawRows.Count == 0
+            ? $"Layout field OCR found no valid rows. TradeType={tradeType}"
+            : string.Join(Environment.NewLine, rawRows);
+
+        await ProcessParsedPricesAsync(
+            selectedSource: "layout-field-boxes",
+            selectedRaw: rawText,
+            selectedDebugPath: null,
+            parsedPrices: parsed,
+            latestCity: latestCity,
+            settings: settings,
+            ct: ct);
+    }
+
+    private async Task<string> DetectTradeTypeFromLayoutAsync(
+        OcrLayoutSettings layout,
+        CancellationToken ct)
+    {
+        if (layout.Price.BuyValidationBox is { IsValid: true } buyBox)
+        {
+            var buyText = await ReadLayoutBoxTextAsync(
+                kind: "price-layout-validation",
+                source: "buy-validation",
+                box: buyBox,
+                preprocess: PriceLayoutValidationPreprocess(),
+                ct: ct);
+
+            if (LooksLikeBuyText(buyText))
+                return "Buy";
+        }
+
+        if (layout.Price.SellValidationBox is { IsValid: true } sellBox)
+        {
+            var sellText = await ReadLayoutBoxTextAsync(
+                kind: "price-layout-validation",
+                source: "sell-validation",
+                box: sellBox,
+                preprocess: PriceLayoutValidationPreprocess(),
+                ct: ct);
+
+            if (LooksLikeSellText(sellText))
+                return "Sell";
+        }
+
+        return "Unknown";
+    }
+
+    private async Task<ParsedPriceLine?> TryReadLayoutPriceRowAsync(
+        OcrPriceRowLayout row,
+        string tradeType,
+        CancellationToken ct)
+    {
+        if (row.ItemName is not { IsValid: true } itemBox ||
+            row.Price is not { IsValid: true } priceBox)
+        {
+            return null;
+        }
+
+        var itemNameRaw = await ReadLayoutBoxTextAsync(
+            kind: "price-layout-row",
+            source: $"row-{row.Index}-item-name",
+            box: itemBox,
+            preprocess: PriceLayoutFieldPreprocess(),
+            ct: ct);
+
+        var priceRaw = await ReadLayoutBoxTextAsync(
+            kind: "price-layout-row",
+            source: $"row-{row.Index}-price",
+            box: priceBox,
+            preprocess: PriceLayoutFieldPreprocess(),
+            ct: ct);
+
+        var multiplierRaw = row.Multiplier is { IsValid: true } multiplierBox
+            ? await ReadLayoutBoxTextAsync(
+                kind: "price-layout-row",
+                source: $"row-{row.Index}-multiplier",
+                box: multiplierBox,
+                preprocess: PriceLayoutFieldPreprocess(),
+                ct: ct)
+            : string.Empty;
+
+        var itemName = CleanLayoutFieldText(itemNameRaw);
+        if (string.IsNullOrWhiteSpace(itemName))
+            return null;
+
+        if (!TryParseLayoutDecimal(priceRaw, out var price))
+            return null;
+
+        decimal? multiplier = null;
+        if (TryParseLayoutDecimal(multiplierRaw, out var parsedMultiplier))
+            multiplier = parsedMultiplier;
+
+        var strict = StrictTradeGoodMatcher.Find(itemName);
+        var tradeGoodType = strict?.TradeGoodType ?? "Unknown";
+
+        var rawText =
+            $"Row {row.Index}: {itemName} | {priceRaw.Trim()} | {multiplierRaw.Trim()} | {tradeType}";
+
+        return new ParsedPriceLine(
+            itemName,
+            tradeGoodType,
+            price,
+            multiplier,
+            tradeType,
+            rawText);
+    }
+
+    private async Task<string> ReadLayoutBoxTextAsync(
+        string kind,
+        string source,
+        OcrLayoutBox box,
+        bool preprocess,
+        CancellationToken ct)
+    {
+        using var bitmap = _capture.Capture(box.ToZone(source));
+
+        if (preprocess)
+        {
+            var preprocessed = _preprocessor.TryPreparePriceImage(bitmap);
+
+            if (preprocessed is not null)
+            {
+                using (preprocessed)
+                {
+                    var preprocessedRead = ReadOcrText(kind, $"{source}-preprocessed", preprocessed);
+
+                    await _debug.SaveAsync(
+                        kind,
+                        $"{source}-preprocessed",
+                        preprocessed,
+                        preprocessedRead.Text,
+                        ct);
+
+                    return preprocessedRead.Text;
+                }
+            }
+        }
+
+        var read = ReadOcrText(kind, source, bitmap);
+
+        await _debug.SaveAsync(
+            kind,
+            source,
+            bitmap,
+            read.Text,
+            ct);
+
+        return read.Text;
+    }
+
+    private static bool LooksLikeBuyText(string raw)
+    {
+        var normalized = raw.ToLowerInvariant();
+        return normalized.Contains("buy") ||
+               normalized.Contains("for sale") ||
+               normalized.Contains("items for sale");
+    }
+
+    private static bool LooksLikeSellText(string raw)
+    {
+        var normalized = raw.ToLowerInvariant();
+        return normalized.Contains("sell") ||
+               normalized.Contains("inventory") ||
+               normalized.Contains("nventory");
+    }
+
+    private static string CleanLayoutFieldText(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return string.Empty;
+
+        var firstLine = raw
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault() ?? raw;
+
+        firstLine = Regex.Replace(firstLine, @"[^\p{L}\p{N}\s\-']", " ");
+        firstLine = Regex.Replace(firstLine, @"\s+", " ");
+
+        return firstLine.Trim();
+    }
+
+    private static bool TryParseLayoutDecimal(
+        string raw,
+        out decimal value)
+    {
+        value = 0;
+
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+
+        var normalized = raw
+            .Replace("％", "%")
+            .Replace(",", "")
+            .Replace(".", "")
+            .Replace("%", " ");
+
+        var digits = new string(normalized
+            .TakeWhile(c => !char.IsLetter(c))
+            .Where(char.IsDigit)
+            .ToArray());
+
+        if (string.IsNullOrWhiteSpace(digits))
+        {
+            digits = new string(normalized
+                .Where(char.IsDigit)
+                .ToArray());
+        }
+
+        return decimal.TryParse(
+            digits,
+            NumberStyles.Number,
+            CultureInfo.InvariantCulture,
+            out value);
+    }
+
+    private async Task TryCapturePriceForBatchAsync(
+        OcrZone priceZone,
+        CityCapture latestCity,
+        OcrRuntimeSettings settings,
+        CancellationToken ct)
+    {
+        var menuValidationEnabled = PriceMenuValidationEnabled();
+
+        if (menuValidationEnabled)
+        {
+            var menuIsValid = await TryValidatePriceMenuAsync(
+                priceZone,
+                settings,
+                ct);
+
+            if (!menuIsValid)
+            {
+                if (OcrBenchmarkLogging())
+                {
+                    _logger.LogInformation(
+                        "Price menu validation rejected current screen. Full price-list capture was skipped.");
+                }
+
+                await FlushPriceBatchAsync(settings, "price-menu-not-detected", ct);
+                return;
+            }
+        }
+
+        var captureZone = menuValidationEnabled && PriceCaptureBodyOnlyAfterMenuValidation()
+            ? BuildPriceBodyCaptureZone(priceZone, PriceMenuValidationTopPercent())
+            : priceZone;
+
+        using var bitmap = _capture.Capture(captureZone);
+
+        var forcePreprocess = ForcePricePreprocess();
+
+        if (forcePreprocess)
+        {
+            var forcedPreprocessed = _preprocessor.TryPreparePriceImage(bitmap);
+
+            if (forcedPreprocessed is not null)
+            {
+                using (forcedPreprocessed)
+                {
+                    await AddPriceImageToBatchAsync(
+                        forcedPreprocessed,
+                        menuValidationEnabled
+                            ? "price-batch-body-preprocessed-forced"
+                            : "price-batch-preprocessed-forced",
+                        latestCity,
+                        settings,
+                        ct);
+                }
+
+                return;
+            }
+
+            _logger.LogInformation(
+                "PriceForcePreprocess was enabled, but price preprocessing returned null. Capturing direct price image for batch.");
+        }
+
+        var preprocessed = _preprocessor.TryPreparePriceImage(bitmap);
+
+        if (preprocessed is not null)
+        {
+            using (preprocessed)
+            {
+                await AddPriceImageToBatchAsync(
+                    preprocessed,
+                    menuValidationEnabled
+                        ? "price-batch-body-preprocessed"
+                        : "price-batch-preprocessed",
+                    latestCity,
+                    settings,
+                    ct);
+            }
+
+            return;
+        }
+
+        await AddPriceImageToBatchAsync(
+            bitmap,
+            menuValidationEnabled
+                ? "price-batch-body-direct"
+                : "price-batch-direct",
+            latestCity,
+            settings,
+            ct);
+    }
+
+    private async Task<bool> TryValidatePriceMenuAsync(
+        OcrZone priceZone,
+        OcrRuntimeSettings settings,
+        CancellationToken ct)
+    {
+        var validationZone = BuildPriceMenuValidationZone(
+            priceZone,
+            PriceMenuValidationTopPercent());
+
+        using var bitmap = _capture.Capture(validationZone);
+
+        Bitmap? preprocessed = null;
+
+        try
+        {
+            var imageToRead = bitmap;
+            var source = "price-menu-validation-direct";
+
+            if (PriceMenuValidationUsePreprocess())
+            {
+                preprocessed = _preprocessor.TryPreparePriceImage(bitmap);
+
+                if (preprocessed is not null)
+                {
+                    imageToRead = preprocessed;
+                    source = "price-menu-validation-preprocessed";
+                }
+            }
+
+            var read = ReadOcrText("price-menu", source, imageToRead);
+            var raw = read.Text;
+            var debugPath = await _debug.SaveAsync(
+                "price-menu",
+                source,
+                imageToRead,
+                raw,
+                ct);
+
+            var isValid = IsValidPriceMenuText(raw);
+
+            if (OcrBenchmarkLogging())
+            {
+                _logger.LogInformation(
+                    "Price menu validation. Valid={Valid}; Source={Source}; RawText={RawText}; DebugImagePath={DebugImagePath}",
+                    isValid,
+                    source,
+                    raw,
+                    debugPath);
+            }
+
+            return isValid;
+        }
+        finally
+        {
+            preprocessed?.Dispose();
+        }
+    }
+
+    private bool IsValidPriceMenuText(string rawText)
+    {
+        if (string.IsNullOrWhiteSpace(rawText))
+            return false;
+
+        foreach (var validWord in PriceMenuValidationValidWords())
+        {
+            var escaped = Regex.Escape(validWord);
+            var pattern = $@"(?<![\p{{L}}\p{{N}}]){escaped}(?![\p{{L}}\p{{N}}])";
+
+            if (Regex.IsMatch(
+                    rawText,
+                    pattern,
+                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static OcrZone BuildPriceMenuValidationZone(
+        OcrZone priceZone,
+        double topPercent)
+    {
+        var bounds = GetNormalizedBounds(priceZone);
+        var height = Math.Max(1, bounds.Bottom - bounds.Top);
+        var validationHeight = Math.Max(1, (int)Math.Round(height * Math.Clamp(topPercent, 5, 90) / 100.0));
+
+        return new OcrZone
+        {
+            Name = "PriceMenuValidation",
+            TopLeftX = bounds.Left,
+            TopLeftY = bounds.Top,
+            BottomRightX = bounds.Right,
+            BottomRightY = Math.Min(bounds.Bottom, bounds.Top + validationHeight),
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+    }
+
+    private static OcrZone BuildPriceBodyCaptureZone(
+        OcrZone priceZone,
+        double topPercent)
+    {
+        var bounds = GetNormalizedBounds(priceZone);
+        var height = Math.Max(1, bounds.Bottom - bounds.Top);
+        var validationHeight = Math.Max(1, (int)Math.Round(height * Math.Clamp(topPercent, 5, 90) / 100.0));
+        var bodyTop = Math.Min(bounds.Bottom - 1, bounds.Top + validationHeight);
+
+        return new OcrZone
+        {
+            Name = "PriceBody",
+            TopLeftX = bounds.Left,
+            TopLeftY = bodyTop,
+            BottomRightX = bounds.Right,
+            BottomRightY = bounds.Bottom,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+    }
+
+    private static (int Left, int Top, int Right, int Bottom) GetNormalizedBounds(OcrZone zone)
+    {
+        var left = Math.Min(zone.TopLeftX, zone.BottomRightX);
+        var top = Math.Min(zone.TopLeftY, zone.BottomRightY);
+        var right = Math.Max(zone.TopLeftX, zone.BottomRightX);
+        var bottom = Math.Max(zone.TopLeftY, zone.BottomRightY);
+
+        return (left, top, right, bottom);
+    }
+
+    private async Task AddPriceImageToBatchAsync(
+        Bitmap image,
+        string source,
+        CityCapture latestCity,
+        OcrRuntimeSettings settings,
+        CancellationToken ct)
+    {
+        var options = GetPriceOcrBatchOptions();
+
+        var result = _priceBatch.TryAdd(
+            image,
+            source,
+            latestCity.City,
+            options);
+
+        if (result.MaxReached && !result.Added)
+        {
+            await FlushPriceBatchAsync(settings, "max-size-before-add", ct);
+
+            result = _priceBatch.TryAdd(
+                image,
+                source,
+                latestCity.City,
+                options);
+        }
+
+        if (OcrBenchmarkLogging())
+        {
+            _logger.LogInformation(
+                "Price batch capture: Decision={Decision}; Added={Added}; Duplicate={Duplicate}; Count={Count}; SampleHashMs={SampleHashMs}; FullHashMs={FullHashMs}; Source={Source}",
+                result.Decision,
+                result.Added,
+                result.Duplicate,
+                result.Count,
+                result.SampleHashElapsed.TotalMilliseconds,
+                result.FullHashElapsed.TotalMilliseconds,
+                source);
+        }
+
+        if (result.Added)
+            _control.LastPriceReadUtc = DateTime.UtcNow;
+
+        if (result.MaxReached)
+            await FlushPriceBatchAsync(settings, "max-size", ct);
+    }
+
+    private async Task FlushPriceBatchAsync(
+        OcrRuntimeSettings settings,
+        string reason,
+        CancellationToken ct)
+    {
+        if (!UsePriceBatchCapture())
+            return;
+
+        var images = _priceBatch.Drain();
+        if (images.Count == 0)
+            return;
+
+        var stopwatch = Stopwatch.StartNew();
+
+        _logger.LogInformation(
+            "Flushing deferred price OCR batch. Reason={Reason}; ImageCount={ImageCount}",
+            reason,
+            images.Count);
+
+        try
+        {
+            foreach (var image in images)
+            {
+                var city = new CityCapture
+                {
+                    City = image.City,
+                    RawText = $"Deferred price OCR batch. Reason={reason}",
+                    CapturedAtUtc = image.CapturedAtUtc
+                };
+
+                await ProcessPriceImageAsync(
+                    image.Image,
+                    image.Source,
+                    city,
+                    settings,
+                    ct);
+
+                var rememberResult = _priceRecentHashCache.RememberProcessed(
+                    image.City,
+                    image.FullHash,
+                    GetPriceRecentHashCacheOptions());
+
+                if (OcrBenchmarkLogging() &&
+                    rememberResult.Enabled &&
+                    rememberResult.IsKnownCity)
+                {
+                    _logger.LogInformation(
+                        "Remembered processed price image hash. City={City}; CacheCount={CacheCount}; WasAlreadyKnown={WasAlreadyKnown}",
+                        image.City,
+                        rememberResult.Count,
+                        rememberResult.WasHit);
+                }
+            }
+        }
+        finally
+        {
+            foreach (var image in images)
+                image.Image.Dispose();
+
+            stopwatch.Stop();
+
+            if (OcrBenchmarkLogging())
+            {
+                _logger.LogInformation(
+                    "Deferred price OCR batch flushed. Reason={Reason}; ImageCount={ImageCount}; ElapsedMs={ElapsedMs}",
+                    reason,
+                    images.Count,
+                    stopwatch.Elapsed.TotalMilliseconds);
+            }
+        }
+    }
+
+    private async Task TryReadPricesImmediateAsync(
+        OcrZone priceZone,
+        CityCapture latestCity,
+        OcrRuntimeSettings settings,
+        CancellationToken ct)
+    {
         using var bitmap = _capture.Capture(priceZone);
 
         var forcePreprocess = ForcePricePreprocess();
@@ -611,7 +1301,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 "PriceForcePreprocess was enabled, but price preprocessing returned null. Falling back to direct price OCR.");
         }
 
-        var directRaw = _ocr.DetectText(bitmap);
+        var directRead = ReadOcrText("price", "direct", bitmap);
+        var directRaw = directRead.Text;
+
         var directDebugPath = await _debug.SaveAsync(
             "price",
             "direct",
@@ -644,7 +1336,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         using (preprocessed)
         {
-            var preprocessedRaw = _ocr.DetectText(preprocessed);
+            var preprocessedRead = ReadOcrText("price", "preprocessed", preprocessed);
+            var preprocessedRaw = preprocessedRead.Text;
+
             var preprocessedDebugPath = await _debug.SaveAsync(
                 "price",
                 "preprocessed",
@@ -694,7 +1388,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
-        var raw = _ocr.DetectText(image);
+        var read = ReadOcrText("price", source, image);
+        var raw = read.Text;
+
         var debugPath = await _debug.SaveAsync(
             "price",
             source,
@@ -866,6 +1562,71 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         }
     }
 
+    private OcrCachedTextRead ReadOcrText(
+        string kind,
+        string source,
+        Bitmap bitmap)
+    {
+        var cacheKey = $"{kind}:{source}";
+        var options = GetOcrHashCacheOptions();
+
+        var read = _ocrTextCache.ReadText(
+            cacheKey,
+            bitmap,
+            image => _ocr.DetectText(image),
+            options);
+
+        if (options.BenchmarkLogging)
+        {
+            _logger.LogInformation(
+                "OCR read benchmark. Kind={Kind}; Source={Source}; Decision={Decision}; HashHit={HashHit}; SampleHashMs={SampleHashMs}; FullHashMs={FullHashMs}; OcrMs={OcrMs}",
+                kind,
+                source,
+                read.Decision,
+                read.WasHashHit,
+                read.SampleHashElapsed.TotalMilliseconds,
+                read.FullHashElapsed.TotalMilliseconds,
+                read.OcrElapsed.TotalMilliseconds);
+        }
+
+        return read;
+    }
+
+    private OcrHashCacheOptions GetOcrHashCacheOptions()
+    {
+        return new OcrHashCacheOptions(
+            Enabled: _configuration.GetValue("OcrSettings:SkipUnchangedOcrByHash", true),
+            UseSampleHashBeforeFullHash: _configuration.GetValue("OcrSettings:UseSampleHashBeforeFullHash", true),
+            SampleHashStep: _configuration.GetValue("OcrSettings:SampleHashStep", 8),
+            ForceFullHashEverySeconds: _configuration.GetValue("OcrSettings:ForceFullHashEverySeconds", 3.0),
+            BenchmarkLogging: OcrBenchmarkLogging());
+    }
+
+    private PriceOcrBatchOptions GetPriceOcrBatchOptions()
+    {
+        var recentHashOptions = GetPriceRecentHashCacheOptions();
+
+        return new PriceOcrBatchOptions(
+            Enabled: UsePriceBatchCapture(),
+            MaxImages: _configuration.GetValue("OcrSettings:PriceBatchMaxImages", 30),
+            UseSampleHashBeforeFullHash: _configuration.GetValue("OcrSettings:UseSampleHashBeforeFullHash", true),
+            SampleHashStep: _configuration.GetValue("OcrSettings:SampleHashStep", 8),
+            ForceFullHashEverySeconds: _configuration.GetValue("OcrSettings:ForceFullHashEverySeconds", 3.0),
+            BenchmarkLogging: OcrBenchmarkLogging(),
+            RecentHashCacheEnabled: recentHashOptions.Enabled,
+            RecentHashCacheMinutes: recentHashOptions.TtlMinutes,
+            RecentHashCacheMaxEntries: recentHashOptions.MaxEntries);
+    }
+
+    private PriceRecentHashCacheOptions GetPriceRecentHashCacheOptions()
+    {
+        return new PriceRecentHashCacheOptions(
+            Enabled: _configuration.GetValue("OcrSettings:PriceRecentHashCacheEnabled", true),
+            TtlMinutes: _configuration.GetValue("OcrSettings:PriceRecentHashCacheMinutes", 10.0),
+            MaxEntries: _configuration.GetValue("OcrSettings:PriceRecentHashCacheMaxEntries", 5000),
+            BenchmarkLogging: OcrBenchmarkLogging());
+    }
+
     private static string GetStrictTradeGoodSourceText(string? rawText, string? parserItemName)
     {
         return !string.IsNullOrWhiteSpace(rawText)
@@ -894,6 +1655,97 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             true);
     }
 
+    private bool PriceLayoutValidationPreprocess()
+    {
+        return _configuration.GetValue(
+            "OcrSettings:PriceLayoutValidationPreprocess",
+            true);
+    }
+
+    private bool PriceLayoutFieldPreprocess()
+    {
+        return _configuration.GetValue(
+            "OcrSettings:PriceLayoutFieldPreprocess",
+            true);
+    }
+
+    private bool UsePriceBatchCapture()
+    {
+        return _configuration.GetValue(
+            "OcrSettings:PriceBatchCaptureEnabled",
+            true);
+    }
+
+    private double PriceBatchIdleFlushSeconds()
+    {
+        return _configuration.GetValue(
+            "OcrSettings:PriceBatchIdleFlushSeconds",
+            0.0);
+    }
+
+    private double PriceBatchFlushEverySeconds()
+    {
+        return _configuration.GetValue(
+            "OcrSettings:PriceBatchFlushEverySeconds",
+            5.0);
+    }
+
+    private int PriceBatchCaptureIntervalMs()
+    {
+        return _configuration.GetValue(
+            "OcrSettings:PriceBatchCaptureIntervalMs",
+            150);
+    }
+
+    private bool PriceMenuValidationEnabled()
+    {
+        return _configuration.GetValue(
+            "OcrSettings:PriceMenuValidationEnabled",
+            true);
+    }
+
+    private double PriceMenuValidationTopPercent()
+    {
+        return _configuration.GetValue(
+            "OcrSettings:PriceMenuValidationTopPercent",
+            25.0);
+    }
+
+    private bool PriceMenuValidationUsePreprocess()
+    {
+        return _configuration.GetValue(
+            "OcrSettings:PriceMenuValidationUsePreprocess",
+            true);
+    }
+
+    private bool PriceCaptureBodyOnlyAfterMenuValidation()
+    {
+        return _configuration.GetValue(
+            "OcrSettings:PriceCaptureBodyOnlyAfterMenuValidation",
+            true);
+    }
+
+    private IReadOnlyList<string> PriceMenuValidationValidWords()
+    {
+        var raw = _configuration.GetValue(
+            "OcrSettings:PriceMenuValidationValidWords",
+            "Buy|Sell");
+
+        return raw
+            .Split(
+                new[] { '|', ';', ',' },
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(word => !string.IsNullOrWhiteSpace(word))
+            .ToArray();
+    }
+
+    private bool OcrBenchmarkLogging()
+    {
+        return _configuration.GetValue(
+            "OcrSettings:OcrBenchmarkLogging",
+            true);
+    }
+
     private void SetLatestCityUnknownIfNeeded(
         CityCapture? latestCity,
         string coordinateRawText)
@@ -910,6 +1762,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             RawText = $"Coordinate visible; leaving city/map mode. Coordinate OCR: {coordinateRawText}",
             CapturedAtUtc = DateTime.UtcNow
         });
+
+        _priceRecentHashCache.NotifyCityStatus("Unknown");
     }
 
     private async Task AddUniqueCoordinateAsync(
