@@ -1,6 +1,4 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using OcrTradingBackend.Data;
 using OcrTradingBackend.Models;
 
 namespace OcrTradingBackend.Services;
@@ -34,7 +32,16 @@ public sealed class OcrBackgroundWorker : BackgroundService
             try
             {
                 if (_control.Enabled)
-                    await RunOneCycleAsync(settings, stoppingToken);
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var runner = scope.ServiceProvider.GetRequiredService<IOcrCycleRunner>();
+
+                    await runner.RunOneCycleAsync(stoppingToken);
+                }
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return;
             }
             catch (Exception ex)
             {
@@ -42,247 +49,9 @@ public sealed class OcrBackgroundWorker : BackgroundService
                 _logger.LogError(ex, "OCR background cycle failed");
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(Math.Max(1, settings.DefaultIntervalSeconds)), stoppingToken);
+            await Task.Delay(
+                TimeSpan.FromSeconds(Math.Max(1, settings.DefaultIntervalSeconds)),
+                stoppingToken);
         }
-    }
-
-    private async Task RunOneCycleAsync(OcrRuntimeSettings settings, CancellationToken ct)
-    {
-        using var scope = _scopeFactory.CreateScope();
-
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var capture = scope.ServiceProvider.GetRequiredService<IScreenCaptureService>();
-        var ocr = scope.ServiceProvider.GetRequiredService<IPaddleOcrService>();
-        var coordinateParser = scope.ServiceProvider.GetRequiredService<ICoordinateParser>();
-        var cityParser = scope.ServiceProvider.GetRequiredService<ICityParser>();
-        var priceParser = scope.ServiceProvider.GetRequiredService<IPriceParser>();
-        var zoneService = scope.ServiceProvider.GetRequiredService<IWindowRelativeOcrZoneService>();
-
-        var storedCoordinateZone = await db.OcrZones.FirstOrDefaultAsync(x => x.Name == settings.CoordinateOcrZoneName, ct);
-        var storedCityZone = await db.OcrZones.FirstOrDefaultAsync(x => x.Name == settings.CityOcrZoneName, ct);
-        var storedPriceZone = await db.OcrZones.FirstOrDefaultAsync(x => x.Name == settings.PriceOcrZoneName, ct);
-
-        // These zones are recalculated from relative-to-window data every cycle.
-        // If the game window moved, the absolute screen coordinates move with it automatically.
-        var coordinateZone = await zoneService.ResolveZoneAsync(db, storedCoordinateZone, ct);
-        var cityZone = await zoneService.ResolveZoneAsync(db, storedCityZone, ct);
-        var priceZone = await zoneService.ResolveZoneAsync(db, storedPriceZone, ct);
-
-        var coordinateWasReadThisCycle = false;
-
-        var latestCityBeforeCoordinate = await db.CityCaptures
-            .OrderByDescending(x => x.CapturedAtUtc)
-            .FirstOrDefaultAsync(ct);
-
-        var coordinateRecentlyVisibleBeforeRead = _control.LastCoordinateReadUtc is not null &&
-            DateTime.UtcNow - _control.LastCoordinateReadUtc.Value < TimeSpan.FromSeconds(settings.CoordinateRecentlyVisibleSeconds);
-
-        var wasInKnownCityBeforeCoordinate = PriceCaptureMergeService.IsKnownCity(latestCityBeforeCoordinate?.City);
-        var ignoreCoordinateJumpThisRead = wasInKnownCityBeforeCoordinate && !coordinateRecentlyVisibleBeforeRead;
-
-        if (coordinateZone is not null)
-        {
-            var previousCoordinate = ignoreCoordinateJumpThisRead
-                ? null
-                : await db.CoordinateCaptures
-                    .OrderByDescending(x => x.CapturedAtUtc)
-                    .FirstOrDefaultAsync(ct);
-
-            var parsed = CoordinateScreenSearchService.TryReadCoordinate(
-                capture,
-                ocr,
-                coordinateParser,
-                coordinateZone,
-                previousCoordinate,
-                settings);
-
-            if (parsed is not null)
-            {
-                coordinateWasReadThisCycle = true;
-                _control.LastCoordinateReadUtc = DateTime.UtcNow;
-
-                await AddUniqueCoordinateAsync(db, parsed, ct);
-                await SetLatestCityUnknownIfNeededAsync(db, latestCityBeforeCoordinate, parsed.RawText, ct);
-
-                if (ignoreCoordinateJumpThisRead)
-                    Console.WriteLine("Coordinate appeared after known city. Ignored max jump range for this first coordinate read.");
-            }
-        }
-
-        var coordinateRecentlyVisible = _control.LastCoordinateReadUtc is not null &&
-            DateTime.UtcNow - _control.LastCoordinateReadUtc.Value < TimeSpan.FromSeconds(settings.CoordinateRecentlyVisibleSeconds);
-
-        var cityDue = _control.LastCityReadUtc is null ||
-            DateTime.UtcNow - _control.LastCityReadUtc.Value >= TimeSpan.FromSeconds(settings.CityIntervalSeconds);
-
-        if (!coordinateWasReadThisCycle && !coordinateRecentlyVisible && cityDue && cityZone is not null)
-        {
-            using var bitmap = capture.Capture(cityZone);
-            var raw = ocr.DetectText(bitmap);
-            var city = cityParser.TryParse(raw, settings.MinCityNameLength);
-
-            if (city is not null)
-            {
-                db.CityCaptures.Add(new CityCapture
-                {
-                    City = city,
-                    RawText = raw,
-                    CapturedAtUtc = DateTime.UtcNow
-                });
-
-                _control.LastCityReadUtc = DateTime.UtcNow;
-                await db.SaveChangesAsync(ct);
-            }
-        }
-
-        if (!coordinateRecentlyVisible && priceZone is not null)
-        {
-            var latestCity = await db.CityCaptures
-                .OrderByDescending(x => x.CapturedAtUtc)
-                .FirstOrDefaultAsync(ct);
-
-            if (PriceCaptureMergeService.IsKnownCity(latestCity?.City))
-            {
-                var priceDue = IsPriceOcrDue(settings);
-                if (priceDue)
-                    await TryReadPricesAsync(db, capture, ocr, priceParser, priceZone, latestCity!, settings, ct);
-            }
-            else
-            {
-                Console.WriteLine("Skipped price OCR because current city is unknown.");
-            }
-        }
-        else if (coordinateRecentlyVisible)
-        {
-            Console.WriteLine("Skipped price OCR because coordinate/map is visible recently; current city is treated as Unknown.");
-        }
-
-        await db.SaveChangesAsync(ct);
-    }
-
-    private bool IsPriceOcrDue(OcrRuntimeSettings settings)
-    {
-        var now = DateTime.UtcNow;
-        var fastModeActive = _control.PriceFastModeUntilUtc is not null && _control.PriceFastModeUntilUtc.Value > now;
-        var intervalSeconds = fastModeActive
-            ? Math.Max(1, settings.ActivePriceIntervalSeconds)
-            : Math.Max(1, settings.PriceIntervalSeconds);
-
-        if (_control.LastPriceAttemptUtc is null)
-            return true;
-
-        return now - _control.LastPriceAttemptUtc.Value >= TimeSpan.FromSeconds(intervalSeconds);
-    }
-
-    private async Task TryReadPricesAsync(
-        AppDbContext db,
-        IScreenCaptureService capture,
-        IPaddleOcrService ocr,
-        IPriceParser priceParser,
-        OcrZone priceZone,
-        CityCapture latestCity,
-        OcrRuntimeSettings settings,
-        CancellationToken ct)
-    {
-        _control.LastPriceAttemptUtc = DateTime.UtcNow;
-
-        using var bitmap = capture.Capture(priceZone);
-        var raw = ocr.DetectText(bitmap);
-
-        if (!string.IsNullOrWhiteSpace(raw))
-        {
-            Console.WriteLine("=== PRICE OCR RAW ===");
-            Console.WriteLine(raw);
-            Console.WriteLine("=====================");
-        }
-
-        var parsedPrices = priceParser.ParseLines(raw, allowPendingCandidates: true);
-        if (parsedPrices.Count == 0)
-            return;
-
-        _control.LastPriceReadUtc = DateTime.UtcNow;
-
-        var hadNewPriceState = false;
-        var hadUpdatedExistingState = false;
-
-        foreach (var price in parsedPrices)
-        {
-            if (!PriceCaptureMergeService.IsKnownTradeType(price.TradeType))
-            {
-                Console.WriteLine($"Skipped price because trade type is unknown: {price.ItemName} {price.Price} {price.Multiplier}%");
-                continue;
-            }
-
-            var priceCapture = new PriceCapture
-            {
-                City = latestCity.City,
-                ItemName = price.ItemName,
-                TradeGoodType = price.TradeGoodType,
-                Price = DecimalToInt(price.Price),
-                Multiplier = price.Multiplier,
-                TradeType = price.TradeType,
-                RawText = price.RawText,
-                CapturedAtUtc = DateTime.UtcNow
-            };
-
-            var mergeResult = await PriceCaptureMergeService.AddOrUpdateAsync(db, priceCapture, ct);
-
-            if (mergeResult.Action == PriceCaptureMergeAction.Added)
-                hadNewPriceState = true;
-            else if (mergeResult.Action == PriceCaptureMergeAction.UpdatedExisting)
-                hadUpdatedExistingState = true;
-
-            Console.WriteLine($"{mergeResult.Action}: {price.TradeType} {price.ItemName} {price.TradeGoodType} {price.Price} {price.Multiplier}% {mergeResult.Message}");
-        }
-
-        if (hadNewPriceState)
-        {
-            _control.LastPriceStateChangeUtc = DateTime.UtcNow;
-            _control.PriceFastModeUntilUtc = DateTime.UtcNow.AddSeconds(Math.Max(1, settings.PriceFastModeSeconds));
-            Console.WriteLine($"Price fast mode active until {_control.PriceFastModeUntilUtc:O}");
-        }
-        else if (hadUpdatedExistingState)
-        {
-            Console.WriteLine("Price OCR saw the same latest price state; fast mode was not extended.");
-        }
-    }
-
-    private static async Task SetLatestCityUnknownIfNeededAsync(AppDbContext db, CityCapture? latestCity, string coordinateRawText, CancellationToken ct)
-    {
-        if (latestCity is not null && !PriceCaptureMergeService.IsKnownCity(latestCity.City))
-            return;
-
-        db.CityCaptures.Add(new CityCapture
-        {
-            City = "Unknown",
-            RawText = $"Coordinate visible; leaving city/map mode. Coordinate OCR: {coordinateRawText}",
-            CapturedAtUtc = DateTime.UtcNow
-        });
-
-        await db.SaveChangesAsync(ct);
-    }
-
-    private static async Task AddUniqueCoordinateAsync(AppDbContext db, ParsedCoordinate parsed, CancellationToken ct)
-    {
-        var lastFive = await db.CoordinateCaptures
-            .OrderByDescending(x => x.CapturedAtUtc)
-            .Take(5)
-            .ToListAsync(ct);
-
-        if (lastFive.Any(x => x.X == parsed.X && x.Y == parsed.Y))
-            return;
-
-        db.CoordinateCaptures.Add(new CoordinateCapture
-        {
-            X = parsed.X,
-            Y = parsed.Y,
-            RawText = parsed.RawText,
-            CapturedAtUtc = DateTime.UtcNow
-        });
-    }
-
-    private static int DecimalToInt(decimal value)
-    {
-        return decimal.ToInt32(decimal.Truncate(value));
     }
 }

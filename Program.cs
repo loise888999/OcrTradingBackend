@@ -24,6 +24,7 @@ builder.Services.Configure<GameWindowSettings>(builder.Configuration.GetSection(
 builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services.AddSingleton<OcrControlState>();
+builder.Services.AddSingleton<OcrLastResultState>();
 builder.Services.AddSingleton<ICoordinateParser, CoordinateParser>();
 builder.Services.AddSingleton<ICityCatalog, CityCatalog>();
 builder.Services.AddSingleton<ICityParser, CityParser>();
@@ -34,9 +35,12 @@ builder.Services.AddSingleton<IScreenCaptureService, WindowsScreenCaptureService
 builder.Services.AddSingleton<IPaddleOcrService, PaddleOcrSharpService>();
 builder.Services.AddSingleton<IGameWindowLocator, GameWindowLocatorService>();
 builder.Services.AddSingleton<IMapRegionCatalog, MapRegionCatalog>();
+builder.Services.AddSingleton<IOcrDebugSnapshotService, OcrDebugSnapshotService>();
+builder.Services.AddSingleton<IOcrImagePreprocessingService, OcrImagePreprocessingService>();
 builder.Services.AddScoped<IWindowRelativeOcrZoneService, WindowRelativeOcrZoneService>();
 builder.Services.AddScoped<ITradingRecommendationService, TradingRecommendationService>();
 builder.Services.AddScoped<ITradingAdvancedService, TradingAdvancedService>();
+builder.Services.AddScoped<IOcrCycleRunner, OcrCycleRunner>();
 builder.Services.AddHostedService<OcrBackgroundWorker>();
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
@@ -134,6 +138,34 @@ app.MapPost("/api/ocr/start", (OcrControlState c) => { c.Enabled = true; c.LastE
 app.MapPost("/api/ocr/stop", (OcrControlState c) => { c.Enabled = false; return Results.Ok(new { c.Enabled }); });
 app.MapGet("/api/ocr/status", (OcrControlState c) => Results.Ok(c));
 
+app.MapGet("/api/ocr/last-results", (OcrLastResultState state) =>
+    Results.Ok(state.GetSnapshot()));
+
+app.MapPost("/api/ocr/test/{zoneKind}", async (
+    string zoneKind,
+    IOcrCycleRunner runner,
+    CancellationToken ct) =>
+{
+    var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "coordinate",
+        "city",
+        "price"
+    };
+
+    if (!allowed.Contains(zoneKind))
+    {
+        return Results.BadRequest(new
+        {
+            message = "Unsupported OCR zone kind.",
+            allowed = allowed.OrderBy(x => x).ToArray()
+        });
+    }
+
+    var result = await runner.TestZoneAsync(zoneKind, ct);
+    return Results.Ok(result);
+});
+
 app.MapGet("/api/coordinates/latest", async (AppDbContext db, int take = 20) =>
 {
     var limit = Math.Clamp(take, 2, 100);
@@ -220,8 +252,6 @@ app.MapDelete("/api/map-regions/{id}", (IMapRegionCatalog catalog, string id) =>
 });
 
 app.MapGet("/api/regions/main", (ICityCatalog c) => Results.Ok(c.GetMainRegions()));
-app.MapGet("/api/regions/sub", (ICityCatalog c, string? mainRegion) => Results.Ok(c.GetSubRegions(mainRegion)));
-app.MapGet("/api/regions/sea-trade", (ICityCatalog c, string? mainRegion, string? subRegion) => Results.Ok(c.GetSeaTradeRegions(mainRegion, subRegion)));
 app.MapGet("/api/regions/sub", (ICityCatalog c, string? mainRegion) => Results.Ok(c.GetSubRegions(mainRegion)));
 app.MapGet("/api/regions/sea-trade", (ICityCatalog c, string? mainRegion, string? subRegion) => Results.Ok(c.GetSeaTradeRegions(mainRegion, subRegion)));
 
