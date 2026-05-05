@@ -1493,6 +1493,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         var hadNewPriceState = false;
         var hadUpdatedExistingState = false;
+        var acceptedPrices = new List<(ParsedPriceLine Price, StrictTradeGoodMatch StrictTradeGood, PriceCapture Capture)>();
 
         foreach (var price in parsedPrices)
         {
@@ -1586,25 +1587,36 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 CapturedAtUtc = DateTime.UtcNow
             };
 
-            var mergeResult = await PriceCaptureMergeService.AddOrUpdateAsync(
+            acceptedPrices.Add((price, strictTradeGood, priceCapture));
+        }
+
+        if (acceptedPrices.Count > 0)
+        {
+            var mergeResults = await PriceCaptureMergeService.AddOrUpdateBatchAsync(
                 _db,
-                priceCapture,
+                acceptedPrices.Select(x => x.Capture).ToArray(),
                 ct);
 
-            if (mergeResult.Action == PriceCaptureMergeAction.Added)
-                hadNewPriceState = true;
-            else if (mergeResult.Action == PriceCaptureMergeAction.UpdatedExisting)
-                hadUpdatedExistingState = true;
+            for (var i = 0; i < acceptedPrices.Count; i++)
+            {
+                var (price, strictTradeGood, _) = acceptedPrices[i];
+                var mergeResult = mergeResults[i];
 
-            _logger.LogInformation(
-                "{Action}: {TradeType} {ItemName} {TradeGoodType} {Price} {Multiplier}% {Message}",
-                mergeResult.Action,
-                price.TradeType,
-                strictTradeGood.Name,
-                strictTradeGood.TradeGoodType,
-                price.Price,
-                price.Multiplier,
-                mergeResult.Message);
+                if (mergeResult.Action == PriceCaptureMergeAction.Added)
+                    hadNewPriceState = true;
+                else if (mergeResult.Action == PriceCaptureMergeAction.UpdatedExisting)
+                    hadUpdatedExistingState = true;
+
+                _logger.LogInformation(
+                    "{Action}: {TradeType} {ItemName} {TradeGoodType} {Price} {Multiplier}% {Message}",
+                    mergeResult.Action,
+                    price.TradeType,
+                    strictTradeGood.Name,
+                    strictTradeGood.TradeGoodType,
+                    price.Price,
+                    price.Multiplier,
+                    mergeResult.Message);
+            }
         }
 
         if (hadNewPriceState)
