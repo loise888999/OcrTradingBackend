@@ -122,11 +122,12 @@ public sealed class PriceOcrBatchService : IPriceOcrBatchService
 
             string? sampleHash = null;
             var sampleElapsed = TimeSpan.Zero;
+            using var hashReader = _hasher.CreateReader(bitmap);
 
             if (options.UseSampleHashBeforeFullHash)
             {
                 var sampleStopwatch = Stopwatch.StartNew();
-                sampleHash = _hasher.ComputeSampleHash(bitmap, options.SampleHashStep);
+                sampleHash = hashReader.ComputeSampleHash(options.SampleHashStep);
                 sampleStopwatch.Stop();
                 sampleElapsed = sampleStopwatch.Elapsed;
 
@@ -153,7 +154,7 @@ public sealed class PriceOcrBatchService : IPriceOcrBatchService
             }
 
             var fullStopwatch = Stopwatch.StartNew();
-            var fullHash = _hasher.ComputeFullHash(bitmap);
+            var fullHash = hashReader.ComputeFullHash();
             fullStopwatch.Stop();
 
             _lastSampleHash = sampleHash;

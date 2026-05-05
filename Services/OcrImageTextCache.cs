@@ -68,6 +68,7 @@ public sealed class OcrImageTextCache : IOcrImageTextCache
         lock (state.Sync)
         {
             var now = DateTime.UtcNow;
+            using var hashReader = _hasher.CreateReader(bitmap);
 
             string? sampleHash = null;
             var sampleElapsed = TimeSpan.Zero;
@@ -75,7 +76,7 @@ public sealed class OcrImageTextCache : IOcrImageTextCache
             if (options.UseSampleHashBeforeFullHash)
             {
                 var sampleStopwatch = Stopwatch.StartNew();
-                sampleHash = _hasher.ComputeSampleHash(bitmap, options.SampleHashStep);
+                sampleHash = hashReader.ComputeSampleHash(options.SampleHashStep);
                 sampleStopwatch.Stop();
                 sampleElapsed = sampleStopwatch.Elapsed;
 
@@ -102,7 +103,7 @@ public sealed class OcrImageTextCache : IOcrImageTextCache
             }
 
             var fullStopwatch = Stopwatch.StartNew();
-            var fullHash = _hasher.ComputeFullHash(bitmap);
+            var fullHash = hashReader.ComputeFullHash();
             fullStopwatch.Stop();
 
             if (state.HasValue &&

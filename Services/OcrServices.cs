@@ -42,7 +42,6 @@ public sealed class PaddleOcrSharpService : IPaddleOcrService, IDisposable
         var baseDir = AppContext.BaseDirectory;
         NativeDllLoader.AddDllDirectory(baseDir);
         Console.WriteLine($"PaddleOCR BaseDirectory: {baseDir}");
-        OCRModelConfig? config = null;
         var parameter = new OCRParameter
         {
             cpu_math_library_num_threads = Math.Max(2, Environment.ProcessorCount / 2),
@@ -51,7 +50,7 @@ public sealed class PaddleOcrSharpService : IPaddleOcrService, IDisposable
             det = true,
             use_angle_cls = false
         };
-        _engine = new PaddleOCREngine(config, parameter);
+        _engine = new PaddleOCREngine(null, parameter);
     }
 
     public string DetectText(Bitmap bitmap)
@@ -66,9 +65,4 @@ public sealed class PaddleOcrSharpService : IPaddleOcrService, IDisposable
     }
 
     public void Dispose() => _engine.Dispose();
-}
-
-public sealed class FakePaddleOcrService : IPaddleOcrService
-{
-    public string DetectText(Bitmap bitmap) => string.Empty;
 }
