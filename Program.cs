@@ -448,6 +448,7 @@ app.MapPost("/api/ocr-layout/test-box", async (
     IPaddleOcrService ocr,
     IOcrImagePreprocessingService preprocessor,
     IOcrDebugSnapshotService debug,
+    Microsoft.Extensions.Options.IOptionsMonitor<OcrRuntimeSettings> settings,
     CancellationToken ct) =>
 {
     if (request.Box is null || !request.Box.IsValid)
@@ -474,7 +475,7 @@ app.MapPost("/api/ocr-layout/test-box", async (
 
     if (request.Preprocess)
     {
-        var preprocessed = preprocessor.TryPreparePriceImage(bitmap);
+        var preprocessed = preprocessor.TryPreparePriceImage(bitmap, settings.CurrentValue);
 
         if (preprocessed is not null)
         {

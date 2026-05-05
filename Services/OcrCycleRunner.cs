@@ -34,7 +34,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly IPriceOcrBatchService _priceBatch;
     private readonly IPriceRecentHashCacheService _priceRecentHashCache;
     private readonly OcrLastResultState _lastResults;
-    private readonly IConfiguration _configuration;
     private readonly ILogger<OcrCycleRunner> _logger;
 
     public OcrCycleRunner(
@@ -55,7 +54,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         IPriceOcrBatchService priceBatch,
         IPriceRecentHashCacheService priceRecentHashCache,
         OcrLastResultState lastResults,
-        IConfiguration configuration,
         ILogger<OcrCycleRunner> logger)
     {
         _db = db;
@@ -75,7 +73,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _priceBatch = priceBatch;
         _priceRecentHashCache = priceRecentHashCache;
         _lastResults = lastResults;
-        _configuration = configuration;
         _logger = logger;
     }
 
@@ -294,8 +291,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         var preprocessed = normalized switch
         {
             "coordinate" => _preprocessor.TryPrepareCoordinateImage(bitmap, settings),
-            "city" => _preprocessor.TryPrepareCityImage(bitmap),
-            "price" => _preprocessor.TryPreparePriceImage(bitmap),
+            "city" => _preprocessor.TryPrepareCityImage(bitmap, settings),
+            "price" => _preprocessor.TryPreparePriceImage(bitmap, settings),
             _ => null
         };
 
@@ -333,7 +330,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
-        var read = ReadOcrText(kind, source, bitmap);
+        var read = ReadOcrText(kind, source, bitmap, settings);
         var raw = read.Text;
 
         var debugPath = await _debug.SaveAsync(kind, source, bitmap, raw, ct);
@@ -370,7 +367,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
-        var forcePreprocess = ForceCoordinatePreprocess();
+        var forcePreprocess = settings.CoordinateForcePreprocess;
 
         using (var fixedBitmap = _capture.Capture(coordinateZone))
         {
@@ -493,7 +490,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
-        var read = ReadOcrText("coordinate", source, bitmap);
+        var read = ReadOcrText("coordinate", source, bitmap, settings);
         var raw = read.Text;
 
         var debugPath = await _debug.SaveAsync("coordinate", source, bitmap, raw, ct);
@@ -529,17 +526,17 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     {
         using var bitmap = _capture.Capture(cityZone);
 
-        var forcePreprocess = ForceCityPreprocess();
+        var forcePreprocess = settings.CityForcePreprocess;
 
         if (forcePreprocess)
         {
-            var forcedPreprocessed = _preprocessor.TryPrepareCityImage(bitmap);
+            var forcedPreprocessed = _preprocessor.TryPrepareCityImage(bitmap, settings);
 
             if (forcedPreprocessed is not null)
             {
                 using (forcedPreprocessed)
                 {
-                    var read = ReadOcrText("city", "preprocessed-forced", forcedPreprocessed);
+                    var read = ReadOcrText("city", "preprocessed-forced", forcedPreprocessed, settings);
                     var raw = read.Text;
 
                     var debugPath = await _debug.SaveAsync(
@@ -565,7 +562,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 "CityForcePreprocess was enabled, but city preprocessing returned null. Falling back to direct city OCR.");
         }
 
-        var directRead = ReadOcrText("city", "direct", bitmap);
+        var directRead = ReadOcrText("city", "direct", bitmap, settings);
         var directRaw = directRead.Text;
 
         var directDebugPath = await _debug.SaveAsync(
@@ -588,13 +585,13 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         if (directCity is not null)
             return directCity;
 
-        var preprocessed = _preprocessor.TryPrepareCityImage(bitmap);
+        var preprocessed = _preprocessor.TryPrepareCityImage(bitmap, settings);
         if (preprocessed is null)
             return null;
 
         using (preprocessed)
         {
-            var read = ReadOcrText("city", "preprocessed", preprocessed);
+            var read = ReadOcrText("city", "preprocessed", preprocessed, settings);
             var raw = read.Text;
 
             var debugPath = await _debug.SaveAsync(
@@ -664,11 +661,11 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
-        var tradeType = await DetectTradeTypeFromLayoutAsync(layout, ct);
+        var tradeType = await DetectTradeTypeFromLayoutAsync(layout, settings, ct);
 
         if (!PriceCaptureMergeService.IsKnownTradeType(tradeType))
         {
-            if (OcrBenchmarkLogging())
+            if (settings.OcrBenchmarkLogging)
             {
                 _logger.LogInformation(
                     "Layout price OCR skipped because Buy/Sell validation was not detected.");
@@ -689,6 +686,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             var parsedRow = await TryReadLayoutPriceRowAsync(
                 row,
                 tradeType,
+                settings,
                 ct);
 
             if (parsedRow is null)
@@ -714,6 +712,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
     private async Task<string> DetectTradeTypeFromLayoutAsync(
         OcrLayoutSettings layout,
+        OcrRuntimeSettings settings,
         CancellationToken ct)
     {
         if (layout.Price.BuyValidationBox is { IsValid: true } buyBox)
@@ -722,7 +721,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 kind: "price-layout-validation",
                 source: "buy-validation",
                 box: buyBox,
-                preprocess: PriceLayoutValidationPreprocess(),
+                preprocess: settings.PriceLayoutValidationPreprocess,
+                settings: settings,
                 ct: ct);
 
             if (LooksLikeBuyText(buyText))
@@ -735,7 +735,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 kind: "price-layout-validation",
                 source: "sell-validation",
                 box: sellBox,
-                preprocess: PriceLayoutValidationPreprocess(),
+                preprocess: settings.PriceLayoutValidationPreprocess,
+                settings: settings,
                 ct: ct);
 
             if (LooksLikeSellText(sellText))
@@ -748,6 +749,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private async Task<ParsedPriceLine?> TryReadLayoutPriceRowAsync(
         OcrPriceRowLayout row,
         string tradeType,
+        OcrRuntimeSettings settings,
         CancellationToken ct)
     {
         if (row.ItemName is not { IsValid: true } itemBox ||
@@ -760,14 +762,16 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             kind: "price-layout-row",
             source: $"row-{row.Index}-item-name",
             box: itemBox,
-            preprocess: PriceLayoutFieldPreprocess(),
+            preprocess: settings.PriceLayoutFieldPreprocess,
+            settings: settings,
             ct: ct);
 
         var priceRaw = await ReadLayoutBoxTextAsync(
             kind: "price-layout-row",
             source: $"row-{row.Index}-price",
             box: priceBox,
-            preprocess: PriceLayoutFieldPreprocess(),
+            preprocess: settings.PriceLayoutFieldPreprocess,
+            settings: settings,
             ct: ct);
 
         var multiplierRaw = row.Multiplier is { IsValid: true } multiplierBox
@@ -775,7 +779,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 kind: "price-layout-row",
                 source: $"row-{row.Index}-multiplier",
                 box: multiplierBox,
-                preprocess: PriceLayoutFieldPreprocess(),
+                preprocess: settings.PriceLayoutFieldPreprocess,
+                settings: settings,
                 ct: ct)
             : string.Empty;
 
@@ -810,6 +815,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         string source,
         OcrLayoutBox box,
         bool preprocess,
+        OcrRuntimeSettings settings,
         CancellationToken ct)
     {
         var captureZone = _layoutService.TryGetLayoutBoxZone(box, source);
@@ -827,13 +833,13 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         if (preprocess)
         {
-            var preprocessed = _preprocessor.TryPreparePriceImage(bitmap);
+            var preprocessed = _preprocessor.TryPreparePriceImage(bitmap, settings);
 
             if (preprocessed is not null)
             {
                 using (preprocessed)
                 {
-                    var preprocessedRead = ReadOcrText(kind, $"{source}-preprocessed", preprocessed);
+                    var preprocessedRead = ReadOcrText(kind, $"{source}-preprocessed", preprocessed, settings);
 
                     await _debug.SaveAsync(
                         kind,
@@ -847,7 +853,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             }
         }
 
-        var read = ReadOcrText(kind, source, bitmap);
+        var read = ReadOcrText(kind, source, bitmap, settings);
 
         await _debug.SaveAsync(
             kind,
@@ -976,7 +982,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
-        var menuValidationEnabled = PriceMenuValidationEnabled();
+        var menuValidationEnabled = settings.PriceMenuValidationEnabled;
 
         if (menuValidationEnabled)
         {
@@ -987,7 +993,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
             if (!menuIsValid)
             {
-                if (OcrBenchmarkLogging())
+                if (settings.OcrBenchmarkLogging)
                 {
                     _logger.LogInformation(
                         "Price menu validation rejected current screen. Full price-list capture was skipped.");
@@ -998,17 +1004,17 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             }
         }
 
-        var captureZone = menuValidationEnabled && PriceCaptureBodyOnlyAfterMenuValidation()
-            ? BuildPriceBodyCaptureZone(priceZone, PriceMenuValidationTopPercent())
+        var captureZone = menuValidationEnabled && settings.PriceCaptureBodyOnlyAfterMenuValidation
+            ? BuildPriceBodyCaptureZone(priceZone, settings.PriceMenuValidationTopPercent)
             : priceZone;
 
         using var bitmap = _capture.Capture(captureZone);
 
-        var forcePreprocess = ForcePricePreprocess();
+        var forcePreprocess = settings.PriceForcePreprocess;
 
         if (forcePreprocess)
         {
-            var forcedPreprocessed = _preprocessor.TryPreparePriceImage(bitmap);
+            var forcedPreprocessed = _preprocessor.TryPreparePriceImage(bitmap, settings);
 
             if (forcedPreprocessed is not null)
             {
@@ -1031,7 +1037,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 "PriceForcePreprocess was enabled, but price preprocessing returned null. Capturing direct price image for batch.");
         }
 
-        var preprocessed = _preprocessor.TryPreparePriceImage(bitmap);
+        var preprocessed = _preprocessor.TryPreparePriceImage(bitmap, settings);
 
         if (preprocessed is not null)
         {
@@ -1067,7 +1073,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     {
         var validationZone = BuildPriceMenuValidationZone(
             priceZone,
-            PriceMenuValidationTopPercent());
+            settings.PriceMenuValidationTopPercent);
 
         using var bitmap = _capture.Capture(validationZone);
 
@@ -1078,9 +1084,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             var imageToRead = bitmap;
             var source = "price-menu-validation-direct";
 
-            if (PriceMenuValidationUsePreprocess())
+            if (settings.PriceMenuValidationUsePreprocess)
             {
-                preprocessed = _preprocessor.TryPreparePriceImage(bitmap);
+                preprocessed = _preprocessor.TryPreparePriceImage(bitmap, settings);
 
                 if (preprocessed is not null)
                 {
@@ -1089,7 +1095,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 }
             }
 
-            var read = ReadOcrText("price-menu", source, imageToRead);
+            var read = ReadOcrText("price-menu", source, imageToRead, settings);
             var raw = read.Text;
             var debugPath = await _debug.SaveAsync(
                 "price-menu",
@@ -1098,9 +1104,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 raw,
                 ct);
 
-            var isValid = IsValidPriceMenuText(raw);
+            var isValid = IsValidPriceMenuText(raw, settings);
 
-            if (OcrBenchmarkLogging())
+            if (settings.OcrBenchmarkLogging)
             {
                 _logger.LogInformation(
                     "Price menu validation. Valid={Valid}; Source={Source}; RawText={RawText}; DebugImagePath={DebugImagePath}",
@@ -1118,12 +1124,14 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         }
     }
 
-    private bool IsValidPriceMenuText(string rawText)
+    private static bool IsValidPriceMenuText(
+        string rawText,
+        OcrRuntimeSettings settings)
     {
         if (string.IsNullOrWhiteSpace(rawText))
             return false;
 
-        foreach (var validWord in PriceMenuValidationValidWords())
+        foreach (var validWord in PriceMenuValidationValidWords(settings))
         {
             var escaped = Regex.Escape(validWord);
             var pattern = $@"(?<![\p{{L}}\p{{N}}]){escaped}(?![\p{{L}}\p{{N}}])";
@@ -1196,7 +1204,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
-        var options = GetPriceOcrBatchOptions();
+        var options = GetPriceOcrBatchOptions(settings);
 
         var result = _priceBatch.TryAdd(
             image,
@@ -1215,7 +1223,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 options);
         }
 
-        if (OcrBenchmarkLogging())
+        if (settings.OcrBenchmarkLogging)
         {
             _logger.LogInformation(
                 "Price batch capture: Decision={Decision}; Added={Added}; Duplicate={Duplicate}; Count={Count}; SampleHashMs={SampleHashMs}; FullHashMs={FullHashMs}; Source={Source}",
@@ -1240,7 +1248,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         string reason,
         CancellationToken ct)
     {
-        if (!UsePriceBatchCapture())
+        if (!settings.PriceBatchCaptureEnabled)
             return;
 
         var images = _priceBatch.Drain();
@@ -1275,9 +1283,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 var rememberResult = _priceRecentHashCache.RememberProcessed(
                     image.City,
                     image.FullHash,
-                    GetPriceRecentHashCacheOptions());
+                    GetPriceRecentHashCacheOptions(settings));
 
-                if (OcrBenchmarkLogging() &&
+                if (settings.OcrBenchmarkLogging &&
                     rememberResult.Enabled &&
                     rememberResult.IsKnownCity)
                 {
@@ -1296,7 +1304,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
             stopwatch.Stop();
 
-            if (OcrBenchmarkLogging())
+            if (settings.OcrBenchmarkLogging)
             {
                 _logger.LogInformation(
                     "Deferred price OCR batch flushed. Reason={Reason}; ImageCount={ImageCount}; ElapsedMs={ElapsedMs}",
@@ -1315,11 +1323,11 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     {
         using var bitmap = _capture.Capture(priceZone);
 
-        var forcePreprocess = ForcePricePreprocess();
+        var forcePreprocess = settings.PriceForcePreprocess;
 
         if (forcePreprocess)
         {
-            var forcedPreprocessed = _preprocessor.TryPreparePriceImage(bitmap);
+            var forcedPreprocessed = _preprocessor.TryPreparePriceImage(bitmap, settings);
 
             if (forcedPreprocessed is not null)
             {
@@ -1340,7 +1348,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 "PriceForcePreprocess was enabled, but price preprocessing returned null. Falling back to direct price OCR.");
         }
 
-        var directRead = ReadOcrText("price", "direct", bitmap);
+        var directRead = ReadOcrText("price", "direct", bitmap, settings);
         var directRaw = directRead.Text;
 
         var directDebugPath = await _debug.SaveAsync(
@@ -1358,7 +1366,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             StrictTradeGoodMatcher.Find(
                 GetStrictTradeGoodSourceText(price.RawText, price.ItemName)) is not null);
 
-        var preprocessed = _preprocessor.TryPreparePriceImage(bitmap);
+        var preprocessed = _preprocessor.TryPreparePriceImage(bitmap, settings);
         if (preprocessed is null)
         {
             await ProcessParsedPricesAsync(
@@ -1375,7 +1383,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         using (preprocessed)
         {
-            var preprocessedRead = ReadOcrText("price", "preprocessed", preprocessed);
+            var preprocessedRead = ReadOcrText("price", "preprocessed", preprocessed, settings);
             var preprocessedRaw = preprocessedRead.Text;
 
             var preprocessedDebugPath = await _debug.SaveAsync(
@@ -1427,7 +1435,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
-        var read = ReadOcrText("price", source, image);
+        var read = ReadOcrText("price", source, image, settings);
         var raw = read.Text;
 
         var debugPath = await _debug.SaveAsync(
@@ -1639,10 +1647,11 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private OcrCachedTextRead ReadOcrText(
         string kind,
         string source,
-        Bitmap bitmap)
+        Bitmap bitmap,
+        OcrRuntimeSettings settings)
     {
         var cacheKey = $"{kind}:{source}";
-        var options = GetOcrHashCacheOptions();
+        var options = GetOcrHashCacheOptions(settings);
 
         var read = _ocrTextCache.ReadText(
             cacheKey,
@@ -1666,39 +1675,39 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         return read;
     }
 
-    private OcrHashCacheOptions GetOcrHashCacheOptions()
+    private static OcrHashCacheOptions GetOcrHashCacheOptions(OcrRuntimeSettings settings)
     {
         return new OcrHashCacheOptions(
-            Enabled: _configuration.GetValue("OcrSettings:SkipUnchangedOcrByHash", true),
-            UseSampleHashBeforeFullHash: _configuration.GetValue("OcrSettings:UseSampleHashBeforeFullHash", true),
-            SampleHashStep: _configuration.GetValue("OcrSettings:SampleHashStep", 8),
-            ForceFullHashEverySeconds: _configuration.GetValue("OcrSettings:ForceFullHashEverySeconds", 3.0),
-            BenchmarkLogging: OcrBenchmarkLogging());
+            Enabled: settings.SkipUnchangedOcrByHash,
+            UseSampleHashBeforeFullHash: settings.UseSampleHashBeforeFullHash,
+            SampleHashStep: settings.SampleHashStep,
+            ForceFullHashEverySeconds: settings.ForceFullHashEverySeconds,
+            BenchmarkLogging: settings.OcrBenchmarkLogging);
     }
 
-    private PriceOcrBatchOptions GetPriceOcrBatchOptions()
+    private static PriceOcrBatchOptions GetPriceOcrBatchOptions(OcrRuntimeSettings settings)
     {
-        var recentHashOptions = GetPriceRecentHashCacheOptions();
+        var recentHashOptions = GetPriceRecentHashCacheOptions(settings);
 
         return new PriceOcrBatchOptions(
-            Enabled: UsePriceBatchCapture(),
-            MaxImages: _configuration.GetValue("OcrSettings:PriceBatchMaxImages", 30),
-            UseSampleHashBeforeFullHash: _configuration.GetValue("OcrSettings:UseSampleHashBeforeFullHash", true),
-            SampleHashStep: _configuration.GetValue("OcrSettings:SampleHashStep", 8),
-            ForceFullHashEverySeconds: _configuration.GetValue("OcrSettings:ForceFullHashEverySeconds", 3.0),
-            BenchmarkLogging: OcrBenchmarkLogging(),
+            Enabled: settings.PriceBatchCaptureEnabled,
+            MaxImages: settings.PriceBatchMaxImages,
+            UseSampleHashBeforeFullHash: settings.UseSampleHashBeforeFullHash,
+            SampleHashStep: settings.SampleHashStep,
+            ForceFullHashEverySeconds: settings.ForceFullHashEverySeconds,
+            BenchmarkLogging: settings.OcrBenchmarkLogging,
             RecentHashCacheEnabled: recentHashOptions.Enabled,
             RecentHashCacheMinutes: recentHashOptions.TtlMinutes,
             RecentHashCacheMaxEntries: recentHashOptions.MaxEntries);
     }
 
-    private PriceRecentHashCacheOptions GetPriceRecentHashCacheOptions()
+    private static PriceRecentHashCacheOptions GetPriceRecentHashCacheOptions(OcrRuntimeSettings settings)
     {
         return new PriceRecentHashCacheOptions(
-            Enabled: _configuration.GetValue("OcrSettings:PriceRecentHashCacheEnabled", true),
-            TtlMinutes: _configuration.GetValue("OcrSettings:PriceRecentHashCacheMinutes", 10.0),
-            MaxEntries: _configuration.GetValue("OcrSettings:PriceRecentHashCacheMaxEntries", 5000),
-            BenchmarkLogging: OcrBenchmarkLogging());
+            Enabled: settings.PriceRecentHashCacheEnabled,
+            TtlMinutes: settings.PriceRecentHashCacheMinutes,
+            MaxEntries: settings.PriceRecentHashCacheMaxEntries,
+            BenchmarkLogging: settings.OcrBenchmarkLogging);
     }
 
     private static string GetStrictTradeGoodSourceText(string? rawText, string? parserItemName)
@@ -1730,102 +1739,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             : 0.65;
     }
 
-    private bool ForceCoordinatePreprocess()
+    private static IReadOnlyList<string> PriceMenuValidationValidWords(OcrRuntimeSettings settings)
     {
-        return _configuration.GetValue(
-            "OcrSettings:CoordinateForcePreprocess",
-            false);
-    }
-
-    private bool ForceCityPreprocess()
-    {
-        return _configuration.GetValue(
-            "OcrSettings:CityForcePreprocess",
-            false);
-    }
-
-    private bool ForcePricePreprocess()
-    {
-        return _configuration.GetValue(
-            "OcrSettings:PriceForcePreprocess",
-            true);
-    }
-
-    private bool PriceLayoutValidationPreprocess()
-    {
-        return _configuration.GetValue(
-            "OcrSettings:PriceLayoutValidationPreprocess",
-            true);
-    }
-
-    private bool PriceLayoutFieldPreprocess()
-    {
-        return _configuration.GetValue(
-            "OcrSettings:PriceLayoutFieldPreprocess",
-            true);
-    }
-
-    private bool UsePriceBatchCapture()
-    {
-        return _configuration.GetValue(
-            "OcrSettings:PriceBatchCaptureEnabled",
-            true);
-    }
-
-    private double PriceBatchIdleFlushSeconds()
-    {
-        return _configuration.GetValue(
-            "OcrSettings:PriceBatchIdleFlushSeconds",
-            0.0);
-    }
-
-    private double PriceBatchFlushEverySeconds()
-    {
-        return _configuration.GetValue(
-            "OcrSettings:PriceBatchFlushEverySeconds",
-            5.0);
-    }
-
-    private int PriceBatchCaptureIntervalMs()
-    {
-        return _configuration.GetValue(
-            "OcrSettings:PriceBatchCaptureIntervalMs",
-            150);
-    }
-
-    private bool PriceMenuValidationEnabled()
-    {
-        return _configuration.GetValue(
-            "OcrSettings:PriceMenuValidationEnabled",
-            true);
-    }
-
-    private double PriceMenuValidationTopPercent()
-    {
-        return _configuration.GetValue(
-            "OcrSettings:PriceMenuValidationTopPercent",
-            25.0);
-    }
-
-    private bool PriceMenuValidationUsePreprocess()
-    {
-        return _configuration.GetValue(
-            "OcrSettings:PriceMenuValidationUsePreprocess",
-            true);
-    }
-
-    private bool PriceCaptureBodyOnlyAfterMenuValidation()
-    {
-        return _configuration.GetValue(
-            "OcrSettings:PriceCaptureBodyOnlyAfterMenuValidation",
-            true);
-    }
-
-    private IReadOnlyList<string> PriceMenuValidationValidWords()
-    {
-        var raw = _configuration.GetValue(
-            "OcrSettings:PriceMenuValidationValidWords",
-            "Buy|Sell");
+        var raw = settings.PriceMenuValidationValidWords;
 
         return raw
             .Split(
@@ -1833,13 +1749,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(word => !string.IsNullOrWhiteSpace(word))
             .ToArray();
-    }
-
-    private bool OcrBenchmarkLogging()
-    {
-        return _configuration.GetValue(
-            "OcrSettings:OcrBenchmarkLogging",
-            true);
     }
 
     private void SetLatestCityUnknownIfNeeded(

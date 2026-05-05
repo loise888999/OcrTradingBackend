@@ -8,19 +8,12 @@ namespace OcrTradingBackend.Services;
 public interface IOcrImagePreprocessingService
 {
     Bitmap? TryPrepareCoordinateImage(Bitmap source, OcrRuntimeSettings settings);
-    Bitmap? TryPrepareCityImage(Bitmap source);
-    Bitmap? TryPreparePriceImage(Bitmap source);
+    Bitmap? TryPrepareCityImage(Bitmap source, OcrRuntimeSettings settings);
+    Bitmap? TryPreparePriceImage(Bitmap source, OcrRuntimeSettings settings);
 }
 
 public sealed class OcrImagePreprocessingService : IOcrImagePreprocessingService
 {
-    private readonly IConfiguration _configuration;
-
-    public OcrImagePreprocessingService(IConfiguration configuration)
-    {
-        _configuration = configuration;
-    }
-
     public Bitmap? TryPrepareCoordinateImage(Bitmap source, OcrRuntimeSettings settings)
     {
         if (!settings.CoordinateTryPreprocess)
@@ -31,30 +24,28 @@ public sealed class OcrImagePreprocessingService : IOcrImagePreprocessingService
             settings.CoordinateOcrUpscale);
     }
 
-    public Bitmap? TryPrepareCityImage(Bitmap source)
+    public Bitmap? TryPrepareCityImage(Bitmap source, OcrRuntimeSettings settings)
     {
-        var enabled = _configuration.GetValue("OcrSettings:CityTryPreprocess", true);
-        if (!enabled)
+        if (!settings.CityTryPreprocess)
             return null;
 
-        var scale = _configuration.GetValue("OcrSettings:CityOcrUpscale", 2);
-        var threshold = _configuration.GetValue("OcrSettings:CityOcrThreshold", 145);
-        var invert = _configuration.GetValue("OcrSettings:CityOcrInvert", false);
-
-        return PrepareTextImage(source, scale, threshold, invert);
+        return PrepareTextImage(
+            source,
+            settings.CityOcrUpscale,
+            settings.CityOcrThreshold,
+            settings.CityOcrInvert);
     }
 
-    public Bitmap? TryPreparePriceImage(Bitmap source)
+    public Bitmap? TryPreparePriceImage(Bitmap source, OcrRuntimeSettings settings)
     {
-        var enabled = _configuration.GetValue("OcrSettings:PriceTryPreprocess", true);
-        if (!enabled)
+        if (!settings.PriceTryPreprocess)
             return null;
 
-        var scale = _configuration.GetValue("OcrSettings:PriceOcrUpscale", 2);
-        var threshold = _configuration.GetValue("OcrSettings:PriceOcrThreshold", 145);
-        var invert = _configuration.GetValue("OcrSettings:PriceOcrInvert", false);
-
-        return PrepareTextImage(source, scale, threshold, invert);
+        return PrepareTextImage(
+            source,
+            settings.PriceOcrUpscale,
+            settings.PriceOcrThreshold,
+            settings.PriceOcrInvert);
     }
 
     private static Bitmap PrepareTextImage(

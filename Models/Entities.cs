@@ -76,6 +76,44 @@ public sealed class OcrRuntimeSettings
     // Preprocessing helps when coordinate text is small: upscale + grayscale + threshold.
     public bool CoordinateTryPreprocess { get; set; } = true;
     public int CoordinateOcrUpscale { get; set; } = 3;
+    public bool CoordinateForcePreprocess { get; set; }
+
+    public bool CityTryPreprocess { get; set; } = true;
+    public int CityOcrUpscale { get; set; } = 2;
+    public int CityOcrThreshold { get; set; } = 145;
+    public bool CityOcrInvert { get; set; }
+    public bool CityForcePreprocess { get; set; }
+
+    public bool PriceTryPreprocess { get; set; } = true;
+    public int PriceOcrUpscale { get; set; } = 2;
+    public int PriceOcrThreshold { get; set; } = 145;
+    public bool PriceOcrInvert { get; set; }
+    public bool PriceForcePreprocess { get; set; } = true;
+
+    public bool SkipUnchangedOcrByHash { get; set; } = true;
+    public bool UseSampleHashBeforeFullHash { get; set; } = true;
+    public int SampleHashStep { get; set; } = 8;
+    public double ForceFullHashEverySeconds { get; set; } = 3.0;
+
+    public bool PriceBatchCaptureEnabled { get; set; } = true;
+    public double PriceBatchIdleFlushSeconds { get; set; }
+    public double PriceBatchFlushEverySeconds { get; set; } = 5.0;
+    public int PriceBatchCaptureIntervalMs { get; set; } = 150;
+    public int PriceBatchMaxImages { get; set; } = 30;
+
+    public bool PriceRecentHashCacheEnabled { get; set; } = true;
+    public double PriceRecentHashCacheMinutes { get; set; } = 10.0;
+    public int PriceRecentHashCacheMaxEntries { get; set; } = 5000;
+
+    public bool PriceMenuValidationEnabled { get; set; } = true;
+    public double PriceMenuValidationTopPercent { get; set; } = 25.0;
+    public bool PriceMenuValidationUsePreprocess { get; set; } = true;
+    public string PriceMenuValidationValidWords { get; set; } = "Buy|Sell";
+    public bool PriceCaptureBodyOnlyAfterMenuValidation { get; set; } = true;
+
+    public bool PriceLayoutValidationPreprocess { get; set; } = true;
+    public bool PriceLayoutFieldPreprocess { get; set; } = true;
+    public bool OcrBenchmarkLogging { get; set; } = true;
 
     public string CoordinateOcrZoneName { get; set; } = "Coordinate";
     public string CityOcrZoneName { get; set; } = "City";
