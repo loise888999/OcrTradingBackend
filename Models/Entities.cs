@@ -61,6 +61,7 @@ public sealed class OcrRuntimeSettings
     public int WorldWidth { get; set; } = 16500;
     public int WorldHeight { get; set; } = 7200;
     public int XZeroVisualOffset { get; set; } = 8250;
+    public int CoordinateIntervalMilliseconds { get; set; } = 2000;
     public int CoordinateRecentlyVisibleSeconds { get; set; } = 10;
     public int MinCityNameLength { get; set; } = 5;
 
@@ -113,6 +114,8 @@ public sealed class OcrRuntimeSettings
 
     public bool PriceLayoutValidationPreprocess { get; set; } = true;
     public bool PriceLayoutFieldPreprocess { get; set; } = true;
+    public bool PriceLayoutFieldFallbackEnabled { get; set; } = true;
+    public int PriceLayoutRowFingerprintTolerance { get; set; } = 10;
     public bool OcrBenchmarkLogging { get; set; } = true;
 
     public string CoordinateOcrZoneName { get; set; } = "Coordinate";
@@ -123,7 +126,9 @@ public sealed class OcrRuntimeSettings
 public sealed class OcrControlState
 {
     public bool Enabled { get; set; }
+    public DateTime? LastCoordinateAttemptUtc { get; set; }
     public DateTime? LastCoordinateReadUtc { get; set; }
+    public DateTime? LastCityAttemptUtc { get; set; }
     public DateTime? LastCityReadUtc { get; set; }
     public DateTime? LastPriceReadUtc { get; set; }
     public DateTime? LastPriceAttemptUtc { get; set; }

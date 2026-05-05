@@ -32,6 +32,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly IOcrLayoutService _layoutService;
     private readonly IOcrImageTextCache _ocrTextCache;
     private readonly IPriceOcrBatchService _priceBatch;
+    private readonly IPriceLayoutRowCacheService _priceLayoutRowCache;
+    private readonly IPriceLayoutRowFingerprintService _priceLayoutRowFingerprint;
     private readonly IPriceRecentHashCacheService _priceRecentHashCache;
     private readonly OcrLastResultState _lastResults;
     private readonly ILogger<OcrCycleRunner> _logger;
@@ -52,6 +54,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         IOcrLayoutService layoutService,
         IOcrImageTextCache ocrTextCache,
         IPriceOcrBatchService priceBatch,
+        IPriceLayoutRowCacheService priceLayoutRowCache,
+        IPriceLayoutRowFingerprintService priceLayoutRowFingerprint,
         IPriceRecentHashCacheService priceRecentHashCache,
         OcrLastResultState lastResults,
         ILogger<OcrCycleRunner> logger)
@@ -71,6 +75,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _layoutService = layoutService;
         _ocrTextCache = ocrTextCache;
         _priceBatch = priceBatch;
+        _priceLayoutRowCache = priceLayoutRowCache;
+        _priceLayoutRowFingerprint = priceLayoutRowFingerprint;
         _priceRecentHashCache = priceRecentHashCache;
         _lastResults = lastResults;
         _logger = logger;
@@ -124,8 +130,11 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 wasInKnownCityBeforeCoordinate &&
                 !coordinateRecentlyVisibleBeforeRead;
 
-            if (coordinateZone is not null)
+            if (coordinateZone is not null &&
+                IsCoordinateOcrDue(settings))
             {
+                _control.LastCoordinateAttemptUtc = DateTime.UtcNow;
+
                 var previousCoordinate = ignoreCoordinateJumpThisRead
                     ? null
                     : await _db.CoordinateCaptures
@@ -160,8 +169,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 TimeSpan.FromSeconds(settings.CoordinateRecentlyVisibleSeconds);
 
             var cityDue =
-                _control.LastCityReadUtc is null ||
-                DateTime.UtcNow - _control.LastCityReadUtc.Value >=
+                _control.LastCityAttemptUtc is null ||
+                DateTime.UtcNow - _control.LastCityAttemptUtc.Value >=
                 TimeSpan.FromSeconds(settings.CityIntervalSeconds);
 
             if (!coordinateWasReadThisCycle &&
@@ -169,6 +178,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 cityDue &&
                 cityZone is not null)
             {
+                _control.LastCityAttemptUtc = DateTime.UtcNow;
+
                 var city = await TryReadCityAsync(cityZone, settings, ct);
 
                 if (city is not null)
@@ -634,6 +645,32 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                TimeSpan.FromSeconds(intervalSeconds);
     }
 
+    private bool IsCoordinateOcrDue(OcrRuntimeSettings settings)
+    {
+        if (_control.LastCoordinateAttemptUtc is null)
+            return true;
+
+        var interval = TimeSpan.FromMilliseconds(
+            Math.Clamp(settings.CoordinateIntervalMilliseconds, 250, 60_000));
+
+        return DateTime.UtcNow - _control.LastCoordinateAttemptUtc.Value >= interval;
+    }
+
+    private void StopPriceFastMode(string reason)
+    {
+        if (_control.PriceFastModeUntilUtc is null)
+            return;
+
+        if (_control.PriceFastModeUntilUtc <= DateTime.UtcNow)
+            return;
+
+        _control.PriceFastModeUntilUtc = null;
+
+        _logger.LogInformation(
+            "Price fast mode stopped because the price menu was not detected. Reason={Reason}",
+            reason);
+    }
+
     private async Task TryReadPricesAsync(
         CityCapture latestCity,
         OcrRuntimeSettings settings,
@@ -671,6 +708,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                     "Layout price OCR skipped because Buy/Sell validation was not detected.");
             }
 
+            StopPriceFastMode("layout-price-menu-not-detected");
             await FlushPriceBatchAsync(settings, "layout-price-menu-not-detected", ct);
             return;
         }
@@ -752,9 +790,31 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
-        if (row.ItemName is not { IsValid: true } itemBox ||
-            row.Price is not { IsValid: true } priceBox)
+        var hasRowBox = row.Row is { IsValid: true };
+        var hasFieldFallback = row.ItemName is { IsValid: true } &&
+                               row.Price is { IsValid: true } &&
+                               row.Multiplier is { IsValid: true };
+
+        if (!hasRowBox && !hasFieldFallback)
         {
+            return null;
+        }
+
+        var rowRead = await TryReadCombinedLayoutPriceRowAsync(
+            row,
+            tradeType,
+            settings,
+            ct);
+
+        if (rowRead.Parsed is not null)
+            return rowRead.Parsed;
+
+        if (!settings.PriceLayoutFieldFallbackEnabled ||
+            row.ItemName is not { IsValid: true } itemBox ||
+            row.Price is not { IsValid: true } priceBox ||
+            row.Multiplier is not { IsValid: true } multiplierBox)
+        {
+            RememberLayoutRowCache(row.Index, tradeType, rowRead.Fingerprint, null);
             return null;
         }
 
@@ -774,26 +834,32 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             settings: settings,
             ct: ct);
 
-        var multiplierRaw = row.Multiplier is { IsValid: true } multiplierBox
-            ? await ReadLayoutBoxTextAsync(
-                kind: "price-layout-row",
-                source: $"row-{row.Index}-multiplier",
-                box: multiplierBox,
-                preprocess: settings.PriceLayoutFieldPreprocess,
-                settings: settings,
-                ct: ct)
-            : string.Empty;
+        var multiplierRaw = await ReadLayoutBoxTextAsync(
+            kind: "price-layout-row",
+            source: $"row-{row.Index}-multiplier",
+            box: multiplierBox,
+            preprocess: settings.PriceLayoutFieldPreprocess,
+            settings: settings,
+            ct: ct);
 
         var itemName = CleanLayoutFieldText(itemNameRaw);
         if (string.IsNullOrWhiteSpace(itemName))
+        {
+            RememberLayoutRowCache(row.Index, tradeType, rowRead.Fingerprint, null);
             return null;
+        }
 
         if (!TryParseLayoutDecimal(priceRaw, out var price))
+        {
+            RememberLayoutRowCache(row.Index, tradeType, rowRead.Fingerprint, null);
             return null;
+        }
 
-        decimal? multiplier = null;
-        if (TryParseLayoutDecimal(multiplierRaw, out var parsedMultiplier))
-            multiplier = parsedMultiplier;
+        if (!TryParseLayoutDecimal(multiplierRaw, out var multiplier))
+        {
+            RememberLayoutRowCache(row.Index, tradeType, rowRead.Fingerprint, null);
+            return null;
+        }
 
         var strict = StrictTradeGoodMatcher.Find(itemName);
         var tradeGoodType = strict?.TradeGoodType ?? "Unknown";
@@ -801,13 +867,298 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         var rawText =
             $"Row {row.Index}: {itemName} | {priceRaw.Trim()} | {multiplierRaw.Trim()} | {tradeType}";
 
-        return new ParsedPriceLine(
+        var parsed = new ParsedPriceLine(
             itemName,
             tradeGoodType,
             price,
             multiplier,
             tradeType,
             rawText);
+
+        RememberLayoutRowCache(row.Index, tradeType, rowRead.Fingerprint, parsed);
+
+        return parsed;
+    }
+
+    private async Task<LayoutRowRead> TryReadCombinedLayoutPriceRowAsync(
+        OcrPriceRowLayout row,
+        string tradeType,
+        OcrRuntimeSettings settings,
+        CancellationToken ct)
+    {
+        var rowZone = TryGetLayoutRowZone(row);
+        if (rowZone is null)
+            return LayoutRowRead.Empty(null);
+
+        using var bitmap = _capture.Capture(rowZone);
+
+        var fingerprintStopwatch = Stopwatch.StartNew();
+        var fingerprint = _priceLayoutRowFingerprint.Compute(bitmap);
+        fingerprintStopwatch.Stop();
+
+        var rowKey = GetLayoutRowCacheKey(row.Index, tradeType);
+        var maxDistance = Math.Clamp(settings.PriceLayoutRowFingerprintTolerance, 0, 128);
+        if (settings.SkipUnchangedOcrByHash &&
+            _priceLayoutRowCache.TryGet(
+                rowKey,
+                tradeType,
+                fingerprint,
+                maxDistance,
+                out var cached,
+                out var distance))
+        {
+            if (settings.OcrBenchmarkLogging)
+            {
+                _logger.LogInformation(
+                    "Price layout row OCR skipped by fingerprint. Row={RowIndex}; TradeType={TradeType}; Distance={Distance}; FingerprintMs={FingerprintMs}",
+                    row.Index,
+                    tradeType,
+                    distance,
+                    fingerprintStopwatch.Elapsed.TotalMilliseconds);
+            }
+
+            return new LayoutRowRead(
+                fingerprint,
+                RebaseLayoutRow(cached, row.Index, tradeType));
+        }
+
+        var source = $"row-{row.Index}-combined";
+        var imageToRead = bitmap;
+        Bitmap? preprocessed = null;
+
+        try
+        {
+            if (settings.PriceLayoutFieldPreprocess)
+            {
+                preprocessed = _preprocessor.TryPreparePriceImage(bitmap, settings);
+                if (preprocessed is not null)
+                {
+                    imageToRead = preprocessed;
+                    source = $"{source}-preprocessed";
+                }
+            }
+
+            var read = ReadOcrText("price-layout-row", source, imageToRead, settings);
+
+            await _debug.SaveAsync(
+                "price-layout-row",
+                source,
+                imageToRead,
+                read.Text,
+                ct);
+
+            var parsed = TryParseCombinedLayoutPriceRow(
+                row.Index,
+                read.Text,
+                tradeType);
+
+            if (parsed is not null)
+            {
+                RememberLayoutRowCache(row.Index, tradeType, fingerprint, parsed);
+                return new LayoutRowRead(fingerprint, parsed);
+            }
+
+            if (settings.OcrBenchmarkLogging)
+            {
+                _logger.LogInformation(
+                    "Combined layout row OCR did not parse. Row={RowIndex}; TradeType={TradeType}; RawText={RawText}",
+                    row.Index,
+                    tradeType,
+                    read.Text);
+            }
+
+            return LayoutRowRead.Empty(fingerprint);
+        }
+        finally
+        {
+            preprocessed?.Dispose();
+        }
+    }
+
+    private void RememberLayoutRowCache(
+        int rowIndex,
+        string tradeType,
+        PriceLayoutRowFingerprint? fingerprint,
+        ParsedPriceLine? parsed)
+    {
+        if (fingerprint is null)
+            return;
+
+        _priceLayoutRowCache.Remember(
+            GetLayoutRowCacheKey(rowIndex, tradeType),
+            tradeType,
+            fingerprint,
+            parsed);
+    }
+
+    private OcrZone? TryGetLayoutRowZone(
+        OcrPriceRowLayout row)
+    {
+        if (row.Row is { IsValid: true } rowBox)
+            return _layoutService.TryGetLayoutBoxZone(rowBox, $"row-{row.Index}");
+
+        var zones = new List<OcrZone>();
+
+        if (row.ItemName is { IsValid: true } itemBox)
+            AddLayoutBoxZone(itemBox, $"row-{row.Index}-item-name");
+
+        if (row.Price is { IsValid: true } priceBox)
+            AddLayoutBoxZone(priceBox, $"row-{row.Index}-price");
+
+        if (row.Multiplier is { IsValid: true } multiplierBox)
+            AddLayoutBoxZone(multiplierBox, $"row-{row.Index}-multiplier");
+
+        if (zones.Count == 0)
+            return null;
+
+        var left = zones.Min(x => Math.Min(x.TopLeftX, x.BottomRightX));
+        var top = zones.Min(x => Math.Min(x.TopLeftY, x.BottomRightY));
+        var right = zones.Max(x => Math.Max(x.TopLeftX, x.BottomRightX));
+        var bottom = zones.Max(x => Math.Max(x.TopLeftY, x.BottomRightY));
+
+        return new OcrZone
+        {
+            Name = $"PriceLayoutRow{row.Index}",
+            TopLeftX = left,
+            TopLeftY = top,
+            BottomRightX = right,
+            BottomRightY = bottom,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+
+        void AddLayoutBoxZone(OcrLayoutBox box, string source)
+        {
+            var zone = _layoutService.TryGetLayoutBoxZone(box, source);
+            if (zone is not null)
+                zones.Add(zone);
+        }
+    }
+
+    private static string GetLayoutRowCacheKey(int rowIndex, string tradeType)
+    {
+        return $"price-layout-row:{rowIndex}:{tradeType}";
+    }
+
+    private static ParsedPriceLine? RebaseLayoutRow(
+        ParsedPriceLine? parsed,
+        int rowIndex,
+        string tradeType)
+    {
+        if (parsed is null)
+            return null;
+
+        var multiplierText = parsed.Multiplier?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+        return parsed with
+        {
+            TradeType = tradeType,
+            RawText = $"Row {rowIndex}: {parsed.ItemName} | {parsed.Price.ToString(CultureInfo.InvariantCulture)} | {multiplierText} | {tradeType}"
+        };
+    }
+
+    private static ParsedPriceLine? TryParseCombinedLayoutPriceRow(
+        int rowIndex,
+        string rawText,
+        string tradeType)
+    {
+        if (string.IsNullOrWhiteSpace(rawText))
+            return null;
+
+        var itemText = CleanLayoutFieldText(rawText);
+        var strict = StrictTradeGoodMatcher.Find(itemText);
+        if (strict is null)
+            return null;
+
+        if (!TryParseLayoutRowPrice(rawText, out var price, out var multiplier))
+            return null;
+
+        var raw =
+            $"Row {rowIndex}: {strict.Name} | {price.ToString(CultureInfo.InvariantCulture)} | {multiplier.ToString(CultureInfo.InvariantCulture)} | {tradeType}";
+
+        return new ParsedPriceLine(
+            strict.Name,
+            strict.TradeGoodType,
+            price,
+            multiplier,
+            tradeType,
+            raw);
+    }
+
+    private static bool TryParseLayoutRowPrice(
+        string rawText,
+        out decimal price,
+        out decimal multiplier)
+    {
+        price = 0;
+        multiplier = 0;
+
+        var normalized = rawText
+            .Replace("ï¼…", "%")
+            .Replace("％", "%")
+            .Replace(",", "")
+            .Replace(".", "");
+
+        var multiplierMatch = Regex.Match(
+            normalized,
+            @"(?<mult>\d{1,3})\s*%",
+            RegexOptions.CultureInvariant);
+
+        if (multiplierMatch.Success &&
+            decimal.TryParse(
+                multiplierMatch.Groups["mult"].Value,
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out var parsedMultiplier))
+        {
+            multiplier = parsedMultiplier;
+        }
+        else
+        {
+            return false;
+        }
+
+        var numbers = Regex.Matches(
+                normalized,
+                @"\d{2,}",
+                RegexOptions.CultureInvariant)
+            .Select(match => match.Value)
+            .ToList();
+
+        if (numbers.Count == 0)
+            return false;
+
+        var multiplierText = multiplierMatch.Success
+            ? multiplierMatch.Groups["mult"].Value
+            : null;
+
+        foreach (var number in numbers)
+        {
+            if (multiplierText is not null &&
+                string.Equals(number, multiplierText, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (decimal.TryParse(
+                    number,
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out price))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private sealed record LayoutRowRead(
+        PriceLayoutRowFingerprint? Fingerprint,
+        ParsedPriceLine? Parsed)
+    {
+        public static LayoutRowRead Empty(PriceLayoutRowFingerprint? fingerprint)
+        {
+            return new LayoutRowRead(fingerprint, null);
+        }
     }
 
     private async Task<string> ReadLayoutBoxTextAsync(
@@ -999,6 +1350,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                         "Price menu validation rejected current screen. Full price-list capture was skipped.");
                 }
 
+                StopPriceFastMode("price-menu-not-detected");
                 await FlushPriceBatchAsync(settings, "price-menu-not-detected", ct);
                 return;
             }

@@ -39,6 +39,8 @@ builder.Services.AddSingleton<IPriceRecentHashCacheService, PriceRecentHashCache
 builder.Services.AddSingleton<IOcrImageHasher, OcrImageHasher>();
 builder.Services.AddSingleton<IOcrImageTextCache, OcrImageTextCache>();
 builder.Services.AddSingleton<IPriceOcrBatchService, PriceOcrBatchService>();
+builder.Services.AddSingleton<IPriceLayoutRowFingerprintService, PriceLayoutRowFingerprintService>();
+builder.Services.AddSingleton<IPriceLayoutRowCacheService, PriceLayoutRowCacheService>();
 builder.Services.AddSingleton<IOcrDebugSnapshotService, OcrDebugSnapshotService>();
 builder.Services.AddSingleton<IOcrImagePreprocessingService, OcrImagePreprocessingService>();
 builder.Services.AddSingleton<IOcrLayoutService, OcrLayoutService>();

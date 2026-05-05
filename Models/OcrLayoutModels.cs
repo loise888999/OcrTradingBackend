@@ -43,6 +43,7 @@ public sealed class OcrPriceRowLayout
     public int Index { get; set; }
     public bool Enabled { get; set; } = true;
 
+    public OcrLayoutBox? Row { get; set; }
     public OcrLayoutBox? ItemName { get; set; }
     public OcrLayoutBox? Price { get; set; }
     public OcrLayoutBox? Multiplier { get; set; }
