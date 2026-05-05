@@ -23,6 +23,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly ICoordinateParser _coordinateParser;
     private readonly ICityParser _cityParser;
     private readonly IPriceParser _priceParser;
+    private readonly IPendingTradeGoodService _pendingTradeGoodService;
     private readonly IWindowRelativeOcrZoneService _zoneService;
     private readonly OcrControlState _control;
     private readonly IOptionsMonitor<OcrRuntimeSettings> _settings;
@@ -43,6 +44,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         ICoordinateParser coordinateParser,
         ICityParser cityParser,
         IPriceParser priceParser,
+        IPendingTradeGoodService pendingTradeGoodService,
         IWindowRelativeOcrZoneService zoneService,
         OcrControlState control,
         IOptionsMonitor<OcrRuntimeSettings> settings,
@@ -62,6 +64,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _coordinateParser = coordinateParser;
         _cityParser = cityParser;
         _priceParser = priceParser;
+        _pendingTradeGoodService = pendingTradeGoodService;
         _zoneService = zoneService;
         _control = control;
         _settings = settings;
@@ -858,33 +861,79 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
     private static bool LooksLikeBuyText(string raw)
     {
-        var normalized = raw.ToLowerInvariant();
-        return normalized.Contains("buy") ||
-               normalized.Contains("for sale") ||
-               normalized.Contains("items for sale");
+        var normalized = NormalizeOcrMenuText(raw);
+
+        return ContainsNormalizedWord(normalized, "buy") ||
+               normalized.Contains("for sale", StringComparison.Ordinal) ||
+               normalized.Contains("items for sale", StringComparison.Ordinal);
     }
 
     private static bool LooksLikeSellText(string raw)
     {
-        var normalized = raw.ToLowerInvariant();
-        return normalized.Contains("sell") ||
-               normalized.Contains("inventory") ||
-               normalized.Contains("nventory");
+        var normalized = NormalizeOcrMenuText(raw);
+
+        return ContainsNormalizedWord(normalized, "sell") ||
+               ContainsNormalizedWord(normalized, "inventory") ||
+               ContainsNormalizedWord(normalized, "nventory");
+    }
+
+    private static string NormalizeOcrMenuText(string? value)
+    {
+        // Same idea as item-name normalization:
+        // remove newlines, tabs, punctuation, and random OCR symbols;
+        // keep only letters, numbers, and spaces;
+        // compare in lowercase.
+        return NormalizeOcrItemName(value);
+    }
+
+    private static bool ContainsNormalizedWord(string normalized, string word)
+    {
+        if (string.IsNullOrWhiteSpace(normalized) ||
+            string.IsNullOrWhiteSpace(word))
+        {
+            return false;
+        }
+
+        var escaped = Regex.Escape(word.ToLowerInvariant());
+
+        return Regex.IsMatch(
+            normalized,
+            $@"(^|\s){escaped}($|\s)",
+            RegexOptions.CultureInvariant);
     }
 
     private static string CleanLayoutFieldText(string raw)
     {
-        if (string.IsNullOrWhiteSpace(raw))
+        return NormalizeOcrItemName(raw);
+    }
+
+    private static string NormalizeOcrItemName(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
             return string.Empty;
 
-        var firstLine = raw
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .FirstOrDefault() ?? raw;
+        // OCR can return new lines, tabs, punctuation, box-drawing symbols, or random characters.
+        // For item-name matching we only keep letters, numbers, and single spaces.
+        // Everything is lower-case so matching does not depend on OCR casing.
+        var normalized = value
+            .Replace("\r", " ")
+            .Replace("\n", " ")
+            .Replace("\t", " ")
+            .Normalize();
 
-        firstLine = Regex.Replace(firstLine, @"[^\p{L}\p{N}\s\-']", " ");
-        firstLine = Regex.Replace(firstLine, @"\s+", " ");
+        normalized = Regex.Replace(
+            normalized,
+            @"[^\p{L}\p{N}]+",
+            " ");
 
-        return firstLine.Trim();
+        normalized = Regex.Replace(
+            normalized,
+            @"\s+",
+            " ");
+
+        return normalized
+            .Trim()
+            .ToLowerInvariant();
     }
 
     private static bool TryParseLayoutDecimal(
@@ -1467,20 +1516,43 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 continue;
             }
 
-            var strictTradeGood = StrictTradeGoodMatcher.Find(
-                GetStrictTradeGoodSourceText(price.RawText, price.ItemName));
+            var tradeGoodSourceName = CleanPendingTradeGoodName(price.ItemName);
+            var strictTradeGood = StrictTradeGoodMatcher.Find(tradeGoodSourceName);
 
             if (strictTradeGood is null)
             {
-                _logger.LogInformation(
-                    "Skipped price because no strict trade-good match was found. ParserItem={ParserItemName}; RawText={RawText}",
-                    price.ItemName,
-                    price.RawText);
+                if (!string.IsNullOrWhiteSpace(tradeGoodSourceName))
+                {
+                    var pending = _pendingTradeGoodService.AddOrUpdate(
+                        new PendingTradeGoodCandidateRequest(
+                            Name: tradeGoodSourceName,
+                            Confidence: GetPendingTradeGoodConfidence(selectedSource),
+                            RawText: price.RawText,
+                            TradeType: price.TradeType,
+                            Price: price.Price,
+                            Multiplier: price.Multiplier));
+
+                    _logger.LogInformation(
+                        "Added or updated pending OCR trade-good candidate. Name={Name}; SeenCount={SeenCount}; TradeType={TradeType}; Price={Price}; Multiplier={Multiplier}; RawText={RawText}",
+                        pending.Name,
+                        pending.SeenCount,
+                        pending.LastTradeType,
+                        pending.LastPrice,
+                        pending.LastMultiplier,
+                        pending.LastRawText);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "Skipped pending OCR trade-good candidate because item name was empty or invalid. ParserItem={ParserItemName}; RawText={RawText}",
+                        price.ItemName,
+                        price.RawText);
+                }
 
                 await OcrRejectedRowLogWriter.LogPriceRowAsync(
                     source: selectedSource,
                     city: latestCity.City,
-                    reason: "No strict trade-good match",
+                    reason: "No strict trade-good match; pending candidate added or updated when item name was usable",
                     rawText: price.RawText,
                     parserItemName: price.ItemName,
                     debugImagePath: selectedDebugPath,
@@ -1619,9 +1691,31 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
     private static string GetStrictTradeGoodSourceText(string? rawText, string? parserItemName)
     {
-        return !string.IsNullOrWhiteSpace(rawText)
-            ? rawText
-            : parserItemName ?? string.Empty;
+        // With calibrated layout field boxes, the item-name box is the cleanest source.
+        // The raw row text may contain row number, price, multiplier, and trade type.
+        return !string.IsNullOrWhiteSpace(parserItemName)
+            ? parserItemName
+            : rawText ?? string.Empty;
+    }
+
+    private static string CleanPendingTradeGoodName(string? value)
+    {
+        var cleaned = NormalizeOcrItemName(value);
+
+        if (cleaned.Length < 3)
+            return string.Empty;
+
+        if (Regex.IsMatch(cleaned, @"^\d+$"))
+            return string.Empty;
+
+        return cleaned;
+    }
+
+    private static double GetPendingTradeGoodConfidence(string source)
+    {
+        return source.Equals("layout-field-boxes", StringComparison.OrdinalIgnoreCase)
+            ? 0.85
+            : 0.65;
     }
 
     private bool ForceCoordinatePreprocess()
