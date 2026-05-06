@@ -432,65 +432,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             }
         }
 
-        if (!settings.CoordinateSearchEnabled)
-            return null;
-
-        var searchZone = BuildPaddedSearchZone(
-            coordinateZone,
-            settings.CoordinateSearchPadding);
-
-        using (var searchBitmap = _capture.Capture(searchZone))
-        {
-            var searchPreprocessed = _preprocessor.TryPrepareCoordinateImage(searchBitmap, settings);
-
-            if (forcePreprocess && searchPreprocessed is not null)
-            {
-                using (searchPreprocessed)
-                {
-                    var result = await TryOcrAndParseCoordinateAsync(
-                        searchPreprocessed,
-                        "search-preprocessed-forced",
-                        previousCoordinate,
-                        settings,
-                        ct);
-
-                    if (result is not null)
-                        return result;
-                }
-            }
-            else
-            {
-                searchPreprocessed?.Dispose();
-
-                var direct = await TryOcrAndParseCoordinateAsync(
-                    searchBitmap,
-                    "search",
-                    previousCoordinate,
-                    settings,
-                    ct);
-
-                if (direct is not null)
-                    return direct;
-
-                var preprocessed = _preprocessor.TryPrepareCoordinateImage(searchBitmap, settings);
-                if (preprocessed is not null)
-                {
-                    using (preprocessed)
-                    {
-                        var result = await TryOcrAndParseCoordinateAsync(
-                            preprocessed,
-                            "search-preprocessed",
-                            previousCoordinate,
-                            settings,
-                            ct);
-
-                        if (result is not null)
-                            return result;
-                    }
-                }
-            }
-        }
-
         return null;
     }
 
@@ -2142,31 +2083,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             RawText = parsed.RawText,
             CapturedAtUtc = DateTime.UtcNow
         });
-    }
-
-    private static OcrZone BuildPaddedSearchZone(OcrZone zone, int padding)
-    {
-        var left = Math.Min(zone.TopLeftX, zone.BottomRightX);
-        var top = Math.Min(zone.TopLeftY, zone.BottomRightY);
-        var right = Math.Max(zone.TopLeftX, zone.BottomRightX);
-        var bottom = Math.Max(zone.TopLeftY, zone.BottomRightY);
-
-        var virtualScreen = System.Windows.Forms.SystemInformation.VirtualScreen;
-
-        left = Math.Max(virtualScreen.Left, left - padding);
-        top = Math.Max(virtualScreen.Top, top - padding);
-        right = Math.Min(virtualScreen.Right, right + padding);
-        bottom = Math.Min(virtualScreen.Bottom, bottom + padding);
-
-        return new OcrZone
-        {
-            Name = "CoordinateSearch",
-            TopLeftX = left,
-            TopLeftY = top,
-            BottomRightX = right,
-            BottomRightY = bottom,
-            UpdatedAtUtc = DateTime.UtcNow
-        };
     }
 
     private static int DecimalToInt(decimal value)

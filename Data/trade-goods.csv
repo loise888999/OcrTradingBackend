@@ -338,6 +338,7 @@ Name,Type,Aliases
 "Shell Ornament","Crafts",""
 "Sherry","Alcohol",""
 "Short Swords","Arms",""
+"Shot","Firearms",""
 "Shuri Ori","Fabrics",""
 "Sichuan Pepper","Spices",""
 "Silk Cotton","Fibres",""
@@ -411,3 +412,4 @@ Name,Type,Aliases
 "Ylang-ylang","Fragrances",""
 "Yosegi","Crafts",""
 "Zinc Ore","Ores",""
+"Cannon","Firearms",""

@@ -76,11 +76,6 @@ public sealed class OcrRuntimeSettings
     public int MaxCoordinateJumpX { get; set; } = 1200;
     public int MaxCoordinateJumpY { get; set; } = 900;
 
-    // Screen-only coordinate detection settings.
-    // Fixed zone is always tried first. If it fails, the backend can OCR a padded search area.
-    public bool CoordinateSearchEnabled { get; set; } = true;
-    public int CoordinateSearchPadding { get; set; } = 140;
-
     // Preprocessing helps when coordinate text is small: upscale + grayscale + threshold.
     public bool CoordinateTryPreprocess { get; set; } = true;
     public int CoordinateOcrUpscale { get; set; } = 3;
