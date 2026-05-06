@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Options;
 using PaddleOCRSharp;
 using OcrTradingBackend.Models;
 
@@ -37,20 +38,46 @@ public sealed class PaddleOcrSharpService : IPaddleOcrService, IDisposable
     private readonly PaddleOCREngine _engine;
     private readonly object _lock = new();
 
-    public PaddleOcrSharpService()
+    public PaddleOcrSharpService(
+        IOptionsMonitor<OcrRuntimeSettings> settings,
+        ILogger<PaddleOcrSharpService> logger)
     {
+        var ocrSettings = settings.CurrentValue;
         var baseDir = AppContext.BaseDirectory;
         NativeDllLoader.AddDllDirectory(baseDir);
         Console.WriteLine($"PaddleOCR BaseDirectory: {baseDir}");
+
+        var modelConfig = TryBuildEnglishModelConfig(
+            ocrSettings,
+            baseDir,
+            logger,
+            out var usingEnglishModel);
+
+        var hasClassifier = modelConfig is not null &&
+                            !string.IsNullOrWhiteSpace(modelConfig.cls_infer);
+
         var parameter = new OCRParameter
         {
             cpu_math_library_num_threads = Math.Max(2, Environment.ProcessorCount / 2),
             enable_mkldnn = true,
-            cls = false,
+            cls = hasClassifier,
             det = true,
-            use_angle_cls = false
+            use_angle_cls = hasClassifier
         };
-        _engine = new PaddleOCREngine(null, parameter);
+        _engine = new PaddleOCREngine(modelConfig, parameter);
+
+        if (usingEnglishModel)
+        {
+            logger.LogInformation(
+                "Using English OCR recognition model. RecognitionModelPath={RecognitionModelPath}; DictionaryPath={DictionaryPath}; DetectionModelPath={DetectionModelPath}",
+                modelConfig!.rec_infer,
+                modelConfig.keys,
+                modelConfig.det_infer);
+        }
+        else
+        {
+            logger.LogInformation("Using bundled PaddleOCRSharp default OCR model.");
+        }
     }
 
     public string DetectText(Bitmap bitmap)
@@ -65,4 +92,225 @@ public sealed class PaddleOcrSharpService : IPaddleOcrService, IDisposable
     }
 
     public void Dispose() => _engine.Dispose();
+
+    private static OCRModelConfig? TryBuildEnglishModelConfig(
+        OcrRuntimeSettings settings,
+        string baseDir,
+        ILogger logger,
+        out bool usingEnglishModel)
+    {
+        usingEnglishModel = false;
+
+        if (!settings.UseEnglishModels)
+            return null;
+
+        var recognitionPath = ResolveExistingModelDirectory(settings.RecognitionModelPath, baseDir);
+        var dictionaryPath = ResolveExistingFile(settings.DictionaryPath, baseDir);
+
+        if (recognitionPath is null || dictionaryPath is null)
+        {
+            var message =
+                "English OCR was requested, but the English recognition model or dictionary was not found. " +
+                $"RecognitionModelPath='{settings.RecognitionModelPath}'; DictionaryPath='{settings.DictionaryPath}'.";
+
+            if (!settings.FallbackToBundledModel)
+                throw new InvalidOperationException(message);
+
+            logger.LogWarning("{Message} Falling back to bundled PaddleOCRSharp default model.", message);
+            return null;
+        }
+
+        var detectionPath = ResolveExistingModelDirectory(settings.DetectionModelPath, baseDir);
+        if (detectionPath is null)
+        {
+            detectionPath = ResolveBundledModelDirectory(baseDir, "yt_PP-OCRv5_mobile_det_infer");
+            if (detectionPath is null)
+            {
+                var message =
+                    "English OCR recognition files were found, but no detection model was configured and the bundled PaddleOCRSharp detector was not found.";
+
+                if (!settings.FallbackToBundledModel)
+                    throw new InvalidOperationException(message);
+
+                logger.LogWarning("{Message} Falling back to bundled PaddleOCRSharp default model.", message);
+                return null;
+            }
+        }
+
+        var classifierPath = ResolveExistingModelDirectory(settings.ClassifierModelPath, baseDir);
+        if (!string.IsNullOrWhiteSpace(settings.ClassifierModelPath) &&
+            classifierPath is null)
+        {
+            logger.LogWarning(
+                "English OCR classifier path was configured but not found. ClassifierModelPath={ClassifierModelPath}. Angle classification will stay disabled.",
+                settings.ClassifierModelPath);
+        }
+
+        usingEnglishModel = true;
+
+        return new OCRModelConfig
+        {
+            det_infer = detectionPath,
+            cls_infer = classifierPath ?? string.Empty,
+            rec_infer = recognitionPath,
+            keys = dictionaryPath
+        };
+    }
+
+    private static string? ResolveExistingModelDirectory(
+        string? configuredPath,
+        string baseDir)
+    {
+        return EnglishOcrModelPathResolver
+            .ResolvePathCandidates(configuredPath, baseDir)
+            .FirstOrDefault(IsCompletePaddleModelDirectory);
+    }
+
+    private static string? ResolveExistingFile(
+        string? configuredPath,
+        string baseDir)
+    {
+        var resolved = EnglishOcrModelPathResolver.ResolvePath(configuredPath, baseDir);
+        return resolved is not null && File.Exists(resolved) ? resolved : null;
+    }
+
+    private static bool IsCompletePaddleModelDirectory(string path)
+    {
+        return Directory.Exists(path) &&
+               File.Exists(Path.Combine(path, "inference.json")) &&
+               File.Exists(Path.Combine(path, "inference.pdiparams")) &&
+               File.Exists(Path.Combine(path, "inference.yml"));
+    }
+
+    private static string? ResolveBundledModelDirectory(
+        string baseDir,
+        string modelFolderName)
+    {
+        var candidates = new[]
+        {
+            Path.Combine(baseDir, "inference", modelFolderName),
+            Path.Combine(Directory.GetCurrentDirectory(), "inference", modelFolderName)
+        };
+
+        return candidates
+            .Select(Path.GetFullPath)
+            .FirstOrDefault(Directory.Exists);
+    }
+}
+
+public sealed class OcrRuntimeSettingsValidator : IValidateOptions<OcrRuntimeSettings>
+{
+    public ValidateOptionsResult Validate(string? name, OcrRuntimeSettings settings)
+    {
+        if (!settings.UseEnglishModels || settings.FallbackToBundledModel)
+            return ValidateOptionsResult.Success;
+
+        var baseDir = AppContext.BaseDirectory;
+        var failures = new List<string>();
+
+        RequireModelDirectory(
+            failures,
+            "OcrSettings:RecognitionModelPath",
+            settings.RecognitionModelPath,
+            baseDir);
+
+        RequireFile(
+            failures,
+            "OcrSettings:DictionaryPath",
+            settings.DictionaryPath,
+            baseDir);
+
+        if (!string.IsNullOrWhiteSpace(settings.ClassifierModelPath))
+        {
+            RequireModelDirectory(
+                failures,
+                "OcrSettings:ClassifierModelPath",
+                settings.ClassifierModelPath,
+                baseDir);
+        }
+
+        if (!string.IsNullOrWhiteSpace(settings.DetectionModelPath))
+        {
+            RequireModelDirectory(
+                failures,
+                "OcrSettings:DetectionModelPath",
+                settings.DetectionModelPath,
+                baseDir);
+        }
+
+        return failures.Count == 0
+            ? ValidateOptionsResult.Success
+            : ValidateOptionsResult.Fail(failures);
+    }
+
+    private static void RequireModelDirectory(
+        List<string> failures,
+        string settingName,
+        string? configuredPath,
+        string baseDir)
+    {
+        var resolved = EnglishOcrModelPathResolver
+            .ResolvePathCandidates(configuredPath, baseDir)
+            .FirstOrDefault(IsCompletePaddleModelDirectory);
+
+        if (resolved is null)
+        {
+            failures.Add(
+                $"English OCR models are enabled and bundled fallback is disabled, but {settingName} does not point to a complete PaddleOCR model directory. " +
+                "The directory must contain inference.json, inference.pdiparams, and inference.yml. " +
+                $"Configured value: '{configuredPath ?? string.Empty}'.");
+        }
+    }
+
+    private static bool IsCompletePaddleModelDirectory(string path)
+    {
+        return Directory.Exists(path) &&
+               File.Exists(Path.Combine(path, "inference.json")) &&
+               File.Exists(Path.Combine(path, "inference.pdiparams")) &&
+               File.Exists(Path.Combine(path, "inference.yml"));
+    }
+
+    private static void RequireFile(
+        List<string> failures,
+        string settingName,
+        string? configuredPath,
+        string baseDir)
+    {
+        var resolved = EnglishOcrModelPathResolver.ResolvePath(configuredPath, baseDir);
+
+        if (resolved is null || !File.Exists(resolved))
+        {
+            failures.Add(
+                $"English OCR models are enabled, but {settingName} does not point to an existing file. " +
+                $"Configured value: '{configuredPath ?? string.Empty}'.");
+        }
+    }
+}
+
+internal static class EnglishOcrModelPathResolver
+{
+    public static string? ResolvePath(
+        string? configuredPath,
+        string baseDir)
+    {
+        return ResolvePathCandidates(configuredPath, baseDir).FirstOrDefault(path =>
+            Directory.Exists(path) || File.Exists(path));
+    }
+
+    public static IEnumerable<string> ResolvePathCandidates(
+        string? configuredPath,
+        string baseDir)
+    {
+        if (string.IsNullOrWhiteSpace(configuredPath))
+            yield break;
+
+        if (Path.IsPathRooted(configuredPath))
+        {
+            yield return Path.GetFullPath(configuredPath);
+            yield break;
+        }
+
+        yield return Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), configuredPath));
+        yield return Path.GetFullPath(Path.Combine(baseDir, configuredPath));
+    }
 }

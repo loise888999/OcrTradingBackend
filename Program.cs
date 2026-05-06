@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using OcrTradingBackend.Data;
 using OcrTradingBackend.Models;
 using OcrTradingBackend.Services;
@@ -18,7 +19,10 @@ static IReadOnlyList<string> SplitMulti(string? value) =>
         ? Array.Empty<string>()
         : value.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-builder.Services.Configure<OcrRuntimeSettings>(builder.Configuration.GetSection("OcrSettings"));
+builder.Services.AddSingleton<IValidateOptions<OcrRuntimeSettings>, OcrRuntimeSettingsValidator>();
+builder.Services.AddOptions<OcrRuntimeSettings>()
+    .Bind(builder.Configuration.GetSection("OcrSettings"))
+    .ValidateOnStart();
 builder.Services.Configure<GameWindowSettings>(builder.Configuration.GetSection("GameWindow"));
 
 builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(builder.Configuration.GetConnectionString("Default")));

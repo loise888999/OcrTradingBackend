@@ -234,6 +234,43 @@ https://localhost:5001
 http://localhost:5000
 ```
 
+For a quick default run after dependencies are restored:
+
+```bash
+dotnet run
+```
+
+By default, the backend uses the OCR model bundled with PaddleOCRSharp. No extra OCR model download is required for a fresh clone.
+
+## Optional English OCR model
+
+The app can prefer an English PaddleOCR recognition model when the model files are downloaded locally. The files are not committed to git.
+
+Download the optional English OCR files:
+
+```powershell
+.\scripts\download-english-ocr-model.ps1
+```
+
+This places files under:
+
+```text
+Data/ocr-models/english/
+```
+
+Then update `appsettings.json`:
+
+```json
+"UseEnglishModels": true,
+"FallbackToBundledModel": true,
+"RecognitionModelPath": "Data/ocr-models/english/rec",
+"DictionaryPath": "Data/ocr-models/english/en_dict.txt"
+```
+
+`DetectionModelPath` and `ClassifierModelPath` can stay empty. The backend will use the bundled PaddleOCRSharp detector and keep angle classification disabled.
+
+If the English files are missing and `FallbackToBundledModel` is `true`, the backend logs a warning and uses the bundled PaddleOCRSharp model instead.
+
 Health check:
 
 ```text
@@ -290,6 +327,12 @@ Data/trade-goods.csv
 Data/cities.csv
 Data/pending-trade-goods.json
 ```
+
+## License and third-party notices
+
+This project is licensed under the MIT License. See `LICENSE`.
+
+OCR dependencies and optional English OCR model sources are listed in `THIRD_PARTY_NOTICES.md`.
 
 ### `Data/trade-goods.csv`
 

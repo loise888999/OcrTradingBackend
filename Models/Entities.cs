@@ -52,6 +52,13 @@ public sealed class AppSetting
 public sealed class OcrRuntimeSettings
 {
     public bool Enabled { get; set; }
+    public bool UseEnglishModels { get; set; }
+    public bool FallbackToBundledModel { get; set; } = true;
+    public string DetectionModelPath { get; set; } = "";
+    public string ClassifierModelPath { get; set; } = "";
+    public string RecognitionModelPath { get; set; } = "";
+    public string DictionaryPath { get; set; } = "";
+
     public int DefaultIntervalSeconds { get; set; } = 1;
     public int CityIntervalSeconds { get; set; } = 8;
     public int PriceIntervalSeconds { get; set; } = 6;
