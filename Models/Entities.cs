@@ -59,10 +59,19 @@ public sealed class OcrRuntimeSettings
     public string RecognitionModelPath { get; set; } = "";
     public string DictionaryPath { get; set; } = "";
 
+    // Fallback OCR loop delay when DefaultIntervalMilliseconds is not configured.
     public int DefaultIntervalSeconds { get; set; } = 1;
+
+    // City OCR is attempted no more often than this interval while not at sea.
     public int CityIntervalSeconds { get; set; } = 8;
+
+    // Normal Buy/Sell price OCR interval when fast mode is not active.
     public int PriceIntervalSeconds { get; set; } = 6;
+
+    // Faster Buy/Sell price OCR interval while price fast mode is active.
     public int ActivePriceIntervalSeconds { get; set; } = 1;
+
+    // How long fast mode stays active after a new price state is found.
     public int PriceFastModeSeconds { get; set; } = 20;
 
     public int WorldWidth { get; set; } = 16500;
@@ -95,9 +104,16 @@ public sealed class OcrRuntimeSettings
     public bool PriceOcrInvert { get; set; }
     public bool PriceForcePreprocess { get; set; } = true;
 
+    // Legacy switch for OCR hash skipping; full-hash cache now uses OcrFullHashCacheEnabled.
     public bool SkipUnchangedOcrByHash { get; set; } = true;
+
+    // When enabled, every OCR image is full-hashed before Paddle OCR runs.
     public bool OcrFullHashCacheEnabled { get; set; } = true;
+
+    // Full-hash OCR cache TTL. Re-reading a cached hash refreshes this lifetime.
     public double OcrFullHashCacheMinutes { get; set; } = 5.0;
+
+    // Maximum full-hash OCR results kept in memory before oldest entries are evicted.
     public int OcrFullHashCacheMaxEntries { get; set; } = 1000;
 
     public bool PriceBatchCaptureEnabled { get; set; } = true;
@@ -107,18 +123,38 @@ public sealed class OcrRuntimeSettings
     public int PriceBatchMaxImages { get; set; } = 30;
 
     public bool PriceRecentHashCacheEnabled { get; set; } = true;
+
+    // Keeps recently processed price image hashes from being OCR-processed again.
     public double PriceRecentHashCacheMinutes { get; set; } = 10.0;
+
+    // Maximum remembered price image hashes for duplicate-skip protection.
     public int PriceRecentHashCacheMaxEntries { get; set; } = 5000;
 
+    // Validates that a Buy/Sell menu is visible before reading price rows.
     public bool PriceMenuValidationEnabled { get; set; } = true;
+
+    // Percent of the price area used for Buy/Sell menu validation.
     public double PriceMenuValidationTopPercent { get; set; } = 25.0;
+
+    // Preprocesses menu validation crop before OCR.
     public bool PriceMenuValidationUsePreprocess { get; set; } = true;
+
+    // Words accepted as proof that the price menu is open.
     public string PriceMenuValidationValidWords { get; set; } = "Buy|Sell";
+
+    // After menu validation, only capture the body below the validation area.
     public bool PriceCaptureBodyOnlyAfterMenuValidation { get; set; } = true;
 
+    // Preprocesses Buy/Sell validation layout boxes before OCR.
     public bool PriceLayoutValidationPreprocess { get; set; } = true;
+
+    // Preprocesses row OCR crops before OCR.
     public bool PriceLayoutFieldPreprocess { get; set; } = true;
+
+    // If whole-row OCR fails, try separate item/price/multiplier boxes.
     public bool PriceLayoutFieldFallbackEnabled { get; set; } = false;
+
+    // Allowed difference for whole-row perceptual fingerprint cache hits.
     public int PriceLayoutRowFingerprintTolerance { get; set; } = 10;
 
     public bool OcrAllowedCharFilteringEnabled { get; set; } = true;
@@ -127,9 +163,16 @@ public sealed class OcrRuntimeSettings
     public string PriceMultiplierOcrAllowedChars { get; set; } = "0123456789% \r\n";
     public string PriceMenuOcrAllowedChars { get; set; } = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz \r\n";
 
+    // Off, BeforePreprocess, AfterPreprocess, or BeforeAndAfter; skips OCR when crop likely has no text.
     public string OcrTextPresenceGateMode { get; set; } = "BeforePreprocess";
+
+    // Minimum brightness contrast required by the text-presence gate.
     public int OcrTextPresenceMinContrast { get; set; } = 18;
+
+    // Minimum edge-pixel percent required by the text-presence gate.
     public double OcrTextPresenceMinEdgePixelsPercent { get; set; } = 0.35;
+
+    // Pixel sampling step used by the text-presence gate; higher is faster but less sensitive.
     public int OcrTextPresenceSampleStep { get; set; } = 3;
     public bool OcrBenchmarkLogging { get; set; } = true;
 
