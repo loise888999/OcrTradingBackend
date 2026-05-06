@@ -1150,24 +1150,63 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         if (string.IsNullOrWhiteSpace(rawText))
             return null;
 
-        var itemText = CleanLayoutFieldText(rawText);
-        var strict = StrictTradeGoodMatcher.Find(itemText);
-        if (strict is null)
-            return null;
-
         if (!TryParseLayoutRowPrice(rawText, out var price, out var multiplier))
             return null;
 
+        var itemText = ExtractLayoutRowItemText(rawText);
+        if (string.IsNullOrWhiteSpace(itemText))
+            return null;
+
+        var strict = StrictTradeGoodMatcher.Find(itemText);
+        var itemName = strict?.Name ?? itemText;
+        var tradeGoodType = strict?.TradeGoodType ?? "Unknown";
+
         var raw =
-            $"Row {rowIndex}: {strict.Name} | {price.ToString(CultureInfo.InvariantCulture)} | {multiplier.ToString(CultureInfo.InvariantCulture)} | {tradeType}";
+            $"Row {rowIndex}: {itemName} | {price.ToString(CultureInfo.InvariantCulture)} | {multiplier.ToString(CultureInfo.InvariantCulture)} | {tradeType}";
 
         return new ParsedPriceLine(
-            strict.Name,
-            strict.TradeGoodType,
+            itemName,
+            tradeGoodType,
             price,
             multiplier,
             tradeType,
             raw);
+    }
+
+    private static string ExtractLayoutRowItemText(string rawText)
+    {
+        if (string.IsNullOrWhiteSpace(rawText))
+            return string.Empty;
+
+        var normalized = rawText
+            .Replace("Ã¯Â¼â€¦", "%")
+            .Replace("ï¼…", "%")
+            .Replace(",", "")
+            .Replace(".", " ")
+            .Replace("\r", " ")
+            .Replace("\n", " ");
+
+        var multiplierMatch = Regex.Match(
+            normalized,
+            @"(?<mult>\d{1,3})\s*%",
+            RegexOptions.CultureInvariant);
+
+        var searchEnd = multiplierMatch.Success
+            ? multiplierMatch.Index
+            : normalized.Length;
+
+        var beforeMultiplier = normalized[..searchEnd];
+        var priceMatches = Regex.Matches(
+                beforeMultiplier,
+                @"\d{2,}",
+                RegexOptions.CultureInvariant)
+            .Cast<Match>()
+            .ToList();
+
+        if (priceMatches.Count > 0)
+            beforeMultiplier = beforeMultiplier[..priceMatches[^1].Index];
+
+        return CleanLayoutFieldText(beforeMultiplier);
     }
 
     private static bool TryParseLayoutRowPrice(
