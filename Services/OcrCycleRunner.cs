@@ -29,6 +29,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly IOptionsMonitor<OcrRuntimeSettings> _settings;
     private readonly IOcrDebugSnapshotService _debug;
     private readonly IOcrImagePreprocessingService _preprocessor;
+    private readonly IOcrTextPresenceAnalyzer _textPresenceAnalyzer;
     private readonly IOcrLayoutService _layoutService;
     private readonly IOcrImageTextCache _ocrTextCache;
     private readonly IPriceOcrBatchService _priceBatch;
@@ -51,6 +52,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         IOptionsMonitor<OcrRuntimeSettings> settings,
         IOcrDebugSnapshotService debug,
         IOcrImagePreprocessingService preprocessor,
+        IOcrTextPresenceAnalyzer textPresenceAnalyzer,
         IOcrLayoutService layoutService,
         IOcrImageTextCache ocrTextCache,
         IPriceOcrBatchService priceBatch,
@@ -72,6 +74,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _settings = settings;
         _debug = debug;
         _preprocessor = preprocessor;
+        _textPresenceAnalyzer = textPresenceAnalyzer;
         _layoutService = layoutService;
         _ocrTextCache = ocrTextCache;
         _priceBatch = priceBatch;
@@ -165,13 +168,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 coordinateZone is not null &&
                 IsCoordinateOcrDue(settings);
 
-            var shouldCheckTradeMenuForCoordinateGate =
-                settings.CoordinateRequiresProbablyAtSea &&
-                coordinateDue &&
-                !HasRecentNotAtSeaSignal(settings);
-
             if (!coordinateRecentlyVisible &&
-                (priceDue || shouldCheckTradeMenuForCoordinateGate) &&
+                priceDue &&
                 CanDetectTradeTypeFromLayout(layout))
             {
                 detectedTradeType = await DetectTradeTypeFromLayoutAsync(layout, settings, ct);
@@ -416,6 +414,12 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         using (var fixedBitmap = _capture.Capture(coordinateZone))
         {
+            if (ShouldSkipOcrByTextPresence("coordinate", "fixed", "before-preprocess", fixedBitmap, settings))
+            {
+                _lastResults.SetCoordinate("fixed", string.Empty, null, null);
+                return null;
+            }
+
             var fixedPreprocessed = _preprocessor.TryPrepareCoordinateImage(fixedBitmap, settings);
 
             if (forcePreprocess && fixedPreprocessed is not null)
@@ -476,7 +480,13 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
-        var read = ReadOcrText("coordinate", source, bitmap, settings);
+        var read = TryReadOcrText("coordinate", source, bitmap, settings);
+        if (read is null)
+        {
+            _lastResults.SetCoordinate(source, string.Empty, null, null);
+            return null;
+        }
+
         var raw = read.Text;
 
         var debugPath = await _debug.SaveAsync("coordinate", source, bitmap, raw, ct);
@@ -512,6 +522,12 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     {
         using var bitmap = _capture.Capture(cityZone);
 
+        if (ShouldSkipOcrByTextPresence("city", "direct", "before-preprocess", bitmap, settings))
+        {
+            _lastResults.SetCity("direct", string.Empty, null, null);
+            return null;
+        }
+
         var forcePreprocess = settings.CityForcePreprocess;
 
         if (forcePreprocess)
@@ -522,7 +538,13 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             {
                 using (forcedPreprocessed)
                 {
-                    var read = ReadOcrText("city", "preprocessed-forced", forcedPreprocessed, settings);
+                    var read = TryReadOcrText("city", "preprocessed-forced", forcedPreprocessed, settings);
+                    if (read is null)
+                    {
+                        _lastResults.SetCity("preprocessed-forced", string.Empty, null, null);
+                        return null;
+                    }
+
                     var raw = read.Text;
 
                     var debugPath = await _debug.SaveAsync(
@@ -548,7 +570,13 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 "CityForcePreprocess was enabled, but city preprocessing returned null. Falling back to direct city OCR.");
         }
 
-        var directRead = ReadOcrText("city", "direct", bitmap, settings);
+        var directRead = TryReadOcrText("city", "direct", bitmap, settings);
+        if (directRead is null)
+        {
+            _lastResults.SetCity("direct", string.Empty, null, null);
+            return null;
+        }
+
         var directRaw = directRead.Text;
 
         var directDebugPath = await _debug.SaveAsync(
@@ -577,7 +605,13 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         using (preprocessed)
         {
-            var read = ReadOcrText("city", "preprocessed", preprocessed, settings);
+            var read = TryReadOcrText("city", "preprocessed", preprocessed, settings);
+            if (read is null)
+            {
+                _lastResults.SetCity("preprocessed", string.Empty, null, null);
+                return null;
+            }
+
             var raw = read.Text;
 
             var debugPath = await _debug.SaveAsync(
@@ -943,6 +977,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         using var bitmap = _capture.Capture(rowZone);
 
+        var source = $"row-{row.Index}-combined";
+        if (ShouldSkipOcrByTextPresence("price-layout-row", source, "before-preprocess", bitmap, settings))
+            return LayoutRowRead.Empty(null);
+
         var fingerprintStopwatch = Stopwatch.StartNew();
         var fingerprint = _priceLayoutRowFingerprint.Compute(bitmap);
         fingerprintStopwatch.Stop();
@@ -973,7 +1011,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 RebaseLayoutRow(cached, row.Index, tradeType));
         }
 
-        var source = $"row-{row.Index}-combined";
         var imageToRead = bitmap;
         Bitmap? preprocessed = null;
 
@@ -989,7 +1026,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 }
             }
 
-            var read = ReadOcrText("price-layout-row", source, imageToRead, settings);
+            var read = TryReadOcrText("price-layout-row", source, imageToRead, settings);
+            if (read is null)
+                return LayoutRowRead.Empty(fingerprint);
 
             await _debug.SaveAsync(
                 "price-layout-row",
@@ -1233,6 +1272,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         using var bitmap = _capture.Capture(captureZone);
 
+        if (ShouldSkipOcrByTextPresence(kind, source, "before-preprocess", bitmap, settings))
+            return string.Empty;
+
         if (preprocess)
         {
             var preprocessed = _preprocessor.TryPreparePriceImage(bitmap, settings);
@@ -1241,11 +1283,14 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             {
                 using (preprocessed)
                 {
-                    var preprocessedRead = ReadOcrText(kind, $"{source}-preprocessed", preprocessed, settings);
+                    var preprocessedSource = $"{source}-preprocessed";
+                    var preprocessedRead = TryReadOcrText(kind, preprocessedSource, preprocessed, settings);
+                    if (preprocessedRead is null)
+                        return string.Empty;
 
                     await _debug.SaveAsync(
                         kind,
-                        $"{source}-preprocessed",
+                        preprocessedSource,
                         preprocessed,
                         preprocessedRead.Text,
                         ct);
@@ -1255,7 +1300,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             }
         }
 
-        var read = ReadOcrText(kind, source, bitmap, settings);
+        var read = TryReadOcrText(kind, source, bitmap, settings);
+        if (read is null)
+            return string.Empty;
 
         await _debug.SaveAsync(
             kind,
@@ -2045,6 +2092,74 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             _logger.LogInformation(
                 "Price OCR saw the same latest price state; fast mode was not extended.");
         }
+    }
+
+    private OcrCachedTextRead? TryReadOcrText(
+        string kind,
+        string source,
+        Bitmap bitmap,
+        OcrRuntimeSettings settings)
+    {
+        if (ShouldSkipOcrByTextPresence(kind, source, "after-preprocess", bitmap, settings))
+            return null;
+
+        return ReadOcrText(kind, source, bitmap, settings);
+    }
+
+    private bool ShouldSkipOcrByTextPresence(
+        string kind,
+        string source,
+        string stage,
+        Bitmap bitmap,
+        OcrRuntimeSettings settings)
+    {
+        if (!ShouldRunTextPresenceGate(settings, stage))
+            return false;
+
+        var stopwatch = Stopwatch.StartNew();
+        var result = _textPresenceAnalyzer.Analyze(bitmap, settings);
+        stopwatch.Stop();
+
+        if (result.MayContainText)
+            return false;
+
+        if (settings.OcrBenchmarkLogging)
+        {
+            _logger.LogInformation(
+                "OCR skipped by text-presence gate. Kind={Kind}; Source={Source}; Stage={Stage}; Contrast={Contrast}; EdgePixelsPercent={EdgePixelsPercent:F3}; SampledPixels={SampledPixels}; GateMs={GateMs}",
+                kind,
+                source,
+                stage,
+                result.Contrast,
+                result.EdgePixelsPercent,
+                result.SampledPixels,
+                stopwatch.Elapsed.TotalMilliseconds);
+        }
+
+        return true;
+    }
+
+    private static bool ShouldRunTextPresenceGate(
+        OcrRuntimeSettings settings,
+        string stage)
+    {
+        var mode = settings.OcrTextPresenceGateMode.Trim();
+
+        if (mode.Equals("Off", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return stage switch
+        {
+            "before-preprocess" =>
+                mode.Equals("BeforePreprocess", StringComparison.OrdinalIgnoreCase) ||
+                mode.Equals("BeforeAndAfter", StringComparison.OrdinalIgnoreCase),
+
+            "after-preprocess" =>
+                mode.Equals("AfterPreprocess", StringComparison.OrdinalIgnoreCase) ||
+                mode.Equals("BeforeAndAfter", StringComparison.OrdinalIgnoreCase),
+
+            _ => false
+        };
     }
 
     private OcrCachedTextRead ReadOcrText(

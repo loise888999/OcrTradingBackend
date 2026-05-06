@@ -202,11 +202,22 @@ public sealed class OcrRuntimeSettingsValidator : IValidateOptions<OcrRuntimeSet
 {
     public ValidateOptionsResult Validate(string? name, OcrRuntimeSettings settings)
     {
+        var failures = new List<string>();
+
+        if (!IsValidTextPresenceGateMode(settings.OcrTextPresenceGateMode))
+        {
+            failures.Add(
+                "OcrSettings:OcrTextPresenceGateMode must be one of: Off, BeforePreprocess, AfterPreprocess, BeforeAndAfter.");
+        }
+
         if (!settings.UseEnglishModels || settings.FallbackToBundledModel)
-            return ValidateOptionsResult.Success;
+        {
+            return failures.Count == 0
+                ? ValidateOptionsResult.Success
+                : ValidateOptionsResult.Fail(failures);
+        }
 
         var baseDir = AppContext.BaseDirectory;
-        var failures = new List<string>();
 
         RequireModelDirectory(
             failures,
@@ -241,6 +252,15 @@ public sealed class OcrRuntimeSettingsValidator : IValidateOptions<OcrRuntimeSet
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);
+    }
+
+    private static bool IsValidTextPresenceGateMode(string? mode)
+    {
+        return mode is not null &&
+               (mode.Equals("Off", StringComparison.OrdinalIgnoreCase) ||
+                mode.Equals("BeforePreprocess", StringComparison.OrdinalIgnoreCase) ||
+                mode.Equals("AfterPreprocess", StringComparison.OrdinalIgnoreCase) ||
+                mode.Equals("BeforeAndAfter", StringComparison.OrdinalIgnoreCase));
     }
 
     private static void RequireModelDirectory(

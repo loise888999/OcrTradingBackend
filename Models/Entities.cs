@@ -120,6 +120,10 @@ public sealed class OcrRuntimeSettings
     public bool PriceLayoutFieldPreprocess { get; set; } = true;
     public bool PriceLayoutFieldFallbackEnabled { get; set; } = true;
     public int PriceLayoutRowFingerprintTolerance { get; set; } = 10;
+    public string OcrTextPresenceGateMode { get; set; } = "BeforePreprocess";
+    public int OcrTextPresenceMinContrast { get; set; } = 18;
+    public double OcrTextPresenceMinEdgePixelsPercent { get; set; } = 0.35;
+    public int OcrTextPresenceSampleStep { get; set; } = 3;
     public bool OcrBenchmarkLogging { get; set; } = true;
 
     public string CoordinateOcrZoneName { get; set; } = "Coordinate";

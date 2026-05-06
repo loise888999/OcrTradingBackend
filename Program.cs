@@ -47,6 +47,7 @@ builder.Services.AddSingleton<IPriceLayoutRowFingerprintService, PriceLayoutRowF
 builder.Services.AddSingleton<IPriceLayoutRowCacheService, PriceLayoutRowCacheService>();
 builder.Services.AddSingleton<IOcrDebugSnapshotService, OcrDebugSnapshotService>();
 builder.Services.AddSingleton<IOcrImagePreprocessingService, OcrImagePreprocessingService>();
+builder.Services.AddSingleton<IOcrTextPresenceAnalyzer, OcrTextPresenceAnalyzer>();
 builder.Services.AddSingleton<IOcrLayoutService, OcrLayoutService>();
 builder.Services.AddScoped<IWindowRelativeOcrZoneService, WindowRelativeOcrZoneService>();
 builder.Services.AddScoped<ITradingRecommendationService, TradingRecommendationService>();
