@@ -95,3 +95,26 @@ public sealed record OcrLayoutTestBoxResponse(
     string? DebugImagePath,
     OcrLayoutBox Box,
     OcrZone CaptureZone);
+
+public sealed record OcrCalibrationResponse(
+    bool LayoutEnabled,
+    double Score,
+    int PassedChecks,
+    int WarningChecks,
+    int FailedChecks,
+    int SkippedChecks,
+    IReadOnlyList<OcrCalibrationCheck> Checks,
+    IReadOnlyList<string> Recommendations);
+
+public sealed record OcrCalibrationCheck(
+    string Key,
+    string Label,
+    string Kind,
+    string Status,
+    double Score,
+    string RawText,
+    string? ParsedText,
+    string Message,
+    string? DebugImagePath,
+    OcrLayoutBox? Box,
+    OcrZone? CaptureZone);

@@ -6,9 +6,9 @@ namespace OcrTradingBackend.Services;
 
 public sealed record OcrHashCacheOptions(
     bool Enabled,
-    bool UseSampleHashBeforeFullHash,
-    int SampleHashStep,
-    double ForceFullHashEverySeconds,
+    double TtlMinutes,
+    int MaxEntries,
+    string SettingsSignature,
     bool BenchmarkLogging);
 
 public sealed record OcrCachedTextRead(
@@ -19,7 +19,9 @@ public sealed record OcrCachedTextRead(
     string? FullHash,
     TimeSpan SampleHashElapsed,
     TimeSpan FullHashElapsed,
-    TimeSpan OcrElapsed);
+    TimeSpan OcrElapsed,
+    int CacheEntryCount = 0,
+    int EvictedCount = 0);
 
 public interface IOcrImageTextCache
 {
@@ -34,6 +36,7 @@ public sealed class OcrImageTextCache : IOcrImageTextCache
 {
     private readonly IOcrImageHasher _hasher;
     private readonly ConcurrentDictionary<string, CachedOcrReadState> _states = new();
+    private readonly object _evictionSync = new();
 
     public OcrImageTextCache(IOcrImageHasher hasher)
     {
@@ -46,11 +49,13 @@ public sealed class OcrImageTextCache : IOcrImageTextCache
         Func<Bitmap, string> readText,
         OcrHashCacheOptions options)
     {
+        _ = cacheKey;
+
         if (!options.Enabled)
         {
-            var ocrStopwatch = Stopwatch.StartNew();
+            var disabledOcrStopwatch = Stopwatch.StartNew();
             var text = readText(bitmap);
-            ocrStopwatch.Stop();
+            disabledOcrStopwatch.Stop();
 
             return new OcrCachedTextRead(
                 Text: text,
@@ -60,101 +65,126 @@ public sealed class OcrImageTextCache : IOcrImageTextCache
                 FullHash: null,
                 SampleHashElapsed: TimeSpan.Zero,
                 FullHashElapsed: TimeSpan.Zero,
-                OcrElapsed: ocrStopwatch.Elapsed);
+                OcrElapsed: disabledOcrStopwatch.Elapsed);
         }
 
-        var state = _states.GetOrAdd(cacheKey, _ => new CachedOcrReadState());
+        var now = DateTime.UtcNow;
 
-        lock (state.Sync)
+        using var hashReader = _hasher.CreateReader(bitmap);
+        var fullStopwatch = Stopwatch.StartNew();
+        var fullHash = hashReader.ComputeFullHash();
+        fullStopwatch.Stop();
+
+        var ttl = TimeSpan.FromMinutes(Math.Max(0.1, options.TtlMinutes));
+        var maxEntries = Math.Max(1, options.MaxEntries);
+        var entryKey = BuildEntryKey(options.SettingsSignature, fullHash);
+        var evictedBeforeLookup = PruneExpiredAndOversize(now, ttl, maxEntries);
+
+        if (_states.TryGetValue(entryKey, out var state))
         {
-            var now = DateTime.UtcNow;
-            using var hashReader = _hasher.CreateReader(bitmap);
-
-            string? sampleHash = null;
-            var sampleElapsed = TimeSpan.Zero;
-
-            if (options.UseSampleHashBeforeFullHash)
+            lock (state.Sync)
             {
-                var sampleStopwatch = Stopwatch.StartNew();
-                sampleHash = hashReader.ComputeSampleHash(options.SampleHashStep);
-                sampleStopwatch.Stop();
-                sampleElapsed = sampleStopwatch.Elapsed;
-
-                var fullHashDue =
-                    state.HasValue &&
-                    options.ForceFullHashEverySeconds > 0 &&
-                    now - state.LastFullHashCheckedAtUtc >=
-                    TimeSpan.FromSeconds(options.ForceFullHashEverySeconds);
-
-                if (state.HasValue &&
-                    !fullHashDue &&
-                    string.Equals(state.SampleHash, sampleHash, StringComparison.Ordinal))
+                if (!IsExpired(state, now, ttl))
                 {
+                    state.LastAccessUtc = now;
+
                     return new OcrCachedTextRead(
                         Text: state.Text,
                         WasHashHit: true,
-                        Decision: "sample-hash-hit",
-                        SampleHash: sampleHash,
-                        FullHash: state.FullHash,
-                        SampleHashElapsed: sampleElapsed,
-                        FullHashElapsed: TimeSpan.Zero,
-                        OcrElapsed: TimeSpan.Zero);
+                        Decision: "full-hash-cache-hit",
+                        SampleHash: null,
+                        FullHash: fullHash,
+                        SampleHashElapsed: TimeSpan.Zero,
+                        FullHashElapsed: fullStopwatch.Elapsed,
+                        OcrElapsed: TimeSpan.Zero,
+                        CacheEntryCount: _states.Count,
+                        EvictedCount: evictedBeforeLookup);
                 }
             }
 
-            var fullStopwatch = Stopwatch.StartNew();
-            var fullHash = hashReader.ComputeFullHash();
-            fullStopwatch.Stop();
+            _states.TryRemove(entryKey, out _);
+        }
 
-            if (state.HasValue &&
-                string.Equals(state.FullHash, fullHash, StringComparison.Ordinal))
+        var ocrStopwatch = Stopwatch.StartNew();
+        var rawText = readText(bitmap);
+        ocrStopwatch.Stop();
+
+        var addedState = _states.GetOrAdd(entryKey, _ => new CachedOcrReadState());
+        lock (addedState.Sync)
+        {
+            addedState.Text = rawText;
+            addedState.FullHash = fullHash;
+            addedState.CreatedAtUtc = now;
+            addedState.LastAccessUtc = now;
+            addedState.LastOcrReadAtUtc = now;
+        }
+
+        var evictedAfterAdd = PruneExpiredAndOversize(DateTime.UtcNow, ttl, maxEntries);
+
+        return new OcrCachedTextRead(
+            Text: rawText,
+            WasHashHit: false,
+            Decision: "full-hash-cache-miss-ocr-ran",
+            SampleHash: null,
+            FullHash: fullHash,
+            SampleHashElapsed: TimeSpan.Zero,
+            FullHashElapsed: fullStopwatch.Elapsed,
+            OcrElapsed: ocrStopwatch.Elapsed,
+            CacheEntryCount: _states.Count,
+            EvictedCount: evictedBeforeLookup + evictedAfterAdd);
+    }
+
+    private int PruneExpiredAndOversize(DateTime now, TimeSpan ttl, int maxEntries)
+    {
+        lock (_evictionSync)
+        {
+            var evicted = 0;
+
+            foreach (var pair in _states.ToArray())
             {
-                state.SampleHash = sampleHash ?? state.SampleHash;
-                state.LastFullHashCheckedAtUtc = now;
-
-                return new OcrCachedTextRead(
-                    Text: state.Text,
-                    WasHashHit: true,
-                    Decision: "full-hash-hit",
-                    SampleHash: sampleHash,
-                    FullHash: fullHash,
-                    SampleHashElapsed: sampleElapsed,
-                    FullHashElapsed: fullStopwatch.Elapsed,
-                    OcrElapsed: TimeSpan.Zero);
+                if (IsExpired(pair.Value, now, ttl) &&
+                    _states.TryRemove(pair.Key, out _))
+                {
+                    evicted++;
+                }
             }
 
-            var ocrStopwatch = Stopwatch.StartNew();
-            var rawText = readText(bitmap);
-            ocrStopwatch.Stop();
+            if (_states.Count <= maxEntries)
+                return evicted;
 
-            state.HasValue = true;
-            state.Text = rawText;
-            state.SampleHash = sampleHash;
-            state.FullHash = fullHash;
-            state.LastFullHashCheckedAtUtc = now;
-            state.LastOcrReadAtUtc = now;
+            foreach (var pair in _states
+                         .OrderBy(x => x.Value.LastAccessUtc)
+                         .Take(Math.Max(0, _states.Count - maxEntries))
+                         .ToArray())
+            {
+                if (_states.TryRemove(pair.Key, out _))
+                    evicted++;
+            }
 
-            return new OcrCachedTextRead(
-                Text: rawText,
-                WasHashHit: false,
-                Decision: "hash-miss-ocr-ran",
-                SampleHash: sampleHash,
-                FullHash: fullHash,
-                SampleHashElapsed: sampleElapsed,
-                FullHashElapsed: fullStopwatch.Elapsed,
-                OcrElapsed: ocrStopwatch.Elapsed);
+            return evicted;
         }
+    }
+
+    private static bool IsExpired(
+        CachedOcrReadState state,
+        DateTime now,
+        TimeSpan ttl)
+    {
+        return now - state.LastAccessUtc >= ttl;
+    }
+
+    private static string BuildEntryKey(string settingsSignature, string fullHash)
+    {
+        return $"{settingsSignature}:{fullHash}";
     }
 
     private sealed class CachedOcrReadState
     {
         public object Sync { get; } = new();
-
-        public bool HasValue { get; set; }
         public string Text { get; set; } = string.Empty;
-        public string? SampleHash { get; set; }
         public string? FullHash { get; set; }
-        public DateTime LastFullHashCheckedAtUtc { get; set; } = DateTime.MinValue;
+        public DateTime CreatedAtUtc { get; set; } = DateTime.MinValue;
+        public DateTime LastAccessUtc { get; set; } = DateTime.MinValue;
         public DateTime LastOcrReadAtUtc { get; set; } = DateTime.MinValue;
     }
 }

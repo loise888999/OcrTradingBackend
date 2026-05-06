@@ -19,7 +19,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 {
     private readonly AppDbContext _db;
     private readonly IScreenCaptureService _capture;
-    private readonly IPaddleOcrService _ocr;
+    private readonly IOcrCachedTextService _ocr;
     private readonly ICoordinateParser _coordinateParser;
     private readonly ICityParser _cityParser;
     private readonly IPriceParser _priceParser;
@@ -31,7 +31,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly IOcrImagePreprocessingService _preprocessor;
     private readonly IOcrTextPresenceAnalyzer _textPresenceAnalyzer;
     private readonly IOcrLayoutService _layoutService;
-    private readonly IOcrImageTextCache _ocrTextCache;
     private readonly IPriceOcrBatchService _priceBatch;
     private readonly IPriceLayoutRowCacheService _priceLayoutRowCache;
     private readonly IPriceLayoutRowFingerprintService _priceLayoutRowFingerprint;
@@ -42,7 +41,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     public OcrCycleRunner(
         AppDbContext db,
         IScreenCaptureService capture,
-        IPaddleOcrService ocr,
+        IOcrCachedTextService ocr,
         ICoordinateParser coordinateParser,
         ICityParser cityParser,
         IPriceParser priceParser,
@@ -54,7 +53,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         IOcrImagePreprocessingService preprocessor,
         IOcrTextPresenceAnalyzer textPresenceAnalyzer,
         IOcrLayoutService layoutService,
-        IOcrImageTextCache ocrTextCache,
         IPriceOcrBatchService priceBatch,
         IPriceLayoutRowCacheService priceLayoutRowCache,
         IPriceLayoutRowFingerprintService priceLayoutRowFingerprint,
@@ -76,7 +74,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _preprocessor = preprocessor;
         _textPresenceAnalyzer = textPresenceAnalyzer;
         _layoutService = layoutService;
-        _ocrTextCache = ocrTextCache;
         _priceBatch = priceBatch;
         _priceLayoutRowCache = priceLayoutRowCache;
         _priceLayoutRowFingerprint = priceLayoutRowFingerprint;
@@ -1676,12 +1673,11 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         if (settings.OcrBenchmarkLogging)
         {
             _logger.LogInformation(
-                "Price batch capture: Decision={Decision}; Added={Added}; Duplicate={Duplicate}; Count={Count}; SampleHashMs={SampleHashMs}; FullHashMs={FullHashMs}; Source={Source}",
+                "Price batch capture: Decision={Decision}; Added={Added}; Duplicate={Duplicate}; Count={Count}; FullHashMs={FullHashMs}; Source={Source}",
                 result.Decision,
                 result.Added,
                 result.Duplicate,
                 result.Count,
-                result.SampleHashElapsed.TotalMilliseconds,
                 result.FullHashElapsed.TotalMilliseconds,
                 source);
         }
@@ -2168,39 +2164,57 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         Bitmap bitmap,
         OcrRuntimeSettings settings)
     {
-        var cacheKey = $"{kind}:{source}";
-        var options = GetOcrHashCacheOptions(settings);
-
-        var read = _ocrTextCache.ReadText(
-            cacheKey,
+        var fieldKind = GetOcrFieldKind(kind, source);
+        var read = _ocr.ReadText(
+            $"{kind}:{source}",
             bitmap,
-            image => _ocr.DetectText(image),
-            options);
+            fieldKind,
+            settings);
 
-        if (options.BenchmarkLogging)
+        if (settings.OcrBenchmarkLogging)
         {
             _logger.LogInformation(
-                "OCR read benchmark. Kind={Kind}; Source={Source}; Decision={Decision}; HashHit={HashHit}; SampleHashMs={SampleHashMs}; FullHashMs={FullHashMs}; OcrMs={OcrMs}",
+                "OCR read benchmark. Kind={Kind}; Source={Source}; Decision={Decision}; HashHit={HashHit}; FullHashMs={FullHashMs}; OcrMs={OcrMs}; CacheEntries={CacheEntries}; Evicted={Evicted}",
                 kind,
                 source,
                 read.Decision,
                 read.WasHashHit,
-                read.SampleHashElapsed.TotalMilliseconds,
                 read.FullHashElapsed.TotalMilliseconds,
-                read.OcrElapsed.TotalMilliseconds);
+                read.OcrElapsed.TotalMilliseconds,
+                read.CacheEntryCount,
+                read.EvictedCount);
         }
 
         return read;
     }
 
-    private static OcrHashCacheOptions GetOcrHashCacheOptions(OcrRuntimeSettings settings)
+    private static OcrFieldKind GetOcrFieldKind(string kind, string source)
     {
-        return new OcrHashCacheOptions(
-            Enabled: settings.SkipUnchangedOcrByHash,
-            UseSampleHashBeforeFullHash: settings.UseSampleHashBeforeFullHash,
-            SampleHashStep: settings.SampleHashStep,
-            ForceFullHashEverySeconds: settings.ForceFullHashEverySeconds,
-            BenchmarkLogging: settings.OcrBenchmarkLogging);
+        if (kind.Contains("coordinate", StringComparison.OrdinalIgnoreCase))
+            return OcrFieldKind.Coordinate;
+
+        if (kind.Contains("city", StringComparison.OrdinalIgnoreCase))
+            return OcrFieldKind.City;
+
+        if (kind.Contains("validation", StringComparison.OrdinalIgnoreCase) ||
+            kind.Contains("menu", StringComparison.OrdinalIgnoreCase))
+        {
+            return OcrFieldKind.PriceMenu;
+        }
+
+        if (source.Contains("multiplier", StringComparison.OrdinalIgnoreCase))
+            return OcrFieldKind.PriceMultiplier;
+
+        if (source.Contains("price", StringComparison.OrdinalIgnoreCase) &&
+            !source.Contains("batch", StringComparison.OrdinalIgnoreCase))
+        {
+            return OcrFieldKind.PriceNumber;
+        }
+
+        if (source.Contains("item-name", StringComparison.OrdinalIgnoreCase))
+            return OcrFieldKind.PriceItemName;
+
+        return OcrFieldKind.General;
     }
 
     private static PriceOcrBatchOptions GetPriceOcrBatchOptions(OcrRuntimeSettings settings)
@@ -2210,9 +2224,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         return new PriceOcrBatchOptions(
             Enabled: settings.PriceBatchCaptureEnabled,
             MaxImages: settings.PriceBatchMaxImages,
-            UseSampleHashBeforeFullHash: settings.UseSampleHashBeforeFullHash,
-            SampleHashStep: settings.SampleHashStep,
-            ForceFullHashEverySeconds: settings.ForceFullHashEverySeconds,
             BenchmarkLogging: settings.OcrBenchmarkLogging,
             RecentHashCacheEnabled: recentHashOptions.Enabled,
             RecentHashCacheMinutes: recentHashOptions.TtlMinutes,

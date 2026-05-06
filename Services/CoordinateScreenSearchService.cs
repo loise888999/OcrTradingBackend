@@ -8,7 +8,7 @@ public static class CoordinateScreenSearchService
 {
     public static ParsedCoordinate? TryReadCoordinate(
         IScreenCaptureService capture,
-        IPaddleOcrService ocr,
+        IOcrCachedTextService ocr,
         ICoordinateParser parser,
         OcrZone coordinateZone,
         CoordinateCapture? previousCoordinate,
@@ -32,14 +32,18 @@ public static class CoordinateScreenSearchService
     }
 
     private static ParsedCoordinate? TryOcrAndParse(
-        IPaddleOcrService ocr,
+        IOcrCachedTextService ocr,
         ICoordinateParser parser,
         Bitmap bitmap,
         CoordinateCapture? previousCoordinate,
         OcrRuntimeSettings settings,
         string source)
     {
-        var rawText = ocr.DetectText(bitmap);
+        var rawText = ocr.ReadText(
+            $"coordinate-search:{source}",
+            bitmap,
+            OcrFieldKind.Coordinate,
+            settings).Text;
         if (string.IsNullOrWhiteSpace(rawText)) return null;
 
         var parsed = parser.TryParse(

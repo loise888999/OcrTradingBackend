@@ -1,5 +1,6 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using PaddleOCRSharp;
 using OcrTradingBackend.Models;
@@ -24,7 +25,21 @@ public sealed class WindowsScreenCaptureService : IScreenCaptureService
     }
 }
 
-public interface IPaddleOcrService { string DetectText(Bitmap bitmap); }
+public enum OcrFieldKind
+{
+    General,
+    City,
+    Coordinate,
+    PriceMenu,
+    PriceItemName,
+    PriceNumber,
+    PriceMultiplier
+}
+
+public interface IPaddleOcrService
+{
+    string DetectText(Bitmap bitmap, OcrFieldKind fieldKind = OcrFieldKind.General);
+}
 
 internal static class NativeDllLoader
 {
@@ -36,12 +51,14 @@ internal static class NativeDllLoader
 public sealed class PaddleOcrSharpService : IPaddleOcrService, IDisposable
 {
     private readonly PaddleOCREngine _engine;
+    private readonly IOptionsMonitor<OcrRuntimeSettings> _settings;
     private readonly object _lock = new();
 
     public PaddleOcrSharpService(
         IOptionsMonitor<OcrRuntimeSettings> settings,
         ILogger<PaddleOcrSharpService> logger)
     {
+        _settings = settings;
         var ocrSettings = settings.CurrentValue;
         var baseDir = AppContext.BaseDirectory;
         NativeDllLoader.AddDllDirectory(baseDir);
@@ -80,15 +97,19 @@ public sealed class PaddleOcrSharpService : IPaddleOcrService, IDisposable
         }
     }
 
-    public string DetectText(Bitmap bitmap)
+    public string DetectText(Bitmap bitmap, OcrFieldKind fieldKind = OcrFieldKind.General)
     {
+        string text;
+
         lock (_lock)
         {
             var result = _engine.DetectText(bitmap);
-            return result?.TextBlocks is null || result.TextBlocks.Count == 0
+            text = result?.TextBlocks is null || result.TextBlocks.Count == 0
                 ? string.Empty
                 : string.Join("\n", result.TextBlocks.Select(x => x.Text));
         }
+
+        return OcrFieldTextFilter.Filter(text, fieldKind, _settings.CurrentValue);
     }
 
     public void Dispose() => _engine.Dispose();
@@ -195,6 +216,52 @@ public sealed class PaddleOcrSharpService : IPaddleOcrService, IDisposable
         return candidates
             .Select(Path.GetFullPath)
             .FirstOrDefault(Directory.Exists);
+    }
+}
+
+public static class OcrFieldTextFilter
+{
+    public static string Filter(
+        string text,
+        OcrFieldKind fieldKind,
+        OcrRuntimeSettings settings)
+    {
+        if (string.IsNullOrEmpty(text) ||
+            !settings.OcrAllowedCharFilteringEnabled)
+        {
+            return text;
+        }
+
+        var allowedChars = fieldKind switch
+        {
+            OcrFieldKind.Coordinate => settings.CoordinateOcrAllowedChars,
+            OcrFieldKind.PriceMenu => settings.PriceMenuOcrAllowedChars,
+            OcrFieldKind.PriceNumber => settings.PriceNumberOcrAllowedChars,
+            OcrFieldKind.PriceMultiplier => settings.PriceMultiplierOcrAllowedChars,
+            _ => string.Empty
+        };
+
+        if (string.IsNullOrEmpty(allowedChars))
+            return text;
+
+        var allowed = allowedChars.ToHashSet();
+        var filtered = new string(text
+            .Where(c => allowed.Contains(c))
+            .ToArray());
+
+        return NormalizeFilteredWhitespace(filtered);
+    }
+
+    private static string NormalizeFilteredWhitespace(string text)
+    {
+        var lines = text
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .Split('\n')
+            .Select(line => Regex.Replace(line, @"[ \t]+", " ").Trim())
+            .Where(line => !string.IsNullOrWhiteSpace(line));
+
+        return string.Join("\n", lines);
     }
 }
 

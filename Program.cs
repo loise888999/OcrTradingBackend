@@ -19,6 +19,26 @@ static IReadOnlyList<string> SplitMulti(string? value) =>
         ? Array.Empty<string>()
         : value.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
+static OcrFieldKind GetLayoutTestFieldKind(string kind)
+{
+    var normalized = kind.Trim().ToLowerInvariant();
+
+    if (normalized.Contains("coordinate"))
+        return OcrFieldKind.Coordinate;
+    if (normalized.Contains("city"))
+        return OcrFieldKind.City;
+    if (normalized.Contains("validation") || normalized.Contains("menu") || normalized.Contains("buy") || normalized.Contains("sell"))
+        return OcrFieldKind.PriceMenu;
+    if (normalized.Contains("multiplier"))
+        return OcrFieldKind.PriceMultiplier;
+    if (normalized.Contains("price"))
+        return OcrFieldKind.PriceNumber;
+    if (normalized.Contains("item"))
+        return OcrFieldKind.PriceItemName;
+
+    return OcrFieldKind.General;
+}
+
 builder.Services.AddSingleton<IValidateOptions<OcrRuntimeSettings>, OcrRuntimeSettingsValidator>();
 builder.Services.AddOptions<OcrRuntimeSettings>()
     .Bind(builder.Configuration.GetSection("OcrSettings"))
@@ -42,6 +62,7 @@ builder.Services.AddSingleton<IMapRegionCatalog, MapRegionCatalog>();
 builder.Services.AddSingleton<IPriceRecentHashCacheService, PriceRecentHashCacheService>();
 builder.Services.AddSingleton<IOcrImageHasher, OcrImageHasher>();
 builder.Services.AddSingleton<IOcrImageTextCache, OcrImageTextCache>();
+builder.Services.AddSingleton<IOcrCachedTextService, OcrCachedTextService>();
 builder.Services.AddSingleton<IPriceOcrBatchService, PriceOcrBatchService>();
 builder.Services.AddSingleton<IPriceLayoutRowFingerprintService, PriceLayoutRowFingerprintService>();
 builder.Services.AddSingleton<IPriceLayoutRowCacheService, PriceLayoutRowCacheService>();
@@ -49,6 +70,7 @@ builder.Services.AddSingleton<IOcrDebugSnapshotService, OcrDebugSnapshotService>
 builder.Services.AddSingleton<IOcrImagePreprocessingService, OcrImagePreprocessingService>();
 builder.Services.AddSingleton<IOcrTextPresenceAnalyzer, OcrTextPresenceAnalyzer>();
 builder.Services.AddSingleton<IOcrLayoutService, OcrLayoutService>();
+builder.Services.AddScoped<IOcrCalibrationService, OcrCalibrationService>();
 builder.Services.AddScoped<IWindowRelativeOcrZoneService, WindowRelativeOcrZoneService>();
 builder.Services.AddScoped<ITradingRecommendationService, TradingRecommendationService>();
 builder.Services.AddScoped<ITradingAdvancedService, TradingAdvancedService>();
@@ -452,7 +474,7 @@ app.MapPost("/api/ocr-layout/test-box", async (
     OcrLayoutTestBoxRequest request,
     IOcrLayoutService layoutService,
     IScreenCaptureService capture,
-    IPaddleOcrService ocr,
+    IOcrCachedTextService ocr,
     IOcrImagePreprocessingService preprocessor,
     IOcrDebugSnapshotService debug,
     Microsoft.Extensions.Options.IOptionsMonitor<OcrRuntimeSettings> settings,
@@ -479,6 +501,7 @@ app.MapPost("/api/ocr-layout/test-box", async (
     }
 
     using var bitmap = capture.Capture(captureZone);
+    var fieldKind = GetLayoutTestFieldKind(request.Kind);
 
     if (request.Preprocess)
     {
@@ -488,7 +511,11 @@ app.MapPost("/api/ocr-layout/test-box", async (
         {
             using (preprocessed)
             {
-                var preprocessedRaw = ocr.DetectText(preprocessed);
+                var preprocessedRaw = ocr.ReadText(
+                    "layout-test-preprocessed",
+                    preprocessed,
+                    fieldKind,
+                    settings.CurrentValue).Text;
                 var preprocessedDebugPath = await debug.SaveAsync(
                     request.Kind,
                     "layout-test-preprocessed",
@@ -506,7 +533,11 @@ app.MapPost("/api/ocr-layout/test-box", async (
         }
     }
 
-    var raw = ocr.DetectText(bitmap);
+    var raw = ocr.ReadText(
+        "layout-test",
+        bitmap,
+        fieldKind,
+        settings.CurrentValue).Text;
     var debugPath = await debug.SaveAsync(
         request.Kind,
         "layout-test",
@@ -520,6 +551,14 @@ app.MapPost("/api/ocr-layout/test-box", async (
         debugPath,
         request.Box,
         captureZone));
+});
+
+app.MapPost("/api/ocr-layout/calibration-score", async (
+    IOcrCalibrationService calibration,
+    CancellationToken ct) =>
+{
+    var result = await calibration.ScoreAsync(ct);
+    return Results.Ok(result);
 });
 
 

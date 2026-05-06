@@ -6,9 +6,6 @@ namespace OcrTradingBackend.Services;
 public sealed record PriceOcrBatchOptions(
     bool Enabled,
     int MaxImages,
-    bool UseSampleHashBeforeFullHash,
-    int SampleHashStep,
-    double ForceFullHashEverySeconds,
     bool BenchmarkLogging,
     bool RecentHashCacheEnabled,
     double RecentHashCacheMinutes,
@@ -19,7 +16,6 @@ public sealed record DeferredPriceOcrImage(
     string Source,
     string City,
     string FullHash,
-    string? SampleHash,
     DateTime CapturedAtUtc);
 
 public sealed record PriceOcrBatchAddResult(
@@ -28,9 +24,7 @@ public sealed record PriceOcrBatchAddResult(
     bool MaxReached,
     int Count,
     string Decision,
-    string? SampleHash,
     string? FullHash,
-    TimeSpan SampleHashElapsed,
     TimeSpan FullHashElapsed);
 
 public interface IPriceOcrBatchService
@@ -59,9 +53,6 @@ public sealed class PriceOcrBatchService : IPriceOcrBatchService
     private readonly List<DeferredPriceOcrImage> _images = new();
     private readonly HashSet<string> _fullHashes = new(StringComparer.Ordinal);
 
-    private string? _lastSampleHash;
-    private string? _lastFullHash;
-    private DateTime _lastFullHashCheckedAtUtc = DateTime.MinValue;
     private DateTime? _lastAddedAtUtc;
 
     public PriceOcrBatchService(
@@ -95,9 +86,7 @@ public sealed class PriceOcrBatchService : IPriceOcrBatchService
                 MaxReached: false,
                 Count: Count,
                 Decision: "batch-disabled",
-                SampleHash: null,
                 FullHash: null,
-                SampleHashElapsed: TimeSpan.Zero,
                 FullHashElapsed: TimeSpan.Zero);
         }
 
@@ -114,52 +103,14 @@ public sealed class PriceOcrBatchService : IPriceOcrBatchService
                     MaxReached: true,
                     Count: _images.Count,
                     Decision: "max-reached-before-add",
-                    SampleHash: null,
                     FullHash: null,
-                    SampleHashElapsed: TimeSpan.Zero,
                     FullHashElapsed: TimeSpan.Zero);
             }
 
-            string? sampleHash = null;
-            var sampleElapsed = TimeSpan.Zero;
             using var hashReader = _hasher.CreateReader(bitmap);
-
-            if (options.UseSampleHashBeforeFullHash)
-            {
-                var sampleStopwatch = Stopwatch.StartNew();
-                sampleHash = hashReader.ComputeSampleHash(options.SampleHashStep);
-                sampleStopwatch.Stop();
-                sampleElapsed = sampleStopwatch.Elapsed;
-
-                var fullHashDue =
-                    !string.IsNullOrWhiteSpace(_lastFullHash) &&
-                    options.ForceFullHashEverySeconds > 0 &&
-                    now - _lastFullHashCheckedAtUtc >=
-                    TimeSpan.FromSeconds(options.ForceFullHashEverySeconds);
-
-                if (!fullHashDue &&
-                    string.Equals(_lastSampleHash, sampleHash, StringComparison.Ordinal))
-                {
-                    return new PriceOcrBatchAddResult(
-                        Added: false,
-                        Duplicate: true,
-                        MaxReached: false,
-                        Count: _images.Count,
-                        Decision: "sample-duplicate-skipped",
-                        SampleHash: sampleHash,
-                        FullHash: _lastFullHash,
-                        SampleHashElapsed: sampleElapsed,
-                        FullHashElapsed: TimeSpan.Zero);
-                }
-            }
-
             var fullStopwatch = Stopwatch.StartNew();
             var fullHash = hashReader.ComputeFullHash();
             fullStopwatch.Stop();
-
-            _lastSampleHash = sampleHash;
-            _lastFullHash = fullHash;
-            _lastFullHashCheckedAtUtc = now;
 
             if (_fullHashes.Contains(fullHash))
             {
@@ -169,9 +120,7 @@ public sealed class PriceOcrBatchService : IPriceOcrBatchService
                     MaxReached: false,
                     Count: _images.Count,
                     Decision: "full-duplicate-skipped",
-                    SampleHash: sampleHash,
                     FullHash: fullHash,
-                    SampleHashElapsed: sampleElapsed,
                     FullHashElapsed: fullStopwatch.Elapsed);
             }
 
@@ -188,9 +137,7 @@ public sealed class PriceOcrBatchService : IPriceOcrBatchService
                     MaxReached: false,
                     Count: _images.Count,
                     Decision: "recent-10min-hash-hit-skipped",
-                    SampleHash: sampleHash,
                     FullHash: fullHash,
-                    SampleHashElapsed: sampleElapsed,
                     FullHashElapsed: fullStopwatch.Elapsed);
             }
 
@@ -201,7 +148,6 @@ public sealed class PriceOcrBatchService : IPriceOcrBatchService
                 Source: source,
                 City: city,
                 FullHash: fullHash,
-                SampleHash: sampleHash,
                 CapturedAtUtc: now));
 
             _fullHashes.Add(fullHash);
@@ -215,9 +161,7 @@ public sealed class PriceOcrBatchService : IPriceOcrBatchService
                 MaxReached: count >= maxImages,
                 Count: count,
                 Decision: "added",
-                SampleHash: sampleHash,
                 FullHash: fullHash,
-                SampleHashElapsed: sampleElapsed,
                 FullHashElapsed: fullStopwatch.Elapsed);
         }
     }
@@ -263,9 +207,6 @@ public sealed class PriceOcrBatchService : IPriceOcrBatchService
             _images.Clear();
             _fullHashes.Clear();
 
-            _lastSampleHash = null;
-            _lastFullHash = null;
-            _lastFullHashCheckedAtUtc = DateTime.MinValue;
             _lastAddedAtUtc = null;
 
             return drained;

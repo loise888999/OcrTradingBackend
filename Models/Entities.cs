@@ -96,9 +96,9 @@ public sealed class OcrRuntimeSettings
     public bool PriceForcePreprocess { get; set; } = true;
 
     public bool SkipUnchangedOcrByHash { get; set; } = true;
-    public bool UseSampleHashBeforeFullHash { get; set; } = true;
-    public int SampleHashStep { get; set; } = 8;
-    public double ForceFullHashEverySeconds { get; set; } = 3.0;
+    public bool OcrFullHashCacheEnabled { get; set; } = true;
+    public double OcrFullHashCacheMinutes { get; set; } = 5.0;
+    public int OcrFullHashCacheMaxEntries { get; set; } = 1000;
 
     public bool PriceBatchCaptureEnabled { get; set; } = true;
     public double PriceBatchIdleFlushSeconds { get; set; }
@@ -118,8 +118,15 @@ public sealed class OcrRuntimeSettings
 
     public bool PriceLayoutValidationPreprocess { get; set; } = true;
     public bool PriceLayoutFieldPreprocess { get; set; } = true;
-    public bool PriceLayoutFieldFallbackEnabled { get; set; } = true;
+    public bool PriceLayoutFieldFallbackEnabled { get; set; } = false;
     public int PriceLayoutRowFingerprintTolerance { get; set; } = 10;
+
+    public bool OcrAllowedCharFilteringEnabled { get; set; } = true;
+    public string CoordinateOcrAllowedChars { get; set; } = "0123456789XYxy,:=. \r\n";
+    public string PriceNumberOcrAllowedChars { get; set; } = "0123456789,. \r\n";
+    public string PriceMultiplierOcrAllowedChars { get; set; } = "0123456789% \r\n";
+    public string PriceMenuOcrAllowedChars { get; set; } = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz \r\n";
+
     public string OcrTextPresenceGateMode { get; set; } = "BeforePreprocess";
     public int OcrTextPresenceMinContrast { get; set; } = 18;
     public double OcrTextPresenceMinEdgePixelsPercent { get; set; } = 0.35;
