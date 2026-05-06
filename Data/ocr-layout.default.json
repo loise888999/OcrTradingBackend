@@ -10,18 +10,18 @@
   "Zones": {
     "City": {
       "Name": "City",
-      "X": -4,
+      "X": 0,
       "Y": 28,
-      "Width": 300,
-      "Height": 31,
+      "Width": 317,
+      "Height": 26,
       "IsValid": true
     },
     "Coordinate": {
       "Name": "Coordinate",
-      "X": 1823,
-      "Y": 827,
-      "Width": 106,
-      "Height": 28,
+      "X": 1838,
+      "Y": 824,
+      "Width": 79,
+      "Height": 35,
       "IsValid": true
     }
   },
@@ -30,10 +30,10 @@
     "UseFieldBoxes": true,
     "BuyValidationBox": {
       "Name": "BuyValidation",
-      "X": 698,
+      "X": 702,
       "Y": 335,
-      "Width": 132,
-      "Height": 28,
+      "Width": 135,
+      "Height": 27,
       "IsValid": true
     },
     "SellValidationBox": {
@@ -48,11 +48,19 @@
       {
         "Index": 1,
         "Enabled": true,
+        "Row": {
+          "Name": "Row1",
+          "X": 679,
+          "Y": 368,
+          "Width": 172,
+          "Height": 53,
+          "IsValid": true
+        },
         "ItemName": {
           "Name": "Row1ItemName",
           "X": 675,
           "Y": 376,
-          "Width": 195,
+          "Width": 186,
           "Height": 25,
           "IsValid": true
         },
@@ -76,11 +84,19 @@
       {
         "Index": 2,
         "Enabled": true,
+        "Row": {
+          "Name": "Row2",
+          "X": 679,
+          "Y": 423,
+          "Width": 172,
+          "Height": 53,
+          "IsValid": true
+        },
         "ItemName": {
           "Name": "Row2ItemName",
           "X": 675,
           "Y": 431,
-          "Width": 195,
+          "Width": 186,
           "Height": 25,
           "IsValid": true
         },
@@ -104,11 +120,19 @@
       {
         "Index": 3,
         "Enabled": true,
+        "Row": {
+          "Name": "Row3",
+          "X": 679,
+          "Y": 478,
+          "Width": 172,
+          "Height": 53,
+          "IsValid": true
+        },
         "ItemName": {
           "Name": "Row3ItemName",
           "X": 675,
           "Y": 486,
-          "Width": 195,
+          "Width": 186,
           "Height": 25,
           "IsValid": true
         },
@@ -132,11 +156,19 @@
       {
         "Index": 4,
         "Enabled": true,
+        "Row": {
+          "Name": "Row4",
+          "X": 679,
+          "Y": 533,
+          "Width": 169,
+          "Height": 57,
+          "IsValid": true
+        },
         "ItemName": {
           "Name": "Row4ItemName",
           "X": 675,
           "Y": 541,
-          "Width": 195,
+          "Width": 186,
           "Height": 25,
           "IsValid": true
         },
