@@ -23,6 +23,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly ICoordinateParser _coordinateParser;
     private readonly ICityParser _cityParser;
     private readonly IPriceParser _priceParser;
+    private readonly IStrictTradeGoodMatcher _strictTradeGoodMatcher;
     private readonly IPendingTradeGoodService _pendingTradeGoodService;
     private readonly IWindowRelativeOcrZoneService _zoneService;
     private readonly OcrControlState _control;
@@ -45,6 +46,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         ICoordinateParser coordinateParser,
         ICityParser cityParser,
         IPriceParser priceParser,
+        IStrictTradeGoodMatcher strictTradeGoodMatcher,
         IPendingTradeGoodService pendingTradeGoodService,
         IWindowRelativeOcrZoneService zoneService,
         OcrControlState control,
@@ -66,6 +68,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _coordinateParser = coordinateParser;
         _cityParser = cityParser;
         _priceParser = priceParser;
+        _strictTradeGoodMatcher = strictTradeGoodMatcher;
         _pendingTradeGoodService = pendingTradeGoodService;
         _zoneService = zoneService;
         _control = control;
@@ -943,7 +946,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             return null;
         }
 
-        var strict = StrictTradeGoodMatcher.Find(itemName);
+        var strict = _strictTradeGoodMatcher.Find(itemName);
         var tradeGoodType = strict?.TradeGoodType ?? "Unknown";
 
         var rawText =
@@ -1142,7 +1145,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         };
     }
 
-    private static ParsedPriceLine? TryParseCombinedLayoutPriceRow(
+    private ParsedPriceLine? TryParseCombinedLayoutPriceRow(
         int rowIndex,
         string rawText,
         string tradeType)
@@ -1157,7 +1160,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         if (string.IsNullOrWhiteSpace(itemText))
             return null;
 
-        var strict = StrictTradeGoodMatcher.Find(itemText);
+        var strict = _strictTradeGoodMatcher.Find(itemText);
         var itemName = strict?.Name ?? itemText;
         var tradeGoodType = strict?.TradeGoodType ?? "Unknown";
 
@@ -1848,7 +1851,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             allowPendingCandidates: true);
 
         var directStrictCount = directPrices.Count(price =>
-            StrictTradeGoodMatcher.Find(
+            _strictTradeGoodMatcher.Find(
                 GetStrictTradeGoodSourceText(price.RawText, price.ItemName)) is not null);
 
         var preprocessed = _preprocessor.TryPreparePriceImage(bitmap, settings);
@@ -1883,7 +1886,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 allowPendingCandidates: true);
 
             var preprocessedStrictCount = preprocessedPrices.Count(price =>
-                StrictTradeGoodMatcher.Find(
+                _strictTradeGoodMatcher.Find(
                     GetStrictTradeGoodSourceText(price.RawText, price.ItemName)) is not null);
 
             if (preprocessedStrictCount > directStrictCount ||
@@ -2011,7 +2014,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             }
 
             var tradeGoodSourceName = CleanPendingTradeGoodName(price.ItemName);
-            var strictTradeGood = StrictTradeGoodMatcher.Find(tradeGoodSourceName);
+            var strictTradeGood = _strictTradeGoodMatcher.Find(tradeGoodSourceName);
 
             if (strictTradeGood is null)
             {
@@ -2371,16 +2374,29 @@ public sealed record StrictTradeGoodMatch(
     string TradeGoodType,
     string MatchedText);
 
-internal static class StrictTradeGoodMatcher
+public interface IStrictTradeGoodMatcher
 {
-    private static readonly Lazy<IReadOnlyList<StrictTradeGoodCandidate>> LazyCandidates = new(LoadCandidates);
+    StrictTradeGoodMatch? Find(string text);
+}
 
-    public static StrictTradeGoodMatch? Find(string text)
+internal sealed class StrictTradeGoodMatcher : IStrictTradeGoodMatcher
+{
+    private readonly ITradeGoodCatalog _catalog;
+    private readonly object _gate = new();
+    private long _cachedCatalogVersion = -1;
+    private IReadOnlyList<StrictTradeGoodCandidate> _candidates = Array.Empty<StrictTradeGoodCandidate>();
+
+    public StrictTradeGoodMatcher(ITradeGoodCatalog catalog)
+    {
+        _catalog = catalog;
+    }
+
+    public StrictTradeGoodMatch? Find(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
             return null;
 
-        foreach (var candidate in LazyCandidates.Value)
+        foreach (var candidate in GetCandidates())
         {
             if (candidate.Regex.IsMatch(text))
             {
@@ -2394,32 +2410,36 @@ internal static class StrictTradeGoodMatcher
         return null;
     }
 
-    private static IReadOnlyList<StrictTradeGoodCandidate> LoadCandidates()
+    private IReadOnlyList<StrictTradeGoodCandidate> GetCandidates()
     {
-        var csvPath = ResolveTradeGoodsCsvPath();
-        if (csvPath is null)
-            return Array.Empty<StrictTradeGoodCandidate>();
+        var version = _catalog.Version;
+        if (version == _cachedCatalogVersion)
+            return _candidates;
 
+        lock (_gate)
+        {
+            version = _catalog.Version;
+            if (version == _cachedCatalogVersion)
+                return _candidates;
+
+            _candidates = BuildCandidates(_catalog.GetAll());
+            _cachedCatalogVersion = version;
+            return _candidates;
+        }
+    }
+
+    private static IReadOnlyList<StrictTradeGoodCandidate> BuildCandidates(
+        IReadOnlyList<TradeGoodDefinition> goods)
+    {
         var candidates = new List<StrictTradeGoodCandidate>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var line in File.ReadLines(csvPath).Skip(1))
+        foreach (var good in goods)
         {
-            if (string.IsNullOrWhiteSpace(line))
-                continue;
+            AddCandidate(candidates, seen, good.Name, good.Name, good.Type);
 
-            var columns = ParseCsvLine(line);
-            if (columns.Count < 2)
-                continue;
-
-            var name = columns[0].Trim();
-            var type = columns[1].Trim();
-            var aliases = columns.Count >= 3 ? columns[2] : string.Empty;
-
-            AddCandidate(candidates, seen, name, name, type);
-
-            foreach (var alias in SplitAliases(aliases))
-                AddCandidate(candidates, seen, name, alias, type);
+            foreach (var alias in good.Aliases)
+                AddCandidate(candidates, seen, good.Name, alias, good.Type);
         }
 
         return candidates
@@ -2469,68 +2489,6 @@ internal static class StrictTradeGoodMatcher
             RegexOptions.IgnoreCase |
             RegexOptions.CultureInvariant |
             RegexOptions.Compiled);
-    }
-
-    private static IEnumerable<string> SplitAliases(string aliases)
-    {
-        if (string.IsNullOrWhiteSpace(aliases))
-            return Array.Empty<string>();
-
-        return aliases
-            .Split(
-                new[] { '|', ';' },
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(alias => !string.IsNullOrWhiteSpace(alias));
-    }
-
-    private static IReadOnlyList<string> ParseCsvLine(string line)
-    {
-        var values = new List<string>();
-        var current = new List<char>();
-        var inQuotes = false;
-
-        for (var i = 0; i < line.Length; i++)
-        {
-            var c = line[i];
-
-            if (c == '"')
-            {
-                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
-                {
-                    current.Add('"');
-                    i++;
-                }
-                else
-                {
-                    inQuotes = !inQuotes;
-                }
-
-                continue;
-            }
-
-            if (c == ',' && !inQuotes)
-            {
-                values.Add(new string(current.ToArray()));
-                current.Clear();
-                continue;
-            }
-
-            current.Add(c);
-        }
-
-        values.Add(new string(current.ToArray()));
-        return values;
-    }
-
-    private static string? ResolveTradeGoodsCsvPath()
-    {
-        var candidates = new[]
-        {
-            Path.Combine(AppContext.BaseDirectory, "Data", "trade-goods.csv"),
-            Path.Combine(Directory.GetCurrentDirectory(), "Data", "trade-goods.csv")
-        };
-
-        return candidates.FirstOrDefault(File.Exists);
     }
 
     private static string NormalizeKey(string value)

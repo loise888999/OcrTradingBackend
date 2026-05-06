@@ -7,6 +7,7 @@ public sealed record AddTradeGoodResult(bool Added, string Message, TradeGoodDef
 
 public interface ITradeGoodCatalog
 {
+    long Version { get; }
     IReadOnlyList<TradeGoodDefinition> GetAll();
     TradeGoodDefinition? FindByName(string name);
     IReadOnlyList<TradeGoodSuggestion> SuggestSimilar(string name, int take = 8);
@@ -19,12 +20,22 @@ public sealed class TradeGoodCatalog : ITradeGoodCatalog
     private readonly string _path;
     private List<TradeGoodDefinition> _goods;
     private Dictionary<string, TradeGoodDefinition> _lookup;
+    private long _version;
 
     public TradeGoodCatalog(IWebHostEnvironment env)
     {
         _path = Path.Combine(env.ContentRootPath, "Data", "trade-goods.csv");
         _goods = Load(_path).OrderBy(x => x.Name).ToList();
         _lookup = BuildLookup(_goods);
+    }
+
+    public long Version
+    {
+        get
+        {
+            lock (_gate)
+                return _version;
+        }
     }
 
     public IReadOnlyList<TradeGoodDefinition> GetAll()
@@ -116,6 +127,7 @@ public sealed class TradeGoodCatalog : ITradeGoodCatalog
             _goods.Add(good);
             _goods = _goods.OrderBy(x => x.Name).ToList();
             _lookup = BuildLookup(_goods);
+            _version++;
 
             Save(_path, _goods);
 

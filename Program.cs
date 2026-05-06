@@ -53,6 +53,7 @@ builder.Services.AddSingleton<ICoordinateParser, CoordinateParser>();
 builder.Services.AddSingleton<ICityCatalog, CityCatalog>();
 builder.Services.AddSingleton<ICityParser, CityParser>();
 builder.Services.AddSingleton<ITradeGoodCatalog, TradeGoodCatalog>();
+builder.Services.AddSingleton<IStrictTradeGoodMatcher, StrictTradeGoodMatcher>();
 builder.Services.AddSingleton<IPendingTradeGoodService, PendingTradeGoodService>();
 builder.Services.AddSingleton<IPriceParser, PriceParser>();
 builder.Services.AddSingleton<IScreenCaptureService, WindowsScreenCaptureService>();

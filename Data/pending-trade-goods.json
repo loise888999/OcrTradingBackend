@@ -1,3 +1,51 @@
 [
-
+  {
+    "id": "b3cd2ecebce44b998e1eea013c4cfe46",
+    "name": "satin 4",
+    "normalizedName": "satin 4",
+    "suggestedType": "Ores",
+    "confidence": 0.85,
+    "seenCount": 3,
+    "firstSeenAtUtc": "2026-05-06T23:00:57.4940382Z",
+    "lastSeenAtUtc": "2026-05-06T23:07:24.8882158Z",
+    "lastRawText": "Row 2: satin 4 | 4760 | 164 | Buy",
+    "lastTradeType": "Buy",
+    "lastPrice": 4760,
+    "lastMultiplier": 164,
+    "similar": [
+      {
+        "name": "Tin",
+        "type": "Ores",
+        "score": 0.9,
+        "aliases": []
+      },
+      {
+        "name": "Platinum",
+        "type": "Precious Metals",
+        "score": 0.5,
+        "aliases": []
+      },
+      {
+        "name": "Batik",
+        "type": "Fabrics",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Sand",
+        "type": "Wares",
+        "score": 0.4285714285714286,
+        "aliases": []
+      },
+      {
+        "name": "Sardine",
+        "type": "Foodstuffs",
+        "score": 0.4285714285714286,
+        "aliases": []
+      }
+    ],
+    "status": 0,
+    "resolvedAtUtc": null,
+    "resolutionMessage": ""
+  }
 ]

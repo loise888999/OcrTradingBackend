@@ -20,6 +20,7 @@ public sealed class OcrCalibrationService : IOcrCalibrationService
     private readonly IOcrDebugSnapshotService _debug;
     private readonly ICoordinateParser _coordinateParser;
     private readonly ICityParser _cityParser;
+    private readonly IStrictTradeGoodMatcher _strictTradeGoodMatcher;
     private readonly IOptionsMonitor<OcrRuntimeSettings> _settings;
 
     public OcrCalibrationService(
@@ -30,6 +31,7 @@ public sealed class OcrCalibrationService : IOcrCalibrationService
         IOcrDebugSnapshotService debug,
         ICoordinateParser coordinateParser,
         ICityParser cityParser,
+        IStrictTradeGoodMatcher strictTradeGoodMatcher,
         IOptionsMonitor<OcrRuntimeSettings> settings)
     {
         _layoutService = layoutService;
@@ -39,6 +41,7 @@ public sealed class OcrCalibrationService : IOcrCalibrationService
         _debug = debug;
         _coordinateParser = coordinateParser;
         _cityParser = cityParser;
+        _strictTradeGoodMatcher = strictTradeGoodMatcher;
         _settings = settings;
     }
 
@@ -227,7 +230,7 @@ public sealed class OcrCalibrationService : IOcrCalibrationService
         if (read.Check is not null)
             return read.Check;
 
-        var itemScore = StrictTradeGoodMatcher.Find(NormalizeWords(read.RawText)) is not null ? 0.45 : 0;
+        var itemScore = _strictTradeGoodMatcher.Find(NormalizeWords(read.RawText)) is not null ? 0.45 : 0;
         var priceScore = TryParsePrice(read.RawText, out var price) ? 0.3 : 0;
         var multiplierScore = TryParseMultiplier(read.RawText, out var multiplier) ? 0.25 : 0;
         var score = Math.Round(itemScore + priceScore + multiplierScore, 3);
