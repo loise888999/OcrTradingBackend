@@ -70,6 +70,8 @@ public sealed class OcrRuntimeSettings
     public int XZeroVisualOffset { get; set; } = 8250;
     public int CoordinateIntervalMilliseconds { get; set; } = 2000;
     public int CoordinateRecentlyVisibleSeconds { get; set; } = 10;
+    public bool CoordinateRequiresProbablyAtSea { get; set; } = true;
+    public int ProbablyAtSeaAfterNoCityOrMenuSeconds { get; set; } = 30;
     public int MinCityNameLength { get; set; } = 5;
 
     public bool EnableCoordinateCorrection { get; set; } = true;
@@ -136,6 +138,9 @@ public sealed class OcrControlState
     public DateTime? LastPriceAttemptUtc { get; set; }
     public DateTime? LastPriceStateChangeUtc { get; set; }
     public DateTime? PriceFastModeUntilUtc { get; set; }
+    public DateTime? LastNotAtSeaSignalUtc { get; set; }
+    public DateTime? SeaCandidateSinceUtc { get; set; }
+    public bool ProbablyAtSea { get; set; }
     public string? LastError { get; set; }
 }
 

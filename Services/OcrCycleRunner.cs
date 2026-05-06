@@ -113,68 +113,18 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             }
 
             var coordinateWasReadThisCycle = false;
-
-            var latestCityBeforeCoordinate = await _db.CityCaptures
-                .OrderByDescending(x => x.CapturedAtUtc)
-                .FirstOrDefaultAsync(ct);
-
-            var coordinateRecentlyVisibleBeforeRead =
-                _control.LastCoordinateReadUtc is not null &&
-                DateTime.UtcNow - _control.LastCoordinateReadUtc.Value <
-                TimeSpan.FromSeconds(settings.CoordinateRecentlyVisibleSeconds);
-
-            var wasInKnownCityBeforeCoordinate =
-                PriceCaptureMergeService.IsKnownCity(latestCityBeforeCoordinate?.City);
-
-            var ignoreCoordinateJumpThisRead =
-                wasInKnownCityBeforeCoordinate &&
-                !coordinateRecentlyVisibleBeforeRead;
-
-            if (coordinateZone is not null &&
-                IsCoordinateOcrDue(settings))
-            {
-                _control.LastCoordinateAttemptUtc = DateTime.UtcNow;
-
-                var previousCoordinate = ignoreCoordinateJumpThisRead
-                    ? null
-                    : await _db.CoordinateCaptures
-                        .OrderByDescending(x => x.CapturedAtUtc)
-                        .FirstOrDefaultAsync(ct);
-
-                var parsed = await TryReadCoordinateAsync(
-                    coordinateZone,
-                    previousCoordinate,
-                    settings,
-                    ct);
-
-                if (parsed is not null)
-                {
-                    coordinateWasReadThisCycle = true;
-                    _control.LastCoordinateReadUtc = DateTime.UtcNow;
-
-                    await AddUniqueCoordinateAsync(parsed, ct);
-                    SetLatestCityUnknownIfNeeded(latestCityBeforeCoordinate, parsed.RawText);
-
-                    if (ignoreCoordinateJumpThisRead)
-                    {
-                        _logger.LogInformation(
-                            "Coordinate appeared after known city. Ignored max jump range for this first coordinate read.");
-                    }
-                }
-            }
+            var sawNotAtSeaSignal = false;
+            string? detectedTradeType = null;
 
             var coordinateRecentlyVisible =
-                _control.LastCoordinateReadUtc is not null &&
-                DateTime.UtcNow - _control.LastCoordinateReadUtc.Value <
-                TimeSpan.FromSeconds(settings.CoordinateRecentlyVisibleSeconds);
+                IsCoordinateRecentlyVisible(settings);
 
             var cityDue =
                 _control.LastCityAttemptUtc is null ||
                 DateTime.UtcNow - _control.LastCityAttemptUtc.Value >=
                 TimeSpan.FromSeconds(settings.CityIntervalSeconds);
 
-            if (!coordinateWasReadThisCycle &&
-                !coordinateRecentlyVisible &&
+            if (!coordinateRecentlyVisible &&
                 cityDue &&
                 cityZone is not null)
             {
@@ -194,10 +144,94 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                     _priceRecentHashCache.NotifyCityStatus(city);
 
                     _control.LastCityReadUtc = DateTime.UtcNow;
+                    sawNotAtSeaSignal = true;
+                    MarkNotAtSea("city");
                 }
             }
 
-            if (!coordinateRecentlyVisible)
+            var latestCityBeforeCoordinate = await _db.CityCaptures
+                .OrderByDescending(x => x.CapturedAtUtc)
+                .FirstOrDefaultAsync(ct);
+
+            var wasInKnownCityBeforeCoordinate =
+                PriceCaptureMergeService.IsKnownCity(latestCityBeforeCoordinate?.City);
+
+            var priceDue =
+                !coordinateRecentlyVisible &&
+                wasInKnownCityBeforeCoordinate &&
+                IsPriceOcrDue(settings);
+
+            var coordinateDue =
+                coordinateZone is not null &&
+                IsCoordinateOcrDue(settings);
+
+            var shouldCheckTradeMenuForCoordinateGate =
+                settings.CoordinateRequiresProbablyAtSea &&
+                coordinateDue &&
+                !HasRecentNotAtSeaSignal(settings);
+
+            if (!coordinateRecentlyVisible &&
+                (priceDue || shouldCheckTradeMenuForCoordinateGate) &&
+                CanDetectTradeTypeFromLayout(layout))
+            {
+                detectedTradeType = await DetectTradeTypeFromLayoutAsync(layout, settings, ct);
+
+                if (PriceCaptureMergeService.IsKnownTradeType(detectedTradeType))
+                {
+                    sawNotAtSeaSignal = true;
+                    MarkNotAtSea("trade-menu");
+                }
+            }
+
+            var coordinateAllowedByGate =
+                coordinateDue &&
+                IsCoordinateAllowedBySeaGate(settings, sawNotAtSeaSignal);
+
+            if (coordinateZone is not null &&
+                coordinateAllowedByGate)
+            {
+                _control.LastCoordinateAttemptUtc = DateTime.UtcNow;
+
+                var coordinateRecentlyVisibleBeforeRead =
+                    IsCoordinateRecentlyVisible(settings);
+
+                var ignoreCoordinateJumpThisRead =
+                    wasInKnownCityBeforeCoordinate &&
+                    !coordinateRecentlyVisibleBeforeRead;
+
+                var previousCoordinate = ignoreCoordinateJumpThisRead
+                    ? null
+                    : await _db.CoordinateCaptures
+                        .OrderByDescending(x => x.CapturedAtUtc)
+                        .FirstOrDefaultAsync(ct);
+
+                var parsed = await TryReadCoordinateAsync(
+                    coordinateZone,
+                    previousCoordinate,
+                    settings,
+                    ct);
+
+                if (parsed is not null)
+                {
+                    coordinateWasReadThisCycle = true;
+                    _control.LastCoordinateReadUtc = DateTime.UtcNow;
+                    _control.ProbablyAtSea = true;
+
+                    await AddUniqueCoordinateAsync(parsed, ct);
+                    SetLatestCityUnknownIfNeeded(latestCityBeforeCoordinate, parsed.RawText);
+
+                    if (ignoreCoordinateJumpThisRead)
+                    {
+                        _logger.LogInformation(
+                            "Coordinate appeared after known city. Ignored max jump range for this first coordinate read.");
+                    }
+                }
+            }
+
+            coordinateRecentlyVisible = IsCoordinateRecentlyVisible(settings);
+
+            if (!coordinateWasReadThisCycle &&
+                !coordinateRecentlyVisible)
             {
                 var latestCity = await _db.CityCaptures
                     .OrderByDescending(x => x.CapturedAtUtc)
@@ -207,13 +241,13 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
                 if (PriceCaptureMergeService.IsKnownCity(latestCity?.City))
                 {
-                    var priceDue = IsPriceOcrDue(settings);
                     if (priceDue)
                     {
                         await TryReadPricesAsync(
                             latestCity!,
                             settings,
                             layout,
+                            detectedTradeType,
                             ct);
                     }
                 }
@@ -597,6 +631,80 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         return DateTime.UtcNow - _control.LastCoordinateAttemptUtc.Value >= interval;
     }
 
+    private bool IsCoordinateRecentlyVisible(OcrRuntimeSettings settings)
+    {
+        return _control.LastCoordinateReadUtc is not null &&
+               DateTime.UtcNow - _control.LastCoordinateReadUtc.Value <
+               TimeSpan.FromSeconds(Math.Max(1, settings.CoordinateRecentlyVisibleSeconds));
+    }
+
+    private bool HasRecentNotAtSeaSignal(OcrRuntimeSettings settings)
+    {
+        if (_control.LastNotAtSeaSignalUtc is null)
+            return false;
+
+        var threshold = TimeSpan.FromSeconds(
+            Math.Max(1, settings.ProbablyAtSeaAfterNoCityOrMenuSeconds));
+
+        return DateTime.UtcNow - _control.LastNotAtSeaSignalUtc.Value < threshold;
+    }
+
+    private bool IsCoordinateAllowedBySeaGate(
+        OcrRuntimeSettings settings,
+        bool sawNotAtSeaSignal)
+    {
+        if (!settings.CoordinateRequiresProbablyAtSea)
+            return true;
+
+        if (sawNotAtSeaSignal || HasRecentNotAtSeaSignal(settings))
+            return false;
+
+        if (_control.ProbablyAtSea)
+            return true;
+
+        var now = DateTime.UtcNow;
+        _control.SeaCandidateSinceUtc ??= _control.LastNotAtSeaSignalUtc ?? now;
+
+        var threshold = TimeSpan.FromSeconds(
+            Math.Max(1, settings.ProbablyAtSeaAfterNoCityOrMenuSeconds));
+
+        if (now - _control.SeaCandidateSinceUtc.Value < threshold)
+            return false;
+
+        _control.ProbablyAtSea = true;
+
+        _logger.LogInformation(
+            "Coordinate OCR probably-at-sea gate opened after no city/menu signal for {Seconds} seconds.",
+            threshold.TotalSeconds);
+
+        return true;
+    }
+
+    private void MarkNotAtSea(string reason)
+    {
+        var wasProbablyAtSea = _control.ProbablyAtSea;
+
+        _control.ProbablyAtSea = false;
+        _control.SeaCandidateSinceUtc = null;
+        _control.LastNotAtSeaSignalUtc = DateTime.UtcNow;
+
+        if (wasProbablyAtSea)
+        {
+            _logger.LogInformation(
+                "Coordinate OCR probably-at-sea gate closed because a not-at-sea signal was detected. Reason={Reason}",
+                reason);
+        }
+    }
+
+    private static bool CanDetectTradeTypeFromLayout(OcrLayoutSettings layout)
+    {
+        return layout.Enabled &&
+               layout.UseLayoutForPrice &&
+               layout.Price.UseFieldBoxes &&
+               (layout.Price.BuyValidationBox is { IsValid: true } ||
+                layout.Price.SellValidationBox is { IsValid: true });
+    }
+
     private void StopPriceFastMode(string reason)
     {
         if (_control.PriceFastModeUntilUtc is null)
@@ -616,6 +724,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         CityCapture latestCity,
         OcrRuntimeSettings settings,
         OcrLayoutSettings layout,
+        string? detectedTradeType,
         CancellationToken ct)
     {
         _control.LastPriceAttemptUtc = DateTime.UtcNow;
@@ -630,16 +739,17 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             return;
         }
 
-        await TryReadPricesFromLayoutAsync(layout, latestCity, settings, ct);
+        await TryReadPricesFromLayoutAsync(layout, latestCity, settings, detectedTradeType, ct);
     }
 
     private async Task TryReadPricesFromLayoutAsync(
         OcrLayoutSettings layout,
         CityCapture latestCity,
         OcrRuntimeSettings settings,
+        string? detectedTradeType,
         CancellationToken ct)
     {
-        var tradeType = await DetectTradeTypeFromLayoutAsync(layout, settings, ct);
+        var tradeType = detectedTradeType ?? await DetectTradeTypeFromLayoutAsync(layout, settings, ct);
 
         if (!PriceCaptureMergeService.IsKnownTradeType(tradeType))
         {
