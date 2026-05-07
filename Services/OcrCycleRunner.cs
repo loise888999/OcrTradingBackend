@@ -1150,30 +1150,11 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         string rawText,
         string tradeType)
     {
-        if (string.IsNullOrWhiteSpace(rawText))
-            return null;
-
-        if (!TryParseLayoutRowPrice(rawText, out var price, out var multiplier))
-            return null;
-
-        var itemText = ExtractLayoutRowItemText(rawText);
-        if (string.IsNullOrWhiteSpace(itemText))
-            return null;
-
-        var strict = _strictTradeGoodMatcher.Find(itemText);
-        var itemName = strict?.Name ?? itemText;
-        var tradeGoodType = strict?.TradeGoodType ?? "Unknown";
-
-        var raw =
-            $"Row {rowIndex}: {itemName} | {price.ToString(CultureInfo.InvariantCulture)} | {multiplier.ToString(CultureInfo.InvariantCulture)} | {tradeType}";
-
-        return new ParsedPriceLine(
-            itemName,
-            tradeGoodType,
-            price,
-            multiplier,
+        return PriceLayoutRowParser.TryParseCombinedLayoutPriceRow(
+            rowIndex,
+            rawText,
             tradeType,
-            raw);
+            _strictTradeGoodMatcher.Find);
     }
 
     private static string ExtractLayoutRowItemText(string rawText)
@@ -1201,7 +1182,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         var beforeMultiplier = normalized[..searchEnd];
         var priceMatches = Regex.Matches(
                 beforeMultiplier,
-                @"\d{2,}",
+                @"\d+",
                 RegexOptions.CultureInvariant)
             .Cast<Match>()
             .ToList();
@@ -1245,9 +1226,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             return false;
         }
 
+        var beforeMultiplier = normalized[..multiplierMatch.Index];
         var numbers = Regex.Matches(
-                normalized,
-                @"\d{2,}",
+                beforeMultiplier,
+                @"\d+",
                 RegexOptions.CultureInvariant)
             .Select(match => match.Value)
             .ToList();
@@ -1255,18 +1237,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         if (numbers.Count == 0)
             return false;
 
-        var multiplierText = multiplierMatch.Success
-            ? multiplierMatch.Groups["mult"].Value
-            : null;
-
-        foreach (var number in numbers)
+        foreach (var number in numbers.AsEnumerable().Reverse())
         {
-            if (multiplierText is not null &&
-                string.Equals(number, multiplierText, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
             if (decimal.TryParse(
                     number,
                     NumberStyles.Number,
