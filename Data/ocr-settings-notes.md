@@ -77,6 +77,20 @@ Current recommended flow uses whole-row boxes, so keep:
 - `CoordinateOcrUpscale`: Enlarges the coordinate crop before OCR.
 - `CoordinateOcrThreshold`: Brightness cutoff for coordinate text. Higher keeps only brighter pixels; lower keeps more gray/noise.
 - `CoordinateForcePreprocess`: Uses preprocessed coordinate OCR first/only when preprocessing is available.
+- `OcrPreprocessCleanupEnabled`: Global master switch for binary-image cleanup after preprocessing.
+- `CoordinatePreprocessCleanupEnabled`: Enables cleanup for coordinate OCR preprocessing.
+- `CoordinatePreprocessRemoveSmallBlobsEnabled`: Removes tiny isolated white particles after thresholding.
+- `CoordinatePreprocessMinWhiteBlobPixels`: Minimum connected white-pixel blob size to keep.
+- `CoordinatePreprocessTextShapeFilterEnabled`: Removes blobs that are too small/tall/flat to look like OCR text. Default is off because it can be too aggressive.
+- `CoordinatePreprocessMinTextLikeBlobWidth`: Minimum blob width when text-shape filtering is enabled.
+- `CoordinatePreprocessMinTextLikeBlobHeight`: Minimum blob height when text-shape filtering is enabled.
+- `CoordinatePreprocessMaxTextLikeBlobHeightPercent`: Maximum blob height as percent of crop height when text-shape filtering is enabled.
+
+When `SaveDebugImages` is true, coordinate preprocessing also writes stage images under
+`Data/debug-ocr/coordinate-preprocess`:
+
+- `before-cleanup`: after upscale + threshold, before blob/text-shape cleanup.
+- `after-cleanup`: final image sent to OCR after cleanup.
 
 ## Text Presence Gate
 

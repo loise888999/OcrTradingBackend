@@ -14,6 +14,17 @@ public interface IOcrImagePreprocessingService
 
 public sealed class OcrImagePreprocessingService : IOcrImagePreprocessingService
 {
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<OcrImagePreprocessingService> _logger;
+
+    public OcrImagePreprocessingService(
+        IConfiguration configuration,
+        ILogger<OcrImagePreprocessingService> logger)
+    {
+        _configuration = configuration;
+        _logger = logger;
+    }
+
     public Bitmap? TryPrepareCoordinateImage(Bitmap source, OcrRuntimeSettings settings)
     {
         if (!settings.CoordinateTryPreprocess)
@@ -22,7 +33,9 @@ public sealed class OcrImagePreprocessingService : IOcrImagePreprocessingService
         return OcrImagePreprocessor.PrepareCoordinateImage(
             source,
             settings.CoordinateOcrUpscale,
-            settings.CoordinateOcrThreshold);
+            settings.CoordinateOcrThreshold,
+            OcrImagePreprocessor.BuildCoordinateCleanupOptions(settings),
+            SaveCoordinatePreprocessStage);
     }
 
     public Bitmap? TryPrepareCityImage(Bitmap source, OcrRuntimeSettings settings)
@@ -116,5 +129,34 @@ public sealed class OcrImagePreprocessingService : IOcrImagePreprocessingService
         }
 
         return scaled;
+    }
+
+    private void SaveCoordinatePreprocessStage(Bitmap bitmap, string stage)
+    {
+        var enabled = _configuration.GetValue("OcrSettings:SaveDebugImages", false);
+        if (!enabled)
+            return;
+
+        try
+        {
+            var folder = _configuration.GetValue<string>("OcrSettings:DebugImageFolder");
+            if (string.IsNullOrWhiteSpace(folder))
+                folder = Path.Combine("Data", "debug-ocr");
+
+            if (!Path.IsPathRooted(folder))
+                folder = Path.Combine(AppContext.BaseDirectory, folder);
+
+            var targetFolder = Path.Combine(folder, "coordinate-preprocess");
+            Directory.CreateDirectory(targetFolder);
+
+            var stamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss_fff");
+            bitmap.Save(
+                Path.Combine(targetFolder, $"{stamp}_{stage}.png"),
+                ImageFormat.Png);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to save coordinate preprocess debug stage {Stage}", stage);
+        }
     }
 }
