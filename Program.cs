@@ -124,12 +124,12 @@ app.MapGet("/api/system/mouse-position", (IConfiguration config) =>
     return Results.Ok(new { x = p.X + offsetX, y = p.Y + offsetY, rawX = p.X, rawY = p.Y, offsetX, offsetY });
 });
 
-app.MapGet("/api/system/game-window", (IWindowRelativeOcrZoneService zoneService) =>
+app.MapGet("/api/system/game-window", (IGameWindowLocator windowLocator) =>
 {
-    var window = zoneService.FindWindow();
-    return window is null
+    var result = windowLocator.FindWindowWithSource();
+    return result is null
         ? Results.NotFound(new { message = "Game window not found." })
-        : Results.Ok(GameWindowResponseMapper.ToResponse(window));
+        : Results.Ok(GameWindowResponseMapper.ToResponse(result.Window, result.SelectionSource));
 });
 
 app.MapGet("/api/system/window-under-mouse-delayed", async (int seconds = 5, CancellationToken ct = default) =>
@@ -160,6 +160,12 @@ app.MapPost("/api/system/clear-selected-game-window", () =>
 {
     GameWindowSelectionStore.Clear();
     return Results.Ok(new { cleared = true });
+});
+
+app.MapPost("/api/system/forget-remembered-game-window", () =>
+{
+    GameWindowSelectionStore.ForgetRemembered();
+    return Results.Ok(new { forgotten = true });
 });
 
 app.MapGet("/api/settings", async (AppDbContext db) => Results.Ok(new

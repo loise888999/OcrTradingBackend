@@ -7,7 +7,8 @@ public sealed record GameWindowResponse(
     int Left,
     int Top,
     int Width,
-    int Height
+    int Height,
+    string SelectionSource = "unknown"
 )
 {
     public int Right => Left + Width;
