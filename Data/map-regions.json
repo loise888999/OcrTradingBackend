@@ -166,6 +166,44 @@
     "Enabled": true
   },
   {
+    "Id": "indian-ocean-sri-lanka",
+    "Name": "Indian Ocean / Sri Lanka",
+    "Type": "SeaTradeRegion",
+    "ParentRegion": null,
+    "Color": "#eaab3e",
+    "Points": [
+      {
+        "X": 4906.419921875,
+        "Y": 953
+      },
+      {
+        "X": 4830,
+        "Y": 1052
+      },
+      {
+        "X": 4834,
+        "Y": 1163
+      },
+      {
+        "X": 5004,
+        "Y": 1222
+      },
+      {
+        "X": 5151,
+        "Y": 1079
+      },
+      {
+        "X": 5149,
+        "Y": 999
+      },
+      {
+        "X": 5015,
+        "Y": 954
+      }
+    ],
+    "Enabled": true
+  },
+  {
     "Id": "middle-east",
     "Name": "Middle East",
     "Type": "MainRegion",
