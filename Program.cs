@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using OcrTradingBackend.Data;
 using OcrTradingBackend.Models;
@@ -59,6 +60,50 @@ static string? BuildOcrDebugImageUrl(string? debugImagePath)
         return null;
 
     return $"/api/ocr-debug-image?path={Uri.EscapeDataString(debugImagePath.Replace('\\', '/'))}";
+}
+
+static (double Score, string Status, string Message, string? ParsedText) ScoreLayoutTestBox(
+    string kind,
+    OcrFieldKind fieldKind,
+    string rawText,
+    OcrRuntimeSettings settings,
+    ICoordinateParser coordinateParser,
+    ICityParser cityParser,
+    IStrictTradeGoodMatcher strictTradeGoodMatcher)
+{
+    if (string.IsNullOrWhiteSpace(rawText))
+        return (0, "fail", "No OCR text detected.", null);
+
+    if (fieldKind == OcrFieldKind.Coordinate)
+    {
+        var parsed = coordinateParser.TryParse(rawText, settings.WorldWidth, settings.WorldHeight);
+        return parsed is null
+            ? (0.35, "warn", "Text detected, but coordinate did not parse.", null)
+            : (1, "pass", "Coordinate parsed.", $"{parsed.X},{parsed.Y}");
+    }
+
+    if (fieldKind == OcrFieldKind.City)
+    {
+        var city = cityParser.TryParse(rawText, settings.MinCityNameLength);
+        return city is null
+            ? (0.5, "warn", "Text detected, but city did not match known city.", null)
+            : (1, "pass", "City parsed.", city);
+    }
+
+    if (kind.StartsWith("row-", StringComparison.OrdinalIgnoreCase))
+    {
+        var parsed = PriceLayoutRowParser.TryParseCombinedLayoutPriceRow(
+            0,
+            rawText,
+            "Buy",
+            strictTradeGoodMatcher.Find);
+
+        return parsed is null
+            ? (0.35, "warn", "Text detected, but whole row did not parse item + price + multiplier.", null)
+            : (1, "pass", "Whole row parsed.", $"{parsed.ItemName} {parsed.Price} {parsed.Multiplier}%");
+    }
+
+    return (0.75, "pass", "OCR text detected.", rawText.Trim());
 }
 
 builder.Services.AddSingleton<IValidateOptions<OcrRuntimeSettings>, OcrRuntimeSettingsValidator>();
@@ -506,6 +551,9 @@ app.MapPost("/api/ocr-layout/test-box", async (
     IOcrCachedTextService ocr,
     IOcrImagePreprocessingService preprocessor,
     IOcrDebugSnapshotService debug,
+    [FromServices] ICoordinateParser coordinateParser,
+    [FromServices] ICityParser cityParser,
+    [FromServices] IStrictTradeGoodMatcher strictTradeGoodMatcher,
     Microsoft.Extensions.Options.IOptionsMonitor<OcrRuntimeSettings> settings,
     CancellationToken ct) =>
 {
@@ -556,11 +604,23 @@ app.MapPost("/api/ocr-layout/test-box", async (
                     preprocessed,
                     preprocessedRaw,
                     ct);
+                var score = ScoreLayoutTestBox(
+                    request.Kind,
+                    fieldKind,
+                    preprocessedRaw,
+                    settings.CurrentValue,
+                    coordinateParser,
+                    cityParser,
+                    strictTradeGoodMatcher);
 
                 return Results.Ok(new OcrLayoutTestBoxResponse(
                     request.Kind,
                     source,
                     preprocessedRaw,
+                    score.Score,
+                    score.Status,
+                    score.Message,
+                    score.ParsedText,
                     preprocessedDebugPath,
                     BuildOcrDebugImageUrl(preprocessedDebugPath),
                     request.Box,
@@ -581,11 +641,23 @@ app.MapPost("/api/ocr-layout/test-box", async (
         bitmap,
         raw,
         ct);
+    var directScore = ScoreLayoutTestBox(
+        request.Kind,
+        fieldKind,
+        raw,
+        settings.CurrentValue,
+        coordinateParser,
+        cityParser,
+        strictTradeGoodMatcher);
 
     return Results.Ok(new OcrLayoutTestBoxResponse(
         request.Kind,
         directSource,
         raw,
+        directScore.Score,
+        directScore.Status,
+        directScore.Message,
+        directScore.ParsedText,
         debugPath,
         BuildOcrDebugImageUrl(debugPath),
         request.Box,
