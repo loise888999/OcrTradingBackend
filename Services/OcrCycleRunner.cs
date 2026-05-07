@@ -38,6 +38,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly IPriceRecentHashCacheService _priceRecentHashCache;
     private readonly OcrLastResultState _lastResults;
     private readonly ILogger<OcrCycleRunner> _logger;
+    private readonly CoordinateFarJumpConfirmationGate _coordinateFarJumpGate;
 
     public OcrCycleRunner(
         AppDbContext db,
@@ -60,6 +61,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         IPriceLayoutRowFingerprintService priceLayoutRowFingerprint,
         IPriceRecentHashCacheService priceRecentHashCache,
         OcrLastResultState lastResults,
+        CoordinateFarJumpConfirmationGate coordinateFarJumpGate,
         ILogger<OcrCycleRunner> logger)
     {
         _db = db;
@@ -82,6 +84,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _priceLayoutRowFingerprint = priceLayoutRowFingerprint;
         _priceRecentHashCache = priceRecentHashCache;
         _lastResults = lastResults;
+        _coordinateFarJumpGate = coordinateFarJumpGate;
         _logger = logger;
     }
 
@@ -215,13 +218,55 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                     _control.LastCoordinateReadUtc = DateTime.UtcNow;
                     _control.ProbablyAtSea = true;
 
-                    await AddUniqueCoordinateAsync(parsed, ct);
-                    SetLatestCityUnknownIfNeeded(latestCityBeforeCoordinate, parsed.RawText);
+                    var farJumpDecision = _coordinateFarJumpGate.Evaluate(
+                        parsed,
+                        previousCoordinate,
+                        settings);
 
-                    if (ignoreCoordinateJumpThisRead)
+                    if (!farJumpDecision.Accepted)
                     {
-                        _logger.LogInformation(
-                            "Coordinate appeared after known city. Ignored max jump range for this first coordinate read.");
+                        if (farJumpDecision.ResetPending)
+                        {
+                            _logger.LogInformation(
+                                "Coordinate far jump pending reset. X={X}; Y={Y}; Count={Count}/{Required}; RawText={RawText}",
+                                parsed.X,
+                                parsed.Y,
+                                farJumpDecision.PendingCount,
+                                farJumpDecision.RequiredCount,
+                                parsed.RawText);
+                        }
+                        else
+                        {
+                            _logger.LogInformation(
+                                "Coordinate far jump pending. X={X}; Y={Y}; Count={Count}/{Required}; RawText={RawText}",
+                                parsed.X,
+                                parsed.Y,
+                                farJumpDecision.PendingCount,
+                                farJumpDecision.RequiredCount,
+                                parsed.RawText);
+                        }
+                    }
+                    else
+                    {
+                        if (farJumpDecision.AcceptedAfterConfirmation)
+                        {
+                            _logger.LogInformation(
+                                "Coordinate far jump accepted after confirmation. X={X}; Y={Y}; Count={Count}/{Required}; RawText={RawText}",
+                                parsed.X,
+                                parsed.Y,
+                                farJumpDecision.PendingCount,
+                                farJumpDecision.RequiredCount,
+                                parsed.RawText);
+                        }
+
+                        await AddUniqueCoordinateAsync(parsed, ct);
+                        SetLatestCityUnknownIfNeeded(latestCityBeforeCoordinate, parsed.RawText);
+
+                        if (ignoreCoordinateJumpThisRead)
+                        {
+                            _logger.LogInformation(
+                                "Coordinate appeared after known city. Ignored max jump range for this first coordinate read.");
+                        }
                     }
                 }
             }
@@ -506,6 +551,16 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 settings.EnableCoordinateCorrection,
                 settings.MaxCoordinateJumpX,
                 settings.MaxCoordinateJumpY));
+
+        if (parsed is null &&
+            settings.CoordinateFarJumpConfirmationEnabled &&
+            previousCoordinate is not null)
+        {
+            parsed = _coordinateParser.TryParse(
+                raw,
+                settings.WorldWidth,
+                settings.WorldHeight);
+        }
 
         _lastResults.SetCoordinate(source, raw, parsed, debugPath);
 

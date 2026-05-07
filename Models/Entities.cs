@@ -86,6 +86,10 @@ public sealed class OcrRuntimeSettings
     public bool EnableCoordinateCorrection { get; set; } = true;
     public int MaxCoordinateJumpX { get; set; } = 1200;
     public int MaxCoordinateJumpY { get; set; } = 900;
+    public bool CoordinateFarJumpConfirmationEnabled { get; set; } = true;
+    public int CoordinateFarJumpRequiredReads { get; set; } = 4;
+    public int CoordinateFarJumpClusterToleranceX { get; set; } = 100;
+    public int CoordinateFarJumpClusterToleranceY { get; set; } = 100;
 
     // Preprocessing helps when coordinate text is small: upscale + grayscale + threshold.
     public bool CoordinateTryPreprocess { get; set; } = true;
