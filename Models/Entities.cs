@@ -90,7 +90,16 @@ public sealed class OcrRuntimeSettings
     // Preprocessing helps when coordinate text is small: upscale + grayscale + threshold.
     public bool CoordinateTryPreprocess { get; set; } = true;
     public int CoordinateOcrUpscale { get; set; } = 3;
+    public int CoordinateOcrThreshold { get; set; } = 145;
     public bool CoordinateForcePreprocess { get; set; }
+    public bool OcrPreprocessCleanupEnabled { get; set; } = true;
+    public bool CoordinatePreprocessCleanupEnabled { get; set; } = true;
+    public bool CoordinatePreprocessRemoveSmallBlobsEnabled { get; set; } = true;
+    public int CoordinatePreprocessMinWhiteBlobPixels { get; set; } = 3;
+    public bool CoordinatePreprocessTextShapeFilterEnabled { get; set; }
+    public int CoordinatePreprocessMinTextLikeBlobWidth { get; set; } = 2;
+    public int CoordinatePreprocessMinTextLikeBlobHeight { get; set; } = 4;
+    public int CoordinatePreprocessMaxTextLikeBlobHeightPercent { get; set; } = 90;
 
     public bool CityTryPreprocess { get; set; } = true;
     public int CityOcrUpscale { get; set; } = 2;

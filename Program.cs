@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using OcrTradingBackend.Data;
 using OcrTradingBackend.Models;
 using OcrTradingBackend.Services;
+using System.Drawing.Imaging;
 
 try
 {
@@ -59,6 +61,57 @@ static string? BuildOcrDebugImageUrl(string? debugImagePath)
         return null;
 
     return $"/api/ocr-debug-image?path={Uri.EscapeDataString(debugImagePath.Replace('\\', '/'))}";
+}
+
+static string EncodePngDataUrl(Bitmap bitmap)
+{
+    using var stream = new MemoryStream();
+    bitmap.Save(stream, ImageFormat.Png);
+    return $"data:image/png;base64,{Convert.ToBase64String(stream.ToArray())}";
+}
+
+static (double Score, string Status, string Message, string? ParsedText) ScoreLayoutTestBox(
+    string kind,
+    OcrFieldKind fieldKind,
+    string rawText,
+    OcrRuntimeSettings settings,
+    ICoordinateParser coordinateParser,
+    ICityParser cityParser,
+    IStrictTradeGoodMatcher strictTradeGoodMatcher)
+{
+    if (string.IsNullOrWhiteSpace(rawText))
+        return (0, "fail", "No OCR text detected.", null);
+
+    if (fieldKind == OcrFieldKind.Coordinate)
+    {
+        var parsed = coordinateParser.TryParse(rawText, settings.WorldWidth, settings.WorldHeight);
+        return parsed is null
+            ? (0.35, "warn", "Text detected, but coordinate did not parse.", null)
+            : (1, "pass", "Coordinate parsed.", $"{parsed.X},{parsed.Y}");
+    }
+
+    if (fieldKind == OcrFieldKind.City)
+    {
+        var city = cityParser.TryParse(rawText, settings.MinCityNameLength);
+        return city is null
+            ? (0.5, "warn", "Text detected, but city did not match known city.", null)
+            : (1, "pass", "City parsed.", city);
+    }
+
+    if (kind.StartsWith("row-", StringComparison.OrdinalIgnoreCase))
+    {
+        var parsed = PriceLayoutRowParser.TryParseCombinedLayoutPriceRow(
+            0,
+            rawText,
+            "Buy",
+            strictTradeGoodMatcher.Find);
+
+        return parsed is null
+            ? (0.35, "warn", "Text detected, but whole row did not parse item + price + multiplier.", null)
+            : (1, "pass", "Whole row parsed.", $"{parsed.ItemName} {parsed.Price} {parsed.Multiplier}%");
+    }
+
+    return (0.75, "pass", "OCR text detected.", rawText.Trim());
 }
 
 builder.Services.AddSingleton<IValidateOptions<OcrRuntimeSettings>, OcrRuntimeSettingsValidator>();
@@ -124,12 +177,12 @@ app.MapGet("/api/system/mouse-position", (IConfiguration config) =>
     return Results.Ok(new { x = p.X + offsetX, y = p.Y + offsetY, rawX = p.X, rawY = p.Y, offsetX, offsetY });
 });
 
-app.MapGet("/api/system/game-window", (IWindowRelativeOcrZoneService zoneService) =>
+app.MapGet("/api/system/game-window", (IGameWindowLocator windowLocator) =>
 {
-    var window = zoneService.FindWindow();
-    return window is null
+    var result = windowLocator.FindWindowWithSource();
+    return result is null
         ? Results.NotFound(new { message = "Game window not found." })
-        : Results.Ok(GameWindowResponseMapper.ToResponse(window));
+        : Results.Ok(GameWindowResponseMapper.ToResponse(result.Window, result.SelectionSource));
 });
 
 app.MapGet("/api/system/window-under-mouse-delayed", async (int seconds = 5, CancellationToken ct = default) =>
@@ -160,6 +213,12 @@ app.MapPost("/api/system/clear-selected-game-window", () =>
 {
     GameWindowSelectionStore.Clear();
     return Results.Ok(new { cleared = true });
+});
+
+app.MapPost("/api/system/forget-remembered-game-window", () =>
+{
+    GameWindowSelectionStore.ForgetRemembered();
+    return Results.Ok(new { forgotten = true });
 });
 
 app.MapGet("/api/settings", async (AppDbContext db) => Results.Ok(new
@@ -500,6 +559,9 @@ app.MapPost("/api/ocr-layout/test-box", async (
     IOcrCachedTextService ocr,
     IOcrImagePreprocessingService preprocessor,
     IOcrDebugSnapshotService debug,
+    [FromServices] ICoordinateParser coordinateParser,
+    [FromServices] ICityParser cityParser,
+    [FromServices] IStrictTradeGoodMatcher strictTradeGoodMatcher,
     Microsoft.Extensions.Options.IOptionsMonitor<OcrRuntimeSettings> settings,
     CancellationToken ct) =>
 {
@@ -550,11 +612,24 @@ app.MapPost("/api/ocr-layout/test-box", async (
                     preprocessed,
                     preprocessedRaw,
                     ct);
+                var score = ScoreLayoutTestBox(
+                    request.Kind,
+                    fieldKind,
+                    preprocessedRaw,
+                    settings.CurrentValue,
+                    coordinateParser,
+                    cityParser,
+                    strictTradeGoodMatcher);
 
                 return Results.Ok(new OcrLayoutTestBoxResponse(
                     request.Kind,
                     source,
                     preprocessedRaw,
+                    score.Score,
+                    score.Status,
+                    score.Message,
+                    score.ParsedText,
+                    EncodePngDataUrl(preprocessed),
                     preprocessedDebugPath,
                     BuildOcrDebugImageUrl(preprocessedDebugPath),
                     request.Box,
@@ -575,11 +650,24 @@ app.MapPost("/api/ocr-layout/test-box", async (
         bitmap,
         raw,
         ct);
+    var directScore = ScoreLayoutTestBox(
+        request.Kind,
+        fieldKind,
+        raw,
+        settings.CurrentValue,
+        coordinateParser,
+        cityParser,
+        strictTradeGoodMatcher);
 
     return Results.Ok(new OcrLayoutTestBoxResponse(
         request.Kind,
         directSource,
         raw,
+        directScore.Score,
+        directScore.Status,
+        directScore.Message,
+        directScore.ParsedText,
+        EncodePngDataUrl(bitmap),
         debugPath,
         BuildOcrDebugImageUrl(debugPath),
         request.Box,

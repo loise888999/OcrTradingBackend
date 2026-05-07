@@ -22,7 +22,11 @@ public static class CoordinateScreenSearchService
 
             if (settings.CoordinateTryPreprocess)
             {
-                using var preprocessed = OcrImagePreprocessor.PrepareCoordinateImage(fixedBitmap, settings.CoordinateOcrUpscale);
+                using var preprocessed = OcrImagePreprocessor.PrepareCoordinateImage(
+                    fixedBitmap,
+                    settings.CoordinateOcrUpscale,
+                    settings.CoordinateOcrThreshold,
+                    OcrImagePreprocessor.BuildCoordinateCleanupOptions(settings));
                 var preprocessedResult = TryOcrAndParse(ocr, parser, preprocessed, previousCoordinate, settings, "fixed-preprocessed");
                 if (preprocessedResult is not null) return preprocessedResult;
             }
@@ -65,9 +69,14 @@ public static class CoordinateScreenSearchService
 
 public static class OcrImagePreprocessor
 {
-    public static Bitmap PrepareCoordinateImage(Bitmap source, int scale)
+    public static Bitmap PrepareCoordinateImage(
+        Bitmap source,
+        int scale,
+        int threshold = 145,
+        OcrPreprocessCleanupOptions? cleanupOptions = null)
     {
         scale = Math.Clamp(scale, 1, 5);
+        threshold = Math.Clamp(threshold, 0, 255);
 
         var scaled = new Bitmap(source.Width * scale, source.Height * scale);
         using (var graphics = Graphics.FromImage(scaled))
@@ -87,11 +96,67 @@ public static class OcrImagePreprocessor
                 var gray = (pixel.R * 0.299) + (pixel.G * 0.587) + (pixel.B * 0.114);
 
                 // Keep bright UI text bright and darken the background.
-                var value = gray >= 145 ? 255 : 0;
+                var value = gray >= threshold ? 255 : 0;
                 scaled.SetPixel(x, y, Color.FromArgb(value, value, value));
             }
         }
 
+        if (cleanupOptions is not null)
+            OcrPreprocessCleanupService.CleanBinaryImage(scaled, cleanupOptions);
+
         return scaled;
+    }
+
+    public static Bitmap PrepareCoordinateImage(
+        Bitmap source,
+        int scale,
+        int threshold,
+        OcrPreprocessCleanupOptions? cleanupOptions,
+        Action<Bitmap, string>? saveStage)
+    {
+        scale = Math.Clamp(scale, 1, 5);
+        threshold = Math.Clamp(threshold, 0, 255);
+
+        var scaled = new Bitmap(source.Width * scale, source.Height * scale);
+        using (var graphics = Graphics.FromImage(scaled))
+        {
+            graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
+            graphics.PixelOffsetMode = PixelOffsetMode.Half;
+            graphics.DrawImage(source, 0, 0, scaled.Width, scaled.Height);
+        }
+
+        for (var y = 0; y < scaled.Height; y++)
+        {
+            for (var x = 0; x < scaled.Width; x++)
+            {
+                var pixel = scaled.GetPixel(x, y);
+                var gray = (pixel.R * 0.299) + (pixel.G * 0.587) + (pixel.B * 0.114);
+                var value = gray >= threshold ? 255 : 0;
+                scaled.SetPixel(x, y, Color.FromArgb(value, value, value));
+            }
+        }
+
+        saveStage?.Invoke(scaled, "before-cleanup");
+
+        if (cleanupOptions is not null)
+            OcrPreprocessCleanupService.CleanBinaryImage(scaled, cleanupOptions);
+
+        saveStage?.Invoke(scaled, "after-cleanup");
+
+        return scaled;
+    }
+
+    public static OcrPreprocessCleanupOptions BuildCoordinateCleanupOptions(
+        OcrRuntimeSettings settings)
+    {
+        return new OcrPreprocessCleanupOptions(
+            Enabled: settings.OcrPreprocessCleanupEnabled &&
+                     settings.CoordinatePreprocessCleanupEnabled,
+            RemoveSmallBlobsEnabled: settings.CoordinatePreprocessRemoveSmallBlobsEnabled,
+            MinWhiteBlobPixels: settings.CoordinatePreprocessMinWhiteBlobPixels,
+            TextShapeFilterEnabled: settings.CoordinatePreprocessTextShapeFilterEnabled,
+            MinTextLikeBlobWidth: settings.CoordinatePreprocessMinTextLikeBlobWidth,
+            MinTextLikeBlobHeight: settings.CoordinatePreprocessMinTextLikeBlobHeight,
+            MaxTextLikeBlobHeightPercent: settings.CoordinatePreprocessMaxTextLikeBlobHeightPercent);
     }
 }
