@@ -50,10 +50,10 @@
         "Enabled": true,
         "Row": {
           "Name": "Row1",
-          "X": 679,
+          "X": 684,
           "Y": 368,
-          "Width": 172,
-          "Height": 53,
+          "Width": 165,
+          "Height": 50,
           "IsValid": true
         },
         "ItemName": {
@@ -88,8 +88,8 @@
           "Name": "Row2",
           "X": 679,
           "Y": 423,
-          "Width": 172,
-          "Height": 53,
+          "Width": 171,
+          "Height": 50,
           "IsValid": true
         },
         "ItemName": {
@@ -124,8 +124,8 @@
           "Name": "Row3",
           "X": 679,
           "Y": 478,
-          "Width": 172,
-          "Height": 53,
+          "Width": 168,
+          "Height": 52,
           "IsValid": true
         },
         "ItemName": {
@@ -159,9 +159,9 @@
         "Row": {
           "Name": "Row4",
           "X": 679,
-          "Y": 533,
+          "Y": 534,
           "Width": 169,
-          "Height": 57,
+          "Height": 52,
           "IsValid": true
         },
         "ItemName": {
