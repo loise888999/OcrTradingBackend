@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using OcrTradingBackend.Data;
 using OcrTradingBackend.Models;
 using OcrTradingBackend.Services;
+using System.Drawing.Imaging;
 
 try
 {
@@ -60,6 +61,13 @@ static string? BuildOcrDebugImageUrl(string? debugImagePath)
         return null;
 
     return $"/api/ocr-debug-image?path={Uri.EscapeDataString(debugImagePath.Replace('\\', '/'))}";
+}
+
+static string EncodePngDataUrl(Bitmap bitmap)
+{
+    using var stream = new MemoryStream();
+    bitmap.Save(stream, ImageFormat.Png);
+    return $"data:image/png;base64,{Convert.ToBase64String(stream.ToArray())}";
 }
 
 static (double Score, string Status, string Message, string? ParsedText) ScoreLayoutTestBox(
@@ -621,6 +629,7 @@ app.MapPost("/api/ocr-layout/test-box", async (
                     score.Status,
                     score.Message,
                     score.ParsedText,
+                    EncodePngDataUrl(preprocessed),
                     preprocessedDebugPath,
                     BuildOcrDebugImageUrl(preprocessedDebugPath),
                     request.Box,
@@ -658,6 +667,7 @@ app.MapPost("/api/ocr-layout/test-box", async (
         directScore.Status,
         directScore.Message,
         directScore.ParsedText,
+        EncodePngDataUrl(bitmap),
         debugPath,
         BuildOcrDebugImageUrl(debugPath),
         request.Box,

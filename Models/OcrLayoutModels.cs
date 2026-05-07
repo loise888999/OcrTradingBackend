@@ -97,6 +97,7 @@ public sealed record OcrLayoutTestBoxResponse(
     string Status,
     string Message,
     string? ParsedText,
+    string ImageDataUrl,
     string? DebugImagePath,
     string? DebugImageUrl,
     OcrLayoutBox Box,
