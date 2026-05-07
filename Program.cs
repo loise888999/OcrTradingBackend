@@ -39,6 +39,28 @@ static OcrFieldKind GetLayoutTestFieldKind(string kind)
     return OcrFieldKind.General;
 }
 
+static Bitmap? TryPrepareLayoutTestImage(
+    IOcrImagePreprocessingService preprocessor,
+    Bitmap bitmap,
+    OcrFieldKind fieldKind,
+    OcrRuntimeSettings settings)
+{
+    return fieldKind switch
+    {
+        OcrFieldKind.Coordinate => preprocessor.TryPrepareCoordinateImage(bitmap, settings),
+        OcrFieldKind.City => preprocessor.TryPrepareCityImage(bitmap, settings),
+        _ => preprocessor.TryPreparePriceImage(bitmap, settings)
+    };
+}
+
+static string? BuildOcrDebugImageUrl(string? debugImagePath)
+{
+    if (string.IsNullOrWhiteSpace(debugImagePath))
+        return null;
+
+    return $"/api/ocr-debug-image?path={Uri.EscapeDataString(debugImagePath.Replace('\\', '/'))}";
+}
+
 builder.Services.AddSingleton<IValidateOptions<OcrRuntimeSettings>, OcrRuntimeSettingsValidator>();
 builder.Services.AddOptions<OcrRuntimeSettings>()
     .Bind(builder.Configuration.GetSection("OcrSettings"))
@@ -506,52 +528,92 @@ app.MapPost("/api/ocr-layout/test-box", async (
 
     if (request.Preprocess)
     {
-        var preprocessed = preprocessor.TryPreparePriceImage(bitmap, settings.CurrentValue);
+        var preprocessed = TryPrepareLayoutTestImage(
+            preprocessor,
+            bitmap,
+            fieldKind,
+            settings.CurrentValue);
 
         if (preprocessed is not null)
         {
             using (preprocessed)
             {
+                var source = "layout-test-preprocessed";
                 var preprocessedRaw = ocr.ReadText(
-                    "layout-test-preprocessed",
+                    source,
                     preprocessed,
                     fieldKind,
                     settings.CurrentValue).Text;
                 var preprocessedDebugPath = await debug.SaveAsync(
                     request.Kind,
-                    "layout-test-preprocessed",
+                    source,
                     preprocessed,
                     preprocessedRaw,
                     ct);
 
                 return Results.Ok(new OcrLayoutTestBoxResponse(
                     request.Kind,
+                    source,
                     preprocessedRaw,
                     preprocessedDebugPath,
+                    BuildOcrDebugImageUrl(preprocessedDebugPath),
                     request.Box,
                     captureZone));
             }
         }
     }
 
+    var directSource = "layout-test";
     var raw = ocr.ReadText(
-        "layout-test",
+        directSource,
         bitmap,
         fieldKind,
         settings.CurrentValue).Text;
     var debugPath = await debug.SaveAsync(
         request.Kind,
-        "layout-test",
+        directSource,
         bitmap,
         raw,
         ct);
 
     return Results.Ok(new OcrLayoutTestBoxResponse(
         request.Kind,
+        directSource,
         raw,
         debugPath,
+        BuildOcrDebugImageUrl(debugPath),
         request.Box,
         captureZone));
+});
+
+app.MapGet("/api/ocr-debug-image", (
+    string path,
+    IConfiguration configuration) =>
+{
+    if (string.IsNullOrWhiteSpace(path))
+        return Results.BadRequest("Missing debug image path.");
+
+    var folder = configuration.GetValue<string>("OcrSettings:DebugImageFolder");
+    if (string.IsNullOrWhiteSpace(folder))
+        folder = Path.Combine("Data", "debug-ocr");
+
+    if (!Path.IsPathRooted(folder))
+        folder = Path.Combine(AppContext.BaseDirectory, folder);
+
+    var root = Path.GetFullPath(folder);
+    if (!root.EndsWith(Path.DirectorySeparatorChar))
+        root += Path.DirectorySeparatorChar;
+
+    var requested = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, path));
+
+    if (!requested.StartsWith(root, StringComparison.OrdinalIgnoreCase) ||
+        !File.Exists(requested) ||
+        !string.Equals(Path.GetExtension(requested), ".png", StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.NotFound();
+    }
+
+    return Results.File(requested, "image/png");
 });
 
 app.MapPost("/api/ocr-layout/calibration-score", async (
