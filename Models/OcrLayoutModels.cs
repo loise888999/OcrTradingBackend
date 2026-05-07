@@ -91,8 +91,10 @@ public sealed class OcrLayoutTestBoxRequest
 
 public sealed record OcrLayoutTestBoxResponse(
     string Kind,
+    string Source,
     string RawText,
     string? DebugImagePath,
+    string? DebugImageUrl,
     OcrLayoutBox Box,
     OcrZone CaptureZone);
 
