@@ -21,7 +21,8 @@ public sealed class OcrImagePreprocessingService : IOcrImagePreprocessingService
 
         return OcrImagePreprocessor.PrepareCoordinateImage(
             source,
-            settings.CoordinateOcrUpscale);
+            settings.CoordinateOcrUpscale,
+            settings.CoordinateOcrThreshold);
     }
 
     public Bitmap? TryPrepareCityImage(Bitmap source, OcrRuntimeSettings settings)

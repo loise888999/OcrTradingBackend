@@ -90,6 +90,7 @@ public sealed class OcrRuntimeSettings
     // Preprocessing helps when coordinate text is small: upscale + grayscale + threshold.
     public bool CoordinateTryPreprocess { get; set; } = true;
     public int CoordinateOcrUpscale { get; set; } = 3;
+    public int CoordinateOcrThreshold { get; set; } = 145;
     public bool CoordinateForcePreprocess { get; set; }
 
     public bool CityTryPreprocess { get; set; } = true;

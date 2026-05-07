@@ -71,6 +71,13 @@ Current recommended flow uses whole-row boxes, so keep:
 "PriceLayoutFieldFallbackEnabled": false
 ```
 
+## Coordinate Preprocessing
+
+- `CoordinateTryPreprocess`: Enables coordinate image preprocessing.
+- `CoordinateOcrUpscale`: Enlarges the coordinate crop before OCR.
+- `CoordinateOcrThreshold`: Brightness cutoff for coordinate text. Higher keeps only brighter pixels; lower keeps more gray/noise.
+- `CoordinateForcePreprocess`: Uses preprocessed coordinate OCR first/only when preprocessing is available.
+
 ## Text Presence Gate
 
 - `OcrTextPresenceGateMode`: `Off`, `BeforePreprocess`, `AfterPreprocess`, or `BeforeAndAfter`.
