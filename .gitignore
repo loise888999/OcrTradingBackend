@@ -72,3 +72,5 @@ TestResults/
 # Local settings
 appsettings.Development.json
 appsettings.Local.json
+Data/ocr-layout.local.json
+Data/ocr-models/

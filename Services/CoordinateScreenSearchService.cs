@@ -8,7 +8,7 @@ public static class CoordinateScreenSearchService
 {
     public static ParsedCoordinate? TryReadCoordinate(
         IScreenCaptureService capture,
-        IPaddleOcrService ocr,
+        IOcrCachedTextService ocr,
         ICoordinateParser parser,
         OcrZone coordinateZone,
         CoordinateCapture? previousCoordinate,
@@ -28,38 +28,22 @@ public static class CoordinateScreenSearchService
             }
         }
 
-        if (!settings.CoordinateSearchEnabled)
-            return null;
-
-        // 2. Fallback path: screen-only padded search area around the fixed zone.
-        // This helps if the coordinate text moved slightly due to UI scaling/layout.
-        var searchZone = BuildPaddedSearchZone(coordinateZone, settings.CoordinateSearchPadding);
-
-        using (var searchBitmap = capture.Capture(searchZone))
-        {
-            var searchResult = TryOcrAndParse(ocr, parser, searchBitmap, previousCoordinate, settings, "search");
-            if (searchResult is not null) return searchResult;
-
-            if (settings.CoordinateTryPreprocess)
-            {
-                using var preprocessed = OcrImagePreprocessor.PrepareCoordinateImage(searchBitmap, settings.CoordinateOcrUpscale);
-                var preprocessedSearchResult = TryOcrAndParse(ocr, parser, preprocessed, previousCoordinate, settings, "search-preprocessed");
-                if (preprocessedSearchResult is not null) return preprocessedSearchResult;
-            }
-        }
-
         return null;
     }
 
     private static ParsedCoordinate? TryOcrAndParse(
-        IPaddleOcrService ocr,
+        IOcrCachedTextService ocr,
         ICoordinateParser parser,
         Bitmap bitmap,
         CoordinateCapture? previousCoordinate,
         OcrRuntimeSettings settings,
         string source)
     {
-        var rawText = ocr.DetectText(bitmap);
+        var rawText = ocr.ReadText(
+            $"coordinate-search:{source}",
+            bitmap,
+            OcrFieldKind.Coordinate,
+            settings).Text;
         if (string.IsNullOrWhiteSpace(rawText)) return null;
 
         var parsed = parser.TryParse(
@@ -77,30 +61,6 @@ public static class CoordinateScreenSearchService
         return parsed with { RawText = $"{source}: {parsed.RawText}" };
     }
 
-    private static OcrZone BuildPaddedSearchZone(OcrZone zone, int padding)
-    {
-        var left = Math.Min(zone.TopLeftX, zone.BottomRightX);
-        var top = Math.Min(zone.TopLeftY, zone.BottomRightY);
-        var right = Math.Max(zone.TopLeftX, zone.BottomRightX);
-        var bottom = Math.Max(zone.TopLeftY, zone.BottomRightY);
-
-        var virtualScreen = System.Windows.Forms.SystemInformation.VirtualScreen;
-
-        left = Math.Max(virtualScreen.Left, left - padding);
-        top = Math.Max(virtualScreen.Top, top - padding);
-        right = Math.Min(virtualScreen.Right, right + padding);
-        bottom = Math.Min(virtualScreen.Bottom, bottom + padding);
-
-        return new OcrZone
-        {
-            Name = "CoordinateSearch",
-            TopLeftX = left,
-            TopLeftY = top,
-            BottomRightX = right,
-            BottomRightY = bottom,
-            UpdatedAtUtc = DateTime.UtcNow
-        };
-    }
 }
 
 public static class OcrImagePreprocessor

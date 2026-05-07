@@ -8,6 +8,7 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <DefaultItemExcludes>$(DefaultItemExcludes);OcrTradingBackend.Tests\**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.11" />
@@ -23,5 +24,11 @@
   <ItemGroup>
     <None Include="Data\trade-goods.csv"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
     <None Include="Data\cities.csv"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="OcrTradingBackend.Tests\**\*.cs" />
+    <Content Remove="OcrTradingBackend.Tests\**\*" />
+    <EmbeddedResource Remove="OcrTradingBackend.Tests\**\*" />
+    <None Remove="OcrTradingBackend.Tests\**\*" />
   </ItemGroup>
 </Project>

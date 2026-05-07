@@ -1,0 +1,194 @@
+{
+  "Version": 1,
+  "Enabled": true,
+  "CoordinateMode": "window-relative-pixels",
+  "UseLayoutForCity": true,
+  "UseLayoutForCoordinate": true,
+  "UseLayoutForPrice": true,
+  "ScreenWidth": 1922,
+  "ScreenHeight": 1108,
+  "Zones": {
+    "City": {
+      "Name": "City",
+      "X": 0,
+      "Y": 28,
+      "Width": 317,
+      "Height": 26,
+      "IsValid": true
+    },
+    "Coordinate": {
+      "Name": "Coordinate",
+      "X": 1838,
+      "Y": 824,
+      "Width": 79,
+      "Height": 35,
+      "IsValid": true
+    }
+  },
+  "Price": {
+    "VisibleRows": 4,
+    "UseFieldBoxes": true,
+    "BuyValidationBox": {
+      "Name": "BuyValidation",
+      "X": 702,
+      "Y": 335,
+      "Width": 135,
+      "Height": 27,
+      "IsValid": true
+    },
+    "SellValidationBox": {
+      "Name": "SellValidation",
+      "X": 699,
+      "Y": 330,
+      "Width": 241,
+      "Height": 34,
+      "IsValid": true
+    },
+    "Rows": [
+      {
+        "Index": 1,
+        "Enabled": true,
+        "Row": {
+          "Name": "Row1",
+          "X": 679,
+          "Y": 368,
+          "Width": 172,
+          "Height": 53,
+          "IsValid": true
+        },
+        "ItemName": {
+          "Name": "Row1ItemName",
+          "X": 675,
+          "Y": 376,
+          "Width": 186,
+          "Height": 25,
+          "IsValid": true
+        },
+        "Price": {
+          "Name": "Row1Price",
+          "X": 690,
+          "Y": 400,
+          "Width": 101,
+          "Height": 22,
+          "IsValid": true
+        },
+        "Multiplier": {
+          "Name": "Row1Multiplier",
+          "X": 793,
+          "Y": 395,
+          "Width": 52,
+          "Height": 25,
+          "IsValid": true
+        }
+      },
+      {
+        "Index": 2,
+        "Enabled": true,
+        "Row": {
+          "Name": "Row2",
+          "X": 679,
+          "Y": 423,
+          "Width": 172,
+          "Height": 53,
+          "IsValid": true
+        },
+        "ItemName": {
+          "Name": "Row2ItemName",
+          "X": 675,
+          "Y": 431,
+          "Width": 186,
+          "Height": 25,
+          "IsValid": true
+        },
+        "Price": {
+          "Name": "Row2Price",
+          "X": 690,
+          "Y": 455,
+          "Width": 101,
+          "Height": 22,
+          "IsValid": true
+        },
+        "Multiplier": {
+          "Name": "Row2Multiplier",
+          "X": 793,
+          "Y": 450,
+          "Width": 52,
+          "Height": 25,
+          "IsValid": true
+        }
+      },
+      {
+        "Index": 3,
+        "Enabled": true,
+        "Row": {
+          "Name": "Row3",
+          "X": 679,
+          "Y": 478,
+          "Width": 172,
+          "Height": 53,
+          "IsValid": true
+        },
+        "ItemName": {
+          "Name": "Row3ItemName",
+          "X": 675,
+          "Y": 486,
+          "Width": 186,
+          "Height": 25,
+          "IsValid": true
+        },
+        "Price": {
+          "Name": "Row3Price",
+          "X": 690,
+          "Y": 510,
+          "Width": 101,
+          "Height": 22,
+          "IsValid": true
+        },
+        "Multiplier": {
+          "Name": "Row3Multiplier",
+          "X": 793,
+          "Y": 505,
+          "Width": 52,
+          "Height": 25,
+          "IsValid": true
+        }
+      },
+      {
+        "Index": 4,
+        "Enabled": true,
+        "Row": {
+          "Name": "Row4",
+          "X": 679,
+          "Y": 533,
+          "Width": 169,
+          "Height": 57,
+          "IsValid": true
+        },
+        "ItemName": {
+          "Name": "Row4ItemName",
+          "X": 675,
+          "Y": 541,
+          "Width": 186,
+          "Height": 25,
+          "IsValid": true
+        },
+        "Price": {
+          "Name": "Row4Price",
+          "X": 690,
+          "Y": 565,
+          "Width": 101,
+          "Height": 22,
+          "IsValid": true
+        },
+        "Multiplier": {
+          "Name": "Row4Multiplier",
+          "X": 793,
+          "Y": 560,
+          "Width": 52,
+          "Height": 25,
+          "IsValid": true
+        }
+      }
+    ]
+  }
+}

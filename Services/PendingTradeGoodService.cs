@@ -1,5 +1,5 @@
-using System.Text.Json;
 using OcrTradingBackend.Models;
+using System.Text.Json;
 
 namespace OcrTradingBackend.Services;
 
@@ -100,10 +100,23 @@ public sealed class PendingTradeGoodService : IPendingTradeGoodService
             if (candidate.Status != PendingTradeGoodStatus.Pending)
                 return new PendingTradeGoodActionResult(false, $"Candidate is already {candidate.Status}.", candidate);
 
-            var addResult = _tradeGoodCatalog.AddTradeGood(new AddTradeGoodRequest(
-                request.Name?.Trim() ?? candidate.Name,
-                request.Type?.Trim() ?? candidate.SuggestedType,
+            var acceptedName = string.IsNullOrWhiteSpace(request.Name)
+                ? candidate.Name
+                : request.Name.Trim();
+
+            var acceptedType = string.IsNullOrWhiteSpace(request.Type)
+                ? candidate.SuggestedType
+                : request.Type.Trim();
+
+            var aliases = BuildAcceptedAliases(
                 request.Aliases,
+                candidate.Name,
+                acceptedName);
+
+            var addResult = _tradeGoodCatalog.AddTradeGood(new AddTradeGoodRequest(
+                acceptedName,
+                acceptedType,
+                aliases,
                 request.Force));
 
             if (!addResult.Added)
@@ -159,6 +172,43 @@ public sealed class PendingTradeGoodService : IPendingTradeGoodService
     {
         Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
         File.WriteAllText(_path, JsonSerializer.Serialize(_items, JsonOptions()));
+    }
+
+    private static IReadOnlyList<string> BuildAcceptedAliases(
+        IReadOnlyList<string>? requestedAliases,
+        string candidateName,
+        string acceptedName)
+    {
+        var aliases = requestedAliases?
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .ToList() ?? new List<string>();
+
+        var originalOcrName = (candidateName ?? string.Empty).Trim();
+        var finalName = (acceptedName ?? string.Empty).Trim();
+
+        // Important:
+        // If the user corrects/renames the pending OCR value before accepting it,
+        // keep the original OCR-read name as an alias.
+        //
+        // Example:
+        // OCR saw: "Diamoncl"
+        // User accepts as: "Diamond"
+        // Saved good becomes:
+        // Name = Diamond
+        // Alias = Diamoncl
+        //
+        // This lets the next OCR validation match the same bad OCR text.
+        if (!string.IsNullOrWhiteSpace(originalOcrName) &&
+            !string.Equals(originalOcrName, finalName, StringComparison.OrdinalIgnoreCase))
+        {
+            aliases.Add(originalOcrName);
+        }
+
+        return aliases
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     private static JsonSerializerOptions JsonOptions() => new()

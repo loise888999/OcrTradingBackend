@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Hosting;
 using OcrTradingBackend.Models;
 
 namespace OcrTradingBackend.Services;
@@ -8,6 +7,7 @@ public sealed record AddTradeGoodResult(bool Added, string Message, TradeGoodDef
 
 public interface ITradeGoodCatalog
 {
+    long Version { get; }
     IReadOnlyList<TradeGoodDefinition> GetAll();
     TradeGoodDefinition? FindByName(string name);
     IReadOnlyList<TradeGoodSuggestion> SuggestSimilar(string name, int take = 8);
@@ -20,12 +20,22 @@ public sealed class TradeGoodCatalog : ITradeGoodCatalog
     private readonly string _path;
     private List<TradeGoodDefinition> _goods;
     private Dictionary<string, TradeGoodDefinition> _lookup;
+    private long _version;
 
     public TradeGoodCatalog(IWebHostEnvironment env)
     {
         _path = Path.Combine(env.ContentRootPath, "Data", "trade-goods.csv");
         _goods = Load(_path).OrderBy(x => x.Name).ToList();
         _lookup = BuildLookup(_goods);
+    }
+
+    public long Version
+    {
+        get
+        {
+            lock (_gate)
+                return _version;
+        }
     }
 
     public IReadOnlyList<TradeGoodDefinition> GetAll()
@@ -95,17 +105,45 @@ public sealed class TradeGoodCatalog : ITradeGoodCatalog
 
         lock (_gate)
         {
-            if (FindByName(name) is not null)
-                return new AddTradeGoodResult(false, $"Trade good '{name}' already exists.");
+            if (ExactTradeGoodKeyExistsLocked(name))
+            {
+                return new AddTradeGoodResult(
+                    false,
+                    $"Trade good '{name}' already exists.");
+            }
+
+            foreach (var alias in aliases)
+            {
+                if (ExactTradeGoodKeyExistsLocked(alias))
+                {
+                    return new AddTradeGoodResult(
+                        false,
+                        $"Trade good alias '{alias}' already exists as a trade good name or alias.");
+                }
+            }
 
             var good = new TradeGoodDefinition(name, type, aliases);
+
             _goods.Add(good);
             _goods = _goods.OrderBy(x => x.Name).ToList();
             _lookup = BuildLookup(_goods);
+            _version++;
+
             Save(_path, _goods);
 
-            return new AddTradeGoodResult(true, $"Added trade good '{name}'.", good);
+            return new AddTradeGoodResult(
+                true,
+                $"Added trade good '{name}'.",
+                good);
         }
+    }
+
+    private bool ExactTradeGoodKeyExistsLocked(string value)
+    {
+        var key = Normalize(value);
+
+        return !string.IsNullOrWhiteSpace(key) &&
+               _lookup.ContainsKey(key);
     }
 
     private static TradeGoodSuggestion? CreateTradeGoodSuggestion(TradeGoodDefinition good, double score)
@@ -269,13 +307,13 @@ public sealed class TradeGoodCatalog : ITradeGoodCatalog
         for (var j = 0; j <= b.Length; j++) dp[0, j] = j;
 
         for (var i = 1; i <= a.Length; i++)
-        for (var j = 1; j <= b.Length; j++)
-        {
-            var cost = a[i - 1] == b[j - 1] ? 0 : 1;
-            dp[i, j] = Math.Min(
-                Math.Min(dp[i - 1, j] + 1, dp[i, j - 1] + 1),
-                dp[i - 1, j - 1] + cost);
-        }
+            for (var j = 1; j <= b.Length; j++)
+            {
+                var cost = a[i - 1] == b[j - 1] ? 0 : 1;
+                dp[i, j] = Math.Min(
+                    Math.Min(dp[i - 1, j] + 1, dp[i, j - 1] + 1),
+                    dp[i - 1, j - 1] + cost);
+            }
 
         return dp[a.Length, b.Length];
     }

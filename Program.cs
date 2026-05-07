@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using OcrTradingBackend.Data;
 using OcrTradingBackend.Models;
 using OcrTradingBackend.Services;
@@ -18,25 +19,63 @@ static IReadOnlyList<string> SplitMulti(string? value) =>
         ? Array.Empty<string>()
         : value.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-builder.Services.Configure<OcrRuntimeSettings>(builder.Configuration.GetSection("OcrSettings"));
+static OcrFieldKind GetLayoutTestFieldKind(string kind)
+{
+    var normalized = kind.Trim().ToLowerInvariant();
+
+    if (normalized.Contains("coordinate"))
+        return OcrFieldKind.Coordinate;
+    if (normalized.Contains("city"))
+        return OcrFieldKind.City;
+    if (normalized.Contains("validation") || normalized.Contains("menu") || normalized.Contains("buy") || normalized.Contains("sell"))
+        return OcrFieldKind.PriceMenu;
+    if (normalized.Contains("multiplier"))
+        return OcrFieldKind.PriceMultiplier;
+    if (normalized.Contains("price"))
+        return OcrFieldKind.PriceNumber;
+    if (normalized.Contains("item"))
+        return OcrFieldKind.PriceItemName;
+
+    return OcrFieldKind.General;
+}
+
+builder.Services.AddSingleton<IValidateOptions<OcrRuntimeSettings>, OcrRuntimeSettingsValidator>();
+builder.Services.AddOptions<OcrRuntimeSettings>()
+    .Bind(builder.Configuration.GetSection("OcrSettings"))
+    .ValidateOnStart();
 builder.Services.Configure<GameWindowSettings>(builder.Configuration.GetSection("GameWindow"));
 
 builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services.AddSingleton<OcrControlState>();
+builder.Services.AddSingleton<OcrLastResultState>();
 builder.Services.AddSingleton<ICoordinateParser, CoordinateParser>();
 builder.Services.AddSingleton<ICityCatalog, CityCatalog>();
 builder.Services.AddSingleton<ICityParser, CityParser>();
 builder.Services.AddSingleton<ITradeGoodCatalog, TradeGoodCatalog>();
+builder.Services.AddSingleton<IStrictTradeGoodMatcher, StrictTradeGoodMatcher>();
 builder.Services.AddSingleton<IPendingTradeGoodService, PendingTradeGoodService>();
 builder.Services.AddSingleton<IPriceParser, PriceParser>();
 builder.Services.AddSingleton<IScreenCaptureService, WindowsScreenCaptureService>();
 builder.Services.AddSingleton<IPaddleOcrService, PaddleOcrSharpService>();
 builder.Services.AddSingleton<IGameWindowLocator, GameWindowLocatorService>();
 builder.Services.AddSingleton<IMapRegionCatalog, MapRegionCatalog>();
+builder.Services.AddSingleton<IPriceRecentHashCacheService, PriceRecentHashCacheService>();
+builder.Services.AddSingleton<IOcrImageHasher, OcrImageHasher>();
+builder.Services.AddSingleton<IOcrImageTextCache, OcrImageTextCache>();
+builder.Services.AddSingleton<IOcrCachedTextService, OcrCachedTextService>();
+builder.Services.AddSingleton<IPriceOcrBatchService, PriceOcrBatchService>();
+builder.Services.AddSingleton<IPriceLayoutRowFingerprintService, PriceLayoutRowFingerprintService>();
+builder.Services.AddSingleton<IPriceLayoutRowCacheService, PriceLayoutRowCacheService>();
+builder.Services.AddSingleton<IOcrDebugSnapshotService, OcrDebugSnapshotService>();
+builder.Services.AddSingleton<IOcrImagePreprocessingService, OcrImagePreprocessingService>();
+builder.Services.AddSingleton<IOcrTextPresenceAnalyzer, OcrTextPresenceAnalyzer>();
+builder.Services.AddSingleton<IOcrLayoutService, OcrLayoutService>();
+builder.Services.AddScoped<IOcrCalibrationService, OcrCalibrationService>();
 builder.Services.AddScoped<IWindowRelativeOcrZoneService, WindowRelativeOcrZoneService>();
 builder.Services.AddScoped<ITradingRecommendationService, TradingRecommendationService>();
 builder.Services.AddScoped<ITradingAdvancedService, TradingAdvancedService>();
+builder.Services.AddScoped<IOcrCycleRunner, OcrCycleRunner>();
 builder.Services.AddHostedService<OcrBackgroundWorker>();
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
@@ -134,6 +173,34 @@ app.MapPost("/api/ocr/start", (OcrControlState c) => { c.Enabled = true; c.LastE
 app.MapPost("/api/ocr/stop", (OcrControlState c) => { c.Enabled = false; return Results.Ok(new { c.Enabled }); });
 app.MapGet("/api/ocr/status", (OcrControlState c) => Results.Ok(c));
 
+app.MapGet("/api/ocr/last-results", (OcrLastResultState state) =>
+    Results.Ok(state.GetSnapshot()));
+
+app.MapPost("/api/ocr/test/{zoneKind}", async (
+    string zoneKind,
+    IOcrCycleRunner runner,
+    CancellationToken ct) =>
+{
+    var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "coordinate",
+        "city",
+        "price"
+    };
+
+    if (!allowed.Contains(zoneKind))
+    {
+        return Results.BadRequest(new
+        {
+            message = "Unsupported OCR zone kind.",
+            allowed = allowed.OrderBy(x => x).ToArray()
+        });
+    }
+
+    var result = await runner.TestZoneAsync(zoneKind, ct);
+    return Results.Ok(result);
+});
+
 app.MapGet("/api/coordinates/latest", async (AppDbContext db, int take = 20) =>
 {
     var limit = Math.Clamp(take, 2, 100);
@@ -220,8 +287,6 @@ app.MapDelete("/api/map-regions/{id}", (IMapRegionCatalog catalog, string id) =>
 });
 
 app.MapGet("/api/regions/main", (ICityCatalog c) => Results.Ok(c.GetMainRegions()));
-app.MapGet("/api/regions/sub", (ICityCatalog c, string? mainRegion) => Results.Ok(c.GetSubRegions(mainRegion)));
-app.MapGet("/api/regions/sea-trade", (ICityCatalog c, string? mainRegion, string? subRegion) => Results.Ok(c.GetSeaTradeRegions(mainRegion, subRegion)));
 app.MapGet("/api/regions/sub", (ICityCatalog c, string? mainRegion) => Results.Ok(c.GetSubRegions(mainRegion)));
 app.MapGet("/api/regions/sea-trade", (ICityCatalog c, string? mainRegion, string? subRegion) => Results.Ok(c.GetSeaTradeRegions(mainRegion, subRegion)));
 
@@ -388,5 +453,114 @@ app.MapGet("/api/trading/multi-good-routes", async (
     int minItems = 2,
     int take = 100) =>
     Results.Ok(await service.GetMultiGoodRoutesAsync(type, SplitMulti(buyRegions), SplitMulti(sellRegions), minProfitPerGood, minTotalProfit, minItems, take)));
+
+app.MapGet("/api/ocr-layout", async (
+    IOcrLayoutService layoutService,
+    CancellationToken ct) =>
+{
+    var layout = await layoutService.LoadAsync(ct);
+    return Results.Ok(layout);
+});
+
+app.MapPost("/api/ocr-layout", async (
+    IOcrLayoutService layoutService,
+    SaveOcrLayoutRequest request,
+    CancellationToken ct) =>
+{
+    var saved = await layoutService.SaveLocalAsync(request.Layout, ct);
+    return Results.Ok(saved);
+});
+
+app.MapPost("/api/ocr-layout/test-box", async (
+    OcrLayoutTestBoxRequest request,
+    IOcrLayoutService layoutService,
+    IScreenCaptureService capture,
+    IOcrCachedTextService ocr,
+    IOcrImagePreprocessingService preprocessor,
+    IOcrDebugSnapshotService debug,
+    Microsoft.Extensions.Options.IOptionsMonitor<OcrRuntimeSettings> settings,
+    CancellationToken ct) =>
+{
+    if (request.Box is null || !request.Box.IsValid)
+    {
+        return Results.BadRequest(new
+        {
+            message = "Box must have positive width and height."
+        });
+    }
+
+    var captureZone = layoutService.TryGetLayoutBoxZone(request.Box, request.Kind);
+
+    if (captureZone is null)
+    {
+        return Results.BadRequest(new
+        {
+            message = "Could not resolve layout box to screen coordinates. Make sure the game window is selected/found first.",
+            coordinateMode = "window-relative-pixels",
+            box = request.Box
+        });
+    }
+
+    using var bitmap = capture.Capture(captureZone);
+    var fieldKind = GetLayoutTestFieldKind(request.Kind);
+
+    if (request.Preprocess)
+    {
+        var preprocessed = preprocessor.TryPreparePriceImage(bitmap, settings.CurrentValue);
+
+        if (preprocessed is not null)
+        {
+            using (preprocessed)
+            {
+                var preprocessedRaw = ocr.ReadText(
+                    "layout-test-preprocessed",
+                    preprocessed,
+                    fieldKind,
+                    settings.CurrentValue).Text;
+                var preprocessedDebugPath = await debug.SaveAsync(
+                    request.Kind,
+                    "layout-test-preprocessed",
+                    preprocessed,
+                    preprocessedRaw,
+                    ct);
+
+                return Results.Ok(new OcrLayoutTestBoxResponse(
+                    request.Kind,
+                    preprocessedRaw,
+                    preprocessedDebugPath,
+                    request.Box,
+                    captureZone));
+            }
+        }
+    }
+
+    var raw = ocr.ReadText(
+        "layout-test",
+        bitmap,
+        fieldKind,
+        settings.CurrentValue).Text;
+    var debugPath = await debug.SaveAsync(
+        request.Kind,
+        "layout-test",
+        bitmap,
+        raw,
+        ct);
+
+    return Results.Ok(new OcrLayoutTestBoxResponse(
+        request.Kind,
+        raw,
+        debugPath,
+        request.Box,
+        captureZone));
+});
+
+app.MapPost("/api/ocr-layout/calibration-score", async (
+    IOcrCalibrationService calibration,
+    CancellationToken ct) =>
+{
+    var result = await calibration.ScoreAsync(ct);
+    return Results.Ok(result);
+});
+
 
 app.Run();
