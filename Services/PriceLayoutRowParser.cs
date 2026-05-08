@@ -46,9 +46,7 @@ public static class PriceLayoutRowParser
         if (string.IsNullOrWhiteSpace(rawText))
             return string.Empty;
 
-        var normalized = NormalizePriceRowText(rawText, removeDecimalPoint: true)
-            .Replace("\r", " ")
-            .Replace("\n", " ");
+        var normalized = NormalizePriceRowText(rawText, removeDecimalPoint: true);
 
         var multiplierMatch = FindPercentMultiplier(normalized);
         var searchEnd = multiplierMatch.Success
@@ -149,10 +147,18 @@ public static class PriceLayoutRowParser
             return string.Empty;
 
         var normalized = value
-            .Replace("\r", " ")
-            .Replace("\n", " ")
             .Replace("\t", " ")
             .Normalize();
+
+        normalized = Regex.Replace(
+            normalized,
+            @"(?<=[\p{L}])\r?\n(?=[\p{Ll}])",
+            string.Empty,
+            RegexOptions.CultureInvariant);
+
+        normalized = normalized
+            .Replace("\r", " ")
+            .Replace("\n", " ");
 
         normalized = Regex.Replace(
             normalized,
