@@ -15,6 +15,12 @@ public sealed class CoordinateParserTests
         Assert.IsNotNull(parsed);
         Assert.AreEqual(1234, parsed.X);
         Assert.AreEqual(5678, parsed.Y);
+
+
+        parsed = Parser.TryParse("15719, 4484", 16384, 8192);
+        Assert.IsNotNull(parsed);
+        Assert.AreEqual(15719, parsed.X);
+        Assert.AreEqual(4484, parsed.Y);
     }
 
     [TestMethod]
@@ -25,6 +31,9 @@ public sealed class CoordinateParserTests
         Assert.IsNotNull(parsed);
         Assert.AreEqual(1234, parsed.X);
         Assert.AreEqual(5678, parsed.Y);
+
+        AssertParsed("1234 , 5678", 1234, 5678);
+        AssertParsed("1234\n,\n5678", 1234, 5678);
 
     }
     [TestMethod]
@@ -55,6 +64,12 @@ public sealed class CoordinateParserTests
         Assert.AreEqual(5727, parsed.X);
         Assert.AreEqual(4955, parsed.Y);
 
+        parsed = Parser.TryParse("15619,4\n4394", 16384, 8192);
+
+        Assert.IsNotNull(parsed);
+        Assert.AreEqual(15619, parsed.X);
+        Assert.AreEqual(4394, parsed.Y);
+
     }
     [TestMethod]
     public void ParsesDoubleReadCoordinate()
@@ -82,7 +97,9 @@ public sealed class CoordinateParserTests
         Assert.AreEqual(5655, parsed.X);
         Assert.AreEqual(4960, parsed.Y);
 
-
+        AssertParsed("1234.5678", 1234, 5678);
+        AssertParsed("1234.\n5678", 1234, 5678);
+        AssertParsed("1234.\n.5678", 1234, 5678);
     }
     [TestMethod]
     public void ParsesNoSeparatorCoordinate()
@@ -92,6 +109,16 @@ public sealed class CoordinateParserTests
         Assert.IsNotNull(parsed);
         Assert.AreEqual(616, parsed.X);
         Assert.AreEqual(5867, parsed.Y);
+
+        parsed = Parser.TryParse("15613,\n4388", 16384, 8192);
+
+        Assert.IsNotNull(parsed);
+        Assert.AreEqual(15613, parsed.X);
+        Assert.AreEqual(4388, parsed.Y);
+
+        AssertParsed("1234 5678", 1234, 5678);
+        AssertParsed("1234\n5678", 1234, 5678);
+        AssertParsed("1234\r\n5678", 1234, 5678);
 
         parsed = Parser.TryParse("6165867", 16384, 8192);
 
@@ -108,6 +135,17 @@ public sealed class CoordinateParserTests
         Assert.IsNotNull(parsed);
         Assert.AreEqual(16384, parsed.X);
         Assert.AreEqual(8192, parsed.Y);
+
+        AssertParsed("0,0", 0, 0);
+        AssertParsed("0,8192", 0, 8192);
+        AssertParsed("16384,0", 16384, 0);
+    }
+
+    [TestMethod]
+    public void ParsesFullWidthNumberSeparators()
+    {
+        AssertParsed("1234，5678", 1234, 5678);
+        AssertParsed("1234。5678", 1234, 5678);
     }
 
     [TestMethod]
@@ -141,6 +179,15 @@ public sealed class CoordinateParserTests
     }
 
     private static readonly CoordinateParser Parser = new();
+
+    private static void AssertParsed(string rawText, int expectedX, int expectedY)
+    {
+        var parsed = Parser.TryParse(rawText, 16384, 8192);
+
+        Assert.IsNotNull(parsed, $"Expected coordinate parse. Raw={rawText}");
+        Assert.AreEqual(expectedX, parsed.X, $"X for {rawText}");
+        Assert.AreEqual(expectedY, parsed.Y, $"Y for {rawText}");
+    }
 
     private static CoordinateCapture Previous(int x, int y) => new()
     {
