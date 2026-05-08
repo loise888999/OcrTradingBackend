@@ -26,6 +26,22 @@ public sealed class CoordinateParser : ICoordinateParser
         @"(?<!\d)(?<x>\d{1,5})\s*[,\.]\s*(?<y>\d{1,5})(?!\d)",
         RegexOptions.Compiled);
 
+    private static readonly Regex SplitLinePairCoordinateRegex = new(
+        @"(?<!\d)(?<x>\d{1,5})\s*[,\.]\s*\d{1,2}\s+(?<y>\d{3,5})(?!\d)",
+        RegexOptions.Compiled);
+
+    private static readonly Regex DoubleSeparatorPairCoordinateRegex = new(
+        @"(?<!\d)(?<x>\d{1,5})\s*[,\.]\s*[,\.]\s*(?<y>\d{1,5})(?!\d)",
+        RegexOptions.Compiled);
+
+    private static readonly Regex NoisyDoubleSeparatorPairCoordinateRegex = new(
+        @"(?<!\d)(?<x>\d{1,5})\s*[,\.]\s*\d{1,2}\s*[,\.]\s*(?<y>\d{3,5})(?!\d)",
+        RegexOptions.Compiled);
+
+    private static readonly Regex WhitespacePairCoordinateRegex = new(
+        @"(?<!\d)(?<x>\d{1,5})\s+(?<y>\d{3,5})(?!\d)",
+        RegexOptions.Compiled);
+
     public ParsedCoordinate? TryParse(string text, int worldWidth, int worldHeight)
     {
         return TryParse(text, worldWidth, worldHeight, null, new CoordinateCorrectionOptions(false, 0, 0));
@@ -98,7 +114,19 @@ public sealed class CoordinateParser : ICoordinateParser
         foreach (Match match in LabeledCoordinateRegex.Matches(normalized))
             yield return (match.Groups["x"].Value, match.Groups["y"].Value, match.Value);
 
+        foreach (Match match in SplitLinePairCoordinateRegex.Matches(normalized))
+            yield return (match.Groups["x"].Value, match.Groups["y"].Value, match.Value);
+
+        foreach (Match match in NoisyDoubleSeparatorPairCoordinateRegex.Matches(normalized))
+            yield return (match.Groups["x"].Value, match.Groups["y"].Value, match.Value);
+
+        foreach (Match match in DoubleSeparatorPairCoordinateRegex.Matches(normalized))
+            yield return (match.Groups["x"].Value, match.Groups["y"].Value, match.Value);
+
         foreach (Match match in PairCoordinateRegex.Matches(normalized))
+            yield return (match.Groups["x"].Value, match.Groups["y"].Value, match.Value);
+
+        foreach (Match match in WhitespacePairCoordinateRegex.Matches(normalized))
             yield return (match.Groups["x"].Value, match.Groups["y"].Value, match.Value);
     }
 

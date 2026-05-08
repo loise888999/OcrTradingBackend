@@ -125,6 +125,7 @@ builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(builder.Configurati
 builder.Services.AddSingleton<OcrControlState>();
 builder.Services.AddSingleton<OcrLastResultState>();
 builder.Services.AddSingleton<ICoordinateParser, CoordinateParser>();
+builder.Services.AddSingleton<CoordinateFarJumpConfirmationGate>();
 builder.Services.AddSingleton<ICityCatalog, CityCatalog>();
 builder.Services.AddSingleton<ICityParser, CityParser>();
 builder.Services.AddSingleton<ITradeGoodCatalog, TradeGoodCatalog>();
@@ -296,6 +297,49 @@ app.MapGet("/api/prices/history", async (AppDbContext db, string? city, string? 
     if (!string.IsNullOrWhiteSpace(item)) q = q.Where(x => x.ItemName.Contains(item));
     if (!string.IsNullOrWhiteSpace(tradeType)) q = q.Where(x => x.TradeType == tradeType);
     return Results.Ok(await q.OrderByDescending(x => x.CapturedAtUtc).Take(Math.Clamp(take, 1, 2000)).ToListAsync());
+});
+
+app.MapDelete("/api/prices/history/{id:int}", async (AppDbContext db, int id) =>
+{
+    var row = await db.PriceCaptures.FirstOrDefaultAsync(x => x.Id == id);
+    if (row is null)
+        return Results.NotFound(new { message = $"Price history entry '{id}' was not found." });
+
+    db.PriceCaptures.Remove(row);
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new { deleted = 1, id });
+});
+
+app.MapDelete("/api/prices/history", async (AppDbContext db, string? city, string? item, string? tradeType) =>
+{
+    if (string.IsNullOrWhiteSpace(city) ||
+        string.IsNullOrWhiteSpace(item) ||
+        string.IsNullOrWhiteSpace(tradeType))
+    {
+        return Results.BadRequest(new
+        {
+            message = "city, item, and tradeType are required to delete matching price history entries."
+        });
+    }
+
+    var rows = await db.PriceCaptures
+        .Where(x => x.City == city && x.ItemName == item && x.TradeType == tradeType)
+        .ToListAsync();
+
+    if (rows.Count == 0)
+        return Results.NotFound(new { message = "No matching price history entries were found." });
+
+    db.PriceCaptures.RemoveRange(rows);
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new
+    {
+        deleted = rows.Count,
+        city,
+        item,
+        tradeType
+    });
 });
 
 app.MapGet("/api/cities/latest", async (AppDbContext db) => Results.Ok(await db.CityCaptures.OrderByDescending(x => x.CapturedAtUtc).FirstOrDefaultAsync()));
