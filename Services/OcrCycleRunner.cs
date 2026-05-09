@@ -1,11 +1,10 @@
-using System.Diagnostics;
-using System.Drawing;
-using System.Globalization;
-using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OcrTradingBackend.Data;
 using OcrTradingBackend.Models;
+using System.Diagnostics;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace OcrTradingBackend.Services;
 
@@ -601,26 +600,54 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     }
 
     private void MaybeAddAutoProfileSample(
-        Bitmap sourceBitmap,
-        OcrLayoutBox? coordinateBox,
-        ParsedCoordinate parsed,
-        CoordinateOcrSettingsResponse coordinateOcrSettings,
-        OcrRuntimeSettings settings)
+    Bitmap sourceBitmap,
+    OcrLayoutBox? coordinateBox,
+    ParsedCoordinate parsed,
+    CoordinateOcrSettingsResponse coordinateOcrSettings,
+    OcrRuntimeSettings settings)
     {
+        _logger.LogWarning(
+            "AUTO PROFILE CHECK: Enabled={Enabled}; ReadMode={ReadMode}; OnlyNormalMode={OnlyNormalMode}; BoxValid={BoxValid}; RequireDigitOcr={RequireDigitOcr}; Parsed={Parsed}",
+            coordinateOcrSettings.CoordinateTemplateAutoProfileEnabled,
+            coordinateOcrSettings.CoordinateReadMode,
+            coordinateOcrSettings.CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode,
+            coordinateBox is { IsValid: true },
+            coordinateOcrSettings.CoordinateTemplateRequirePerDigitOcrValidation,
+            $"{parsed.X},{parsed.Y}");
+
+        _logger.LogWarning(
+            "AUTO PROFILE CHECK: Enabled={Enabled}; ReadMode={ReadMode}; OnlyNormalMode={OnlyNormalMode}; BoxValid={BoxValid}; Parsed={Parsed}",
+            coordinateOcrSettings.CoordinateTemplateAutoProfileEnabled,
+            coordinateOcrSettings.CoordinateReadMode,
+            coordinateOcrSettings.CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode,
+            coordinateBox is { IsValid: true },
+            $"{parsed.X},{parsed.Y}");
+
         if (!coordinateOcrSettings.CoordinateTemplateAutoProfileEnabled)
+        {
+            _logger.LogWarning("AUTO PROFILE STOPPED: CoordinateTemplateAutoProfileEnabled is false.");
             return;
+        }
 
         if (coordinateOcrSettings.CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode &&
             !coordinateOcrSettings.CoordinateReadMode.Equals(CoordinateOcrModes.NormalOcr, StringComparison.OrdinalIgnoreCase))
         {
+            _logger.LogWarning(
+                "AUTO PROFILE STOPPED: CoordinateReadMode is {ReadMode}, but auto profile only runs in NormalOcr mode.",
+                coordinateOcrSettings.CoordinateReadMode);
             return;
         }
 
         if (coordinateBox is not { IsValid: true })
+        {
+            _logger.LogWarning("AUTO PROFILE STOPPED: coordinate layout box is missing or invalid.");
             return;
+        }
 
         try
         {
+            _logger.LogWarning("AUTO PROFILE ENTERING: AddProfileSampleFromNormalOcr.");
+
             var status = _coordinateTemplateOcr.AddProfileSampleFromNormalOcr(
                 sourceBitmap,
                 coordinateBox,
@@ -629,51 +656,125 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 settings,
                 digitCrop => ReadCalibrationDigitOcr(digitCrop, settings));
 
-            if (settings.OcrBenchmarkLogging)
-            {
-                _logger.LogInformation(
-                    "Coordinate template auto profile sample. Coordinate={Coordinate}; LearnedDigits={LearnedDigits}; MissingDigits={MissingDigits}; Samples={Samples}; Message={Message}",
-                    $"{parsed.X},{parsed.Y}",
-                    string.Join(",", status.LearnedDigits),
-                    string.Join(",", status.MissingDigitTemplates),
-                    status.SampleCount,
-                    status.LastAutoSampleMessage);
-            }
+            _logger.LogWarning(
+                "AUTO PROFILE RESULT: Accepted={Accepted}; Learned={Learned}; Missing={Missing}; DigitOcrValidated={Validated}; DigitOcrRejected={Rejected}; Message={Message}",
+                status.LastSampleAccepted,
+                string.Join(",", status.LastLearnedDigits),
+                string.Join(",", status.MissingDigitTemplates),
+                string.Join(",", status.LastDigitOcrValidatedDigits),
+                string.Join(",", status.LastDigitOcrRejectedDigits),
+                status.LastAutoSampleMessage);
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(
+            _logger.LogWarning(
                 ex,
-                "Skipped coordinate template auto profile sample for parsed coordinate {Coordinate}.",
+                "AUTO PROFILE ERROR: Failed to add coordinate template sample for parsed coordinate {Coordinate}.",
                 $"{parsed.X},{parsed.Y}");
         }
     }
 
     private string? ReadCalibrationDigitOcr(Bitmap digitCrop, OcrRuntimeSettings settings)
     {
-        Bitmap? prepared = null;
-
-        try
+        // Single-digit OCR is different from full coordinate OCR.
+        // The normal coordinate cleanup can be too aggressive and can damage
+        // narrow digits like 1 or complex digits like 8/3.
+        //
+        // Try several safe variants:
+        // - padded crop
+        // - larger upscale
+        // - cleanup disabled first
+        // - threshold variations
+        // - cleanup only as a last attempt
+        var attempts = new List<(int Scale, int Threshold, bool Cleanup)>
         {
-            prepared = OcrImagePreprocessor.PrepareCoordinateImage(
-                digitCrop,
-                scale: 4,
-                threshold: settings.CoordinateOcrThreshold,
-                cleanupOptions: OcrImagePreprocessor.BuildCoordinateCleanupOptions(settings));
+            (3, settings.CoordinateOcrThreshold, false),
+            (10, settings.CoordinateOcrThreshold, false),
+            (12, settings.CoordinateOcrThreshold, false),
 
-            var read = _ocr.ReadText(
-                "coordinate-template-digit-calibration",
-                prepared,
-                OcrFieldKind.Coordinate,
-                settings).Text;
-            var digits = read.Where(char.IsDigit).Distinct().ToArray();
+            (8, Math.Clamp(settings.CoordinateOcrThreshold - 20, 0, 255), false),
+            (8, Math.Clamp(settings.CoordinateOcrThreshold + 20, 0, 255), false),
 
-            return digits.Length == 1 ? digits[0].ToString() : read;
-        }
-        finally
+            // Cleanup last because cleanup can remove thin single-digit strokes.
+            (8, settings.CoordinateOcrThreshold, true)
+        };
+
+        foreach (var attempt in attempts)
         {
-            prepared?.Dispose();
+            using var padded = AddDigitPadding(digitCrop, padding: 6);
+
+            Bitmap? prepared = null;
+
+            try
+            {
+                prepared = OcrImagePreprocessor.PrepareCoordinateImage(
+                    padded,
+                    scale: attempt.Scale,
+                    threshold: attempt.Threshold,
+                    cleanupOptions: attempt.Cleanup
+                        ? OcrImagePreprocessor.BuildCoordinateCleanupOptions(settings)
+                        : null);
+
+                var read = _ocr.ReadText(
+                    "coordinate-template-digit-calibration",
+                    prepared,
+                    OcrFieldKind.Coordinate,
+                    settings).Text;
+
+                var normalized = NormalizeSingleCalibrationDigit(read);
+
+                if (normalized is not null)
+                    return normalized;
+            }
+            finally
+            {
+                prepared?.Dispose();
+            }
         }
+
+        return null;
+    }
+
+    private static Bitmap AddDigitPadding(Bitmap source, int padding)
+    {
+        var output = new Bitmap(
+            source.Width + padding * 2,
+            source.Height + padding * 2);
+
+        using var graphics = Graphics.FromImage(output);
+
+        // Black background is safest because coordinate preprocessing treats
+        // bright/white pixels as foreground text.
+        graphics.Clear(Color.Black);
+
+        graphics.DrawImage(
+            source,
+            new Rectangle(padding, padding, source.Width, source.Height),
+            new Rectangle(0, 0, source.Width, source.Height),
+            GraphicsUnit.Pixel);
+
+        return output;
+    }
+
+    private static string? NormalizeSingleCalibrationDigit(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+
+        var digits = raw
+            .Where(char.IsDigit)
+            .ToArray();
+
+        // Accept exactly one digit.
+        if (digits.Length == 1)
+            return digits[0].ToString();
+
+        // Sometimes OCR repeats the same digit, such as "88" or "111".
+        // Accept it if all detected digits are the same.
+        if (digits.Length > 1 && digits.Distinct().Count() == 1)
+            return digits[0].ToString();
+
+        return null;
     }
 
     private async Task<ParsedCoordinate?> TryOcrAndParseCoordinateAsync(

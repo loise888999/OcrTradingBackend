@@ -1,0 +1,15 @@
+{
+  "CoordinateReadMode": "FastTemplate",
+  "CoordinateTemplateFallbackToNormalOcr": true,
+  "CoordinateTemplateCountFailedReadsForRecalibration": true,
+  "CoordinateTemplateRecalibrationFailureLimit": 5,
+  "CoordinateTemplateRequireVisibleTextForFailure": true,
+  "CoordinateTemplateMinTextPixelsPercent": 0.35,
+  "CoordinateTemplateMinContrast": 18,
+  "CoordinateTemplateAutoProfileEnabled": false,
+  "CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode": true,
+  "CoordinateTemplateAutoProfileMaxSamples": 200,
+  "CoordinateTemplateAutoProfileValidationMaxDigitScore": 0.18,
+  "CoordinateTemplateMaxTemplatesPerDigit": 1,
+  "CoordinateTemplateRequirePerDigitOcrValidation": true
+}

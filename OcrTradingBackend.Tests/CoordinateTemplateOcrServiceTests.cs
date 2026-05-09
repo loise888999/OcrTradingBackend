@@ -12,14 +12,13 @@ public sealed class CoordinateTemplateOcrServiceTests
     public void DefaultCoordinateReadModeIsNormalOcr()
     {
         var settings = new OcrRuntimeSettings();
-
         Assert.AreEqual(CoordinateOcrModes.NormalOcr, settings.CoordinateReadMode);
     }
 
     [TestMethod]
     public void VisibleUnreadableImageIncrementsFailureCountWhenEnabled()
     {
-        var service = new CoordinateTemplateOcrService();
+        var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
         using var bitmap = CreateVisibleCoordinateLikeBitmap();
 
         var attempt = service.TryRead(bitmap, BuildSettings(countFailures: true, limit: 2));
@@ -33,7 +32,7 @@ public sealed class CoordinateTemplateOcrServiceTests
     [TestMethod]
     public void VisibleUnreadableImageDoesNotIncrementFailureCountWhenDisabled()
     {
-        var service = new CoordinateTemplateOcrService();
+        var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
         using var bitmap = CreateVisibleCoordinateLikeBitmap();
 
         var attempt = service.TryRead(bitmap, BuildSettings(countFailures: false, limit: 1));
@@ -48,7 +47,7 @@ public sealed class CoordinateTemplateOcrServiceTests
     [TestMethod]
     public void EmptyImageDoesNotIncrementFailureCount()
     {
-        var service = new CoordinateTemplateOcrService();
+        var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
         using var bitmap = new Bitmap(20, 8);
 
         var attempt = service.TryRead(bitmap, BuildSettings(countFailures: true, limit: 1));
@@ -63,7 +62,7 @@ public sealed class CoordinateTemplateOcrServiceTests
     [TestMethod]
     public void FailureLimitMarksNeedsRecalibrationOnlyWhenCountingEnabled()
     {
-        var enabledService = new CoordinateTemplateOcrService();
+        var enabledService = new CoordinateTemplateOcrService(CreateTempProfilePath());
         using var bitmap = CreateVisibleCoordinateLikeBitmap();
         var enabledSettings = BuildSettings(countFailures: true, limit: 2);
 
@@ -72,7 +71,7 @@ public sealed class CoordinateTemplateOcrServiceTests
 
         Assert.IsTrue(enabledService.GetStatus().NeedsRecalibration);
 
-        var disabledService = new CoordinateTemplateOcrService();
+        var disabledService = new CoordinateTemplateOcrService(CreateTempProfilePath());
         var disabledSettings = BuildSettings(countFailures: false, limit: 1);
 
         disabledService.TryRead(bitmap, disabledSettings);
@@ -84,7 +83,7 @@ public sealed class CoordinateTemplateOcrServiceTests
     [TestMethod]
     public void ResetFailuresClearsRecalibrationState()
     {
-        var service = new CoordinateTemplateOcrService();
+        var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
         using var bitmap = CreateVisibleCoordinateLikeBitmap();
 
         service.TryRead(bitmap, BuildSettings(countFailures: true, limit: 1));
@@ -138,12 +137,13 @@ public sealed class CoordinateTemplateOcrServiceTests
     }
 
     [TestMethod]
-    public void AutoProfileSamplesMergeAndFillMissingDigits()
+    public void AutoProfileSamplesMergeAndFillMissingDigitsWhenDigitOcrValidationDisabled()
     {
         var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
         var settings = BuildSettings(countFailures: true, limit: 2) with
         {
-            CoordinateTemplateAutoProfileEnabled = true
+            CoordinateTemplateAutoProfileEnabled = true,
+            CoordinateTemplateRequirePerDigitOcrValidation = false
         };
         var runtimeSettings = new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 };
 
@@ -176,12 +176,13 @@ public sealed class CoordinateTemplateOcrServiceTests
     }
 
     [TestMethod]
-    public void AutoProfileValidatesKnownDigitsBeforeLearningMissingDigits()
+    public void AutoProfileValidatesKnownTemplatesBeforeLearningMissingDigits()
     {
         var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
         var settings = BuildSettings(countFailures: true, limit: 2) with
         {
-            CoordinateTemplateAutoProfileEnabled = true
+            CoordinateTemplateAutoProfileEnabled = true,
+            CoordinateTemplateRequirePerDigitOcrValidation = false
         };
         var runtimeSettings = new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 };
 
@@ -220,12 +221,147 @@ public sealed class CoordinateTemplateOcrServiceTests
     }
 
     [TestMethod]
-    public void AutoProfileRejectsSampleWhenKnownDigitValidationFails()
+    public void AutoProfileRequiresPerDigitOcrReaderWhenValidationIsEnabled()
     {
         var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
         var settings = BuildSettings(countFailures: true, limit: 2) with
         {
             CoordinateTemplateAutoProfileEnabled = true,
+            CoordinateTemplateRequirePerDigitOcrValidation = true
+        };
+
+        using var bitmap = CreatePatternCoordinateBitmap("1289,5670");
+        var status = service.AddProfileSampleFromNormalOcr(
+            bitmap,
+            new OcrLayoutBox { Name = "Coordinate", X = 1, Y = 2, Width = bitmap.Width, Height = bitmap.Height },
+            new ParsedCoordinate(1289, 5670, "1289,5670"),
+            settings,
+            new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 });
+
+        Assert.IsFalse(status.LastSampleAccepted);
+        StringAssert.Contains(status.LastDigitOcrValidationMessage, "required");
+        Assert.AreEqual(0, status.TemplateCount);
+    }
+
+    [TestMethod]
+    public void PerDigitOcrValidationAcceptsMatchingDigitsAndLearnsThem()
+    {
+        var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
+        var settings = BuildSettings(countFailures: true, limit: 2) with
+        {
+            CoordinateTemplateAutoProfileEnabled = true,
+            CoordinateTemplateRequirePerDigitOcrValidation = true
+        };
+
+        using var bitmap = CreatePatternCoordinateBitmap("1289,5670");
+        var digitResponses = new Queue<string>(new[] { "0", "1", "2", "5", "6", "7", "8", "9" });
+        var status = service.AddProfileSampleFromNormalOcr(
+            bitmap,
+            new OcrLayoutBox { Name = "Coordinate", X = 1, Y = 2, Width = bitmap.Width, Height = bitmap.Height },
+            new ParsedCoordinate(1289, 5670, "1289,5670"),
+            settings,
+            new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 },
+            _ => digitResponses.Dequeue());
+
+        Assert.IsTrue(status.LastSampleAccepted);
+        CollectionAssert.AreEquivalent(new[] { "0", "1", "2", "5", "6", "7", "8", "9" }, status.LastDigitOcrValidatedDigits.ToArray());
+        CollectionAssert.AreEquivalent(new[] { "0", "1", "2", "5", "6", "7", "8", "9" }, status.LearnedDigits.ToArray());
+        CollectionAssert.AreEqual(new[] { "3", "4" }, status.MissingDigitTemplates.ToArray());
+    }
+
+    [TestMethod]
+    public void PerDigitOcrValidationRejectsWrongUnknownDigitButStillLearnsMatchingDigits()
+    {
+        var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
+        var runtimeSettings = new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 };
+        var noDigitValidation = BuildSettings(countFailures: true, limit: 2) with
+        {
+            CoordinateTemplateAutoProfileEnabled = true,
+            CoordinateTemplateRequirePerDigitOcrValidation = false
+        };
+
+        using (var first = CreatePatternCoordinateBitmap("1255,1111"))
+        {
+            service.AddProfileSampleFromNormalOcr(
+                first,
+                new OcrLayoutBox { Name = "Coordinate", X = 1, Y = 2, Width = first.Width, Height = first.Height },
+                new ParsedCoordinate(1255, 1111, "1255,1111"),
+                noDigitValidation,
+                runtimeSettings);
+        }
+
+        var requireDigitValidation = noDigitValidation with
+        {
+            CoordinateTemplateRequirePerDigitOcrValidation = true
+        };
+
+        using var second = CreatePatternCoordinateBitmap("1289,5670");
+        var digitResponses = new Queue<string>(new[] { "0", "1", "2", "5", "6", "1", "8", "9" });
+        var status = service.AddProfileSampleFromNormalOcr(
+            second,
+            new OcrLayoutBox { Name = "Coordinate", X = 1, Y = 2, Width = second.Width, Height = second.Height },
+            new ParsedCoordinate(1289, 5670, "1289,5670"),
+            requireDigitValidation,
+            runtimeSettings,
+            _ => digitResponses.Dequeue());
+
+        Assert.IsTrue(status.LastSampleAccepted);
+        CollectionAssert.Contains(status.LastDigitOcrRejectedDigits.ToArray(), "7");
+        Assert.IsFalse(status.LearnedDigits.Contains("7"));
+        CollectionAssert.AreEquivalent(new[] { "3", "4", "7" }, status.MissingDigitTemplates.ToArray());
+        CollectionAssert.IsSubsetOf(new[] { "0", "6", "8", "9" }, status.LastLearnedDigits.ToArray());
+    }
+
+    [TestMethod]
+    public void PerDigitOcrValidationRejectsSampleWhenKnownDigitMismatches()
+    {
+        var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
+        var runtimeSettings = new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 };
+        var baseSettings = BuildSettings(countFailures: true, limit: 2) with
+        {
+            CoordinateTemplateAutoProfileEnabled = true,
+            CoordinateTemplateRequirePerDigitOcrValidation = false
+        };
+
+        using (var first = CreatePatternCoordinateBitmap("1212,5444"))
+        {
+            service.AddProfileSampleFromNormalOcr(
+                first,
+                new OcrLayoutBox { Name = "Coordinate", X = 1, Y = 2, Width = first.Width, Height = first.Height },
+                new ParsedCoordinate(1212, 5444, "1212,5444"),
+                baseSettings,
+                runtimeSettings);
+        }
+
+        var requireDigitValidation = baseSettings with
+        {
+            CoordinateTemplateRequirePerDigitOcrValidation = true
+        };
+
+        using var second = CreatePatternCoordinateBitmap("1289,5670");
+        var digitResponses = new Queue<string>(new[] { "0", "9", "2", "5", "6", "7", "8", "9" });
+        var status = service.AddProfileSampleFromNormalOcr(
+            second,
+            new OcrLayoutBox { Name = "Coordinate", X = 1, Y = 2, Width = second.Width, Height = second.Height },
+            new ParsedCoordinate(1289, 5670, "1289,5670"),
+            requireDigitValidation,
+            runtimeSettings,
+            _ => digitResponses.Dequeue());
+
+        Assert.IsFalse(status.LastSampleAccepted);
+        CollectionAssert.Contains(status.LastDigitOcrRejectedDigits.ToArray(), "1");
+        CollectionAssert.Contains(status.LastRejectedDigits.ToArray(), "1");
+        CollectionAssert.AreEquivalent(new[] { "0", "3", "6", "7", "8", "9" }, status.MissingDigitTemplates.ToArray());
+    }
+
+    [TestMethod]
+    public void AutoProfileRejectsSampleWhenKnownTemplateValidationFails()
+    {
+        var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
+        var settings = BuildSettings(countFailures: true, limit: 2) with
+        {
+            CoordinateTemplateAutoProfileEnabled = true,
+            CoordinateTemplateRequirePerDigitOcrValidation = false,
             CoordinateTemplateAutoProfileValidationMaxDigitScore = -0.01
         };
         var runtimeSettings = new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 };
@@ -238,9 +374,7 @@ public sealed class CoordinateTemplateOcrServiceTests
             settings,
             runtimeSettings);
 
-        using var second = CreatePatternCoordinateBitmap(
-            "1289,5670",
-            new Dictionary<char, int> { ['1'] = 0 });
+        using var second = CreatePatternCoordinateBitmap("1289,5670");
         var status = service.AddProfileSampleFromNormalOcr(
             second,
             new OcrLayoutBox { Name = "Coordinate", X = 1, Y = 2, Width = second.Width, Height = second.Height },
@@ -260,6 +394,7 @@ public sealed class CoordinateTemplateOcrServiceTests
         var settings = BuildSettings(countFailures: true, limit: 2) with
         {
             CoordinateTemplateAutoProfileEnabled = true,
+            CoordinateTemplateRequirePerDigitOcrValidation = false,
             CoordinateTemplateMaxTemplatesPerDigit = 2
         };
         var runtimeSettings = new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 };
@@ -285,6 +420,7 @@ public sealed class CoordinateTemplateOcrServiceTests
         var settings = BuildSettings(countFailures: true, limit: 2) with
         {
             CoordinateTemplateAutoProfileEnabled = true,
+            CoordinateTemplateRequirePerDigitOcrValidation = false,
             CoordinateTemplateAutoProfileMaxSamples = 1
         };
         var runtimeSettings = new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 };
@@ -314,7 +450,8 @@ public sealed class CoordinateTemplateOcrServiceTests
         var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
         var settings = BuildSettings(countFailures: true, limit: 2) with
         {
-            CoordinateTemplateAutoProfileEnabled = true
+            CoordinateTemplateAutoProfileEnabled = true,
+            CoordinateTemplateRequirePerDigitOcrValidation = false
         };
         using var bitmap = CreatePatternCoordinateBitmap("1212,5444");
 
@@ -334,7 +471,8 @@ public sealed class CoordinateTemplateOcrServiceTests
         var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
         var settings = BuildSettings(countFailures: true, limit: 2) with
         {
-            CoordinateTemplateAutoProfileEnabled = true
+            CoordinateTemplateAutoProfileEnabled = true,
+            CoordinateTemplateRequirePerDigitOcrValidation = false
         };
         using var bitmap = CreatePatternCoordinateBitmap("1212,5444", skipCommaInk: true);
 
@@ -357,7 +495,8 @@ public sealed class CoordinateTemplateOcrServiceTests
         var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
         var settings = BuildSettings(countFailures: true, limit: 2) with
         {
-            CoordinateTemplateAutoProfileEnabled = true
+            CoordinateTemplateAutoProfileEnabled = true,
+            CoordinateTemplateRequirePerDigitOcrValidation = false
         };
         using var bitmap = CreatePatternCoordinateBitmap("1212,5444", touchEdges: true);
 
@@ -384,7 +523,8 @@ public sealed class CoordinateTemplateOcrServiceTests
             CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode: true,
             CoordinateTemplateAutoProfileMaxSamples: 200,
             CoordinateTemplateAutoProfileValidationMaxDigitScore: 0.18,
-            CoordinateTemplateMaxTemplatesPerDigit: 5);
+            CoordinateTemplateMaxTemplatesPerDigit: 5,
+            CoordinateTemplateRequirePerDigitOcrValidation: false);
 
     private static Bitmap CreateVisibleCoordinateLikeBitmap()
     {
