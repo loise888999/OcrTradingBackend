@@ -90,6 +90,10 @@ public sealed class OcrRuntimeSettings
     public double CoordinateTemplateAutoProfileValidationMaxDigitScore { get; set; } = 0.18;
     public int CoordinateTemplateMaxTemplatesPerDigit { get; set; } = 5;
     public bool CoordinateTemplateRequirePerDigitOcrValidation { get; set; } = true;
+    public bool CoordinateTemplateNormalizeDigitPaddingEnabled { get; set; } = true;
+    public int CoordinateTemplateDigitHorizontalPaddingPixels { get; set; } = 1;
+    public int CoordinateTemplateDigitVerticalPaddingPixels { get; set; } = 1;
+    public bool CoordinateTemplateDebugPrintDigitBitmaps { get; set; }
     public int CoordinateIntervalMilliseconds { get; set; } = 2000;
     public int CoordinateRecentlyVisibleSeconds { get; set; } = 10;
     public bool CoordinateRequiresProbablyAtSea { get; set; } = true;

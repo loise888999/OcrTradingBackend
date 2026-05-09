@@ -599,12 +599,12 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         return null;
     }
 
-    private void MaybeAddAutoProfileSample(
-    Bitmap sourceBitmap,
-    OcrLayoutBox? coordinateBox,
-    ParsedCoordinate parsed,
-    CoordinateOcrSettingsResponse coordinateOcrSettings,
-    OcrRuntimeSettings settings)
+        private void MaybeAddAutoProfileSample(
+        Bitmap sourceBitmap,
+        OcrLayoutBox? coordinateBox,
+        ParsedCoordinate parsed,
+        CoordinateOcrSettingsResponse coordinateOcrSettings,
+        OcrRuntimeSettings settings)
     {
         _logger.LogWarning(
             "AUTO PROFILE CHECK: Enabled={Enabled}; ReadMode={ReadMode}; OnlyNormalMode={OnlyNormalMode}; BoxValid={BoxValid}; RequireDigitOcr={RequireDigitOcr}; Parsed={Parsed}",
@@ -613,14 +613,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             coordinateOcrSettings.CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode,
             coordinateBox is { IsValid: true },
             coordinateOcrSettings.CoordinateTemplateRequirePerDigitOcrValidation,
-            $"{parsed.X},{parsed.Y}");
-
-        _logger.LogWarning(
-            "AUTO PROFILE CHECK: Enabled={Enabled}; ReadMode={ReadMode}; OnlyNormalMode={OnlyNormalMode}; BoxValid={BoxValid}; Parsed={Parsed}",
-            coordinateOcrSettings.CoordinateTemplateAutoProfileEnabled,
-            coordinateOcrSettings.CoordinateReadMode,
-            coordinateOcrSettings.CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode,
-            coordinateBox is { IsValid: true },
             $"{parsed.X},{parsed.Y}");
 
         if (!coordinateOcrSettings.CoordinateTemplateAutoProfileEnabled)
@@ -635,6 +627,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             _logger.LogWarning(
                 "AUTO PROFILE STOPPED: CoordinateReadMode is {ReadMode}, but auto profile only runs in NormalOcr mode.",
                 coordinateOcrSettings.CoordinateReadMode);
+
             return;
         }
 
@@ -674,34 +667,24 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         }
     }
 
-    private string? ReadCalibrationDigitOcr(Bitmap digitCrop, OcrRuntimeSettings settings)
+
+        private string? ReadCalibrationDigitOcr(Bitmap digitCrop, OcrRuntimeSettings settings)
     {
-        // Single-digit OCR is different from full coordinate OCR.
-        // The normal coordinate cleanup can be too aggressive and can damage
-        // narrow digits like 1 or complex digits like 8/3.
-        //
-        // Try several safe variants:
-        // - padded crop
-        // - larger upscale
-        // - cleanup disabled first
-        // - threshold variations
-        // - cleanup only as a last attempt
-        var attempts = new List<(int Scale, int Threshold, bool Cleanup)>
+        var attempts = new List<(int Padding, int Scale, int Threshold, bool Cleanup)>
         {
-            (3, settings.CoordinateOcrThreshold, false),
-            (10, settings.CoordinateOcrThreshold, false),
-            (12, settings.CoordinateOcrThreshold, false),
-
-            (8, Math.Clamp(settings.CoordinateOcrThreshold - 20, 0, 255), false),
-            (8, Math.Clamp(settings.CoordinateOcrThreshold + 20, 0, 255), false),
-
-            // Cleanup last because cleanup can remove thin single-digit strokes.
-            (8, settings.CoordinateOcrThreshold, true)
+            (2, 2, settings.CoordinateOcrThreshold, false),
+            (2, 2, Math.Clamp(settings.CoordinateOcrThreshold - 20, 0, 255), false),
+            (2, 2, Math.Clamp(settings.CoordinateOcrThreshold + 20, 0, 255), false),
+            (4, 2, settings.CoordinateOcrThreshold, false),
+            (2, Math.Clamp(settings.CoordinateOcrUpscale, 1, 6), settings.CoordinateOcrThreshold, false),
+            (2, 3, settings.CoordinateOcrThreshold, false),
+            (2, 4, settings.CoordinateOcrThreshold, false),
+            (2, 2, settings.CoordinateOcrThreshold, true)
         };
 
         foreach (var attempt in attempts)
         {
-            using var padded = AddDigitPadding(digitCrop, padding: 6);
+            using var padded = AddDigitPadding(digitCrop, attempt.Padding);
 
             Bitmap? prepared = null;
 
@@ -742,9 +725,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             source.Height + padding * 2);
 
         using var graphics = Graphics.FromImage(output);
-
-        // Black background is safest because coordinate preprocessing treats
-        // bright/white pixels as foreground text.
         graphics.Clear(Color.Black);
 
         graphics.DrawImage(
@@ -765,17 +745,19 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             .Where(char.IsDigit)
             .ToArray();
 
-        // Accept exactly one digit.
         if (digits.Length == 1)
             return digits[0].ToString();
 
-        // Sometimes OCR repeats the same digit, such as "88" or "111".
-        // Accept it if all detected digits are the same.
         if (digits.Length > 1 && digits.Distinct().Count() == 1)
             return digits[0].ToString();
 
         return null;
     }
+
+
+    
+
+    
 
     private async Task<ParsedCoordinate?> TryOcrAndParseCoordinateAsync(
         Bitmap bitmap,

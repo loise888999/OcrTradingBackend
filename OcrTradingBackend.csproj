@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
@@ -30,5 +30,8 @@
     <Content Remove="OcrTradingBackend.Tests\**\*" />
     <EmbeddedResource Remove="OcrTradingBackend.Tests\**\*" />
     <None Remove="OcrTradingBackend.Tests\**\*" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Data\coordinate-template-profile-images\" />
   </ItemGroup>
 </Project>

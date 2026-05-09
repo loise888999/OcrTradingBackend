@@ -293,8 +293,37 @@ app.MapGet("/api/coordinate-template/profile/status", (
     ICoordinateTemplateOcrService templateOcr) =>
 {
     var settings = coordinateOcrSettings.Get();
-    return Results.Ok(templateOcr.GetProfileStatus(settings.CoordinateTemplateAutoProfileEnabled));
+
+    return Results.Ok(
+        templateOcr.GetProfileStatus(
+            settings.CoordinateTemplateAutoProfileEnabled));
 });
+
+app.MapDelete("/api/coordinate-template/profile", (
+    ICoordinateTemplateOcrService templateOcr) =>
+{
+    templateOcr.DeleteProfile();
+
+    return Results.Ok(new
+    {
+        deleted = true,
+        message = "Coordinate template profile deleted. Start auto build again to relearn digits."
+    });
+});
+
+app.MapPost("/api/coordinate-template/profile/reset", (
+    ICoordinateTemplateOcrService templateOcr) =>
+{
+    templateOcr.DeleteProfile();
+
+    return Results.Ok(new
+    {
+        deleted = true,
+        message = "Coordinate template profile reset. Start auto build again to relearn digits."
+    });
+});
+
+
 
 app.MapPost("/api/coordinate-template/profile/auto/start", async (
     ICoordinateOcrSettingsService coordinateOcrSettings,
@@ -302,22 +331,26 @@ app.MapPost("/api/coordinate-template/profile/auto/start", async (
 {
     var settings = await coordinateOcrSettings.UpdateAsync(
         new UpdateCoordinateOcrSettingsRequest(
-            CoordinateReadMode: null,
-            CoordinateTemplateFallbackToNormalOcr: null,
+            CoordinateReadMode: CoordinateOcrModes.NormalOcr,
+            CoordinateTemplateFallbackToNormalOcr: true,
             CoordinateTemplateCountFailedReadsForRecalibration: null,
             CoordinateTemplateRecalibrationFailureLimit: null,
             CoordinateTemplateRequireVisibleTextForFailure: null,
             CoordinateTemplateMinTextPixelsPercent: null,
             CoordinateTemplateMinContrast: null,
             CoordinateTemplateAutoProfileEnabled: true,
-            CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode: null,
-            CoordinateTemplateAutoProfileMaxSamples: null,
+            CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode: true,
+            CoordinateTemplateAutoProfileMaxSamples: 10000,
             CoordinateTemplateAutoProfileValidationMaxDigitScore: null,
-            CoordinateTemplateMaxTemplatesPerDigit: null,
-            CoordinateTemplateRequirePerDigitOcrValidation: null),
+            CoordinateTemplateMaxTemplatesPerDigit: 1,
+            CoordinateTemplateRequirePerDigitOcrValidation: true),
         ct);
 
-    return Results.Ok(settings);
+    return Results.Ok(new
+    {
+        message = "Auto profile calibration started. Move in-game until all digits 0-9 are learned.",
+        settings
+    });
 });
 
 app.MapPost("/api/coordinate-template/profile/auto/stop", async (
@@ -341,8 +374,119 @@ app.MapPost("/api/coordinate-template/profile/auto/stop", async (
             CoordinateTemplateRequirePerDigitOcrValidation: null),
         ct);
 
-    return Results.Ok(settings);
+    return Results.Ok(new
+    {
+        message = "Auto profile calibration stopped.",
+        settings
+    });
 });
+
+app.MapPost("/api/coordinate-template/profile/use-fast", async (
+    ICoordinateOcrSettingsService coordinateOcrSettings,
+    ICoordinateTemplateOcrService templateOcr,
+    CancellationToken ct) =>
+{
+    var current = coordinateOcrSettings.Get();
+    var profile = templateOcr.GetProfileStatus(current.CoordinateTemplateAutoProfileEnabled);
+
+    if (!profile.ProfileReady || profile.MissingDigitTemplates.Count > 0)
+    {
+        return Results.BadRequest(new
+        {
+            message = "Fast OCR profile is not ready. Learn all digits 0-9 first.",
+            profileReady = profile.ProfileReady,
+            missing = profile.MissingDigitTemplates
+        });
+    }
+
+    var settings = await coordinateOcrSettings.UpdateAsync(
+        new UpdateCoordinateOcrSettingsRequest(
+            CoordinateReadMode: CoordinateOcrModes.FastTemplate,
+            CoordinateTemplateFallbackToNormalOcr: true,
+            CoordinateTemplateCountFailedReadsForRecalibration: null,
+            CoordinateTemplateRecalibrationFailureLimit: null,
+            CoordinateTemplateRequireVisibleTextForFailure: null,
+            CoordinateTemplateMinTextPixelsPercent: null,
+            CoordinateTemplateMinContrast: null,
+            CoordinateTemplateAutoProfileEnabled: false,
+            CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode: null,
+            CoordinateTemplateAutoProfileMaxSamples: null,
+            CoordinateTemplateAutoProfileValidationMaxDigitScore: null,
+            CoordinateTemplateMaxTemplatesPerDigit: null,
+            CoordinateTemplateRequirePerDigitOcrValidation: null),
+        ct);
+
+    return Results.Ok(new
+    {
+        message = "Fast OCR enabled. Auto profile learning disabled.",
+        settings,
+        profile
+    });
+});
+
+app.MapPost("/api/coordinate-template/test-current", async (
+    IOcrLayoutService layoutService,
+    IScreenCaptureService capture,
+    ICoordinateOcrSettingsService coordinateOcrSettings,
+    ICoordinateTemplateOcrService templateOcr,
+    CancellationToken ct) =>
+{
+    var layout = await layoutService.LoadAsync(ct);
+
+    if (!layout.Enabled)
+    {
+        return Results.BadRequest(new
+        {
+            message = "OCR layout is disabled. Enable and save the OCR layout first."
+        });
+    }
+
+    var coordinateBox = layout.Zones.Coordinate;
+
+    if (coordinateBox is not { IsValid: true })
+    {
+        return Results.BadRequest(new
+        {
+            message = "Coordinate layout box is missing. Open coordinate calibration and save a coordinate box first."
+        });
+    }
+
+    var zone = layoutService.TryGetCoordinateZone(layout);
+
+    if (zone is null)
+    {
+        return Results.BadRequest(new
+        {
+            message = "Could not resolve coordinate box to screen coordinates. Make sure the game window is selected/found first."
+        });
+    }
+
+    var settings = coordinateOcrSettings.Get();
+
+    using var bitmap = capture.Capture(zone);
+    var attempt = templateOcr.TryRead(bitmap, settings);
+    var profile = templateOcr.GetProfileStatus(settings.CoordinateTemplateAutoProfileEnabled);
+
+    return Results.Ok(new
+    {
+        success = attempt.Success,
+        rawText = attempt.RawText,
+        parsed = attempt.Parsed is null
+            ? null
+            : new
+            {
+                x = attempt.Parsed.X,
+                y = attempt.Parsed.Y,
+                rawText = attempt.Parsed.RawText
+            },
+        reason = attempt.Reason,
+        needsRecalibration = attempt.NeedsRecalibration,
+        settings,
+        profile
+    });
+});
+
+
 
 app.MapPost("/api/coordinate-template/profile", async (
     CreateCoordinateTemplateProfileRequest request,

@@ -1,4 +1,5 @@
 using OcrTradingBackend.Models;
+using System.Drawing.Imaging;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -7,13 +8,17 @@ namespace OcrTradingBackend.Services;
 public interface ICoordinateTemplateOcrService
 {
     CoordinateTemplateOcrStatus GetStatus();
-    CoordinateTemplateProfileStatus GetProfileStatus(bool autoProfileEnabled = false);
+
+    CoordinateTemplateProfileStatus GetProfileStatus(
+        bool autoProfileEnabled = false);
+
     Task<CoordinateTemplateProfileStatus> CreateProfileAsync(
         Bitmap bitmap,
         OcrLayoutBox captureBox,
         CreateCoordinateTemplateProfileRequest request,
         OcrRuntimeSettings settings,
         CancellationToken ct);
+
     CoordinateTemplateProfileStatus AddProfileSampleFromNormalOcr(
         Bitmap bitmap,
         OcrLayoutBox captureBox,
@@ -21,9 +26,18 @@ public interface ICoordinateTemplateOcrService
         CoordinateOcrSettingsResponse coordinateOcrSettings,
         OcrRuntimeSettings settings,
         Func<Bitmap, string?>? perDigitOcrReader = null);
-    CoordinateTemplateReadAttempt TryRead(Bitmap bitmap, CoordinateOcrSettingsResponse settings);
+
+    CoordinateTemplateReadAttempt TryRead(
+        Bitmap bitmap,
+        CoordinateOcrSettingsResponse settings);
+
     void ResetFailures();
-    CoordinateTemplateOcrStatus MaybeCountFailedFastRead(CoordinateOcrSettingsResponse settings, string reason);
+
+    void DeleteProfile();
+
+    CoordinateTemplateOcrStatus MaybeCountFailedFastRead(
+        CoordinateOcrSettingsResponse settings,
+        string reason);
 }
 
 public sealed record CoordinateTemplateReadAttempt(
@@ -97,7 +111,13 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             settings.WorldWidth,
             settings.WorldHeight);
 
-        var build = BuildTemplates(bitmap, normalized, threshold: 180);
+        var build = BuildTemplates(
+            bitmap,
+            normalized,
+            threshold: 180,
+            normalizePaddingEnabled: settings.CoordinateTemplateNormalizeDigitPaddingEnabled,
+            horizontalPadding: settings.CoordinateTemplateDigitHorizontalPaddingPixels,
+            verticalPadding: settings.CoordinateTemplateDigitVerticalPaddingPixels);
         var templates = KeepSingleTemplatePerDigit(build.Templates);
         var allTemplates = templates.Values.SelectMany(x => x).ToList();
 
@@ -219,7 +239,13 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             settings.WorldWidth,
             settings.WorldHeight);
 
-        var sampleBuild = BuildTemplates(bitmap, normalized, threshold: 180);
+        var sampleBuild = BuildTemplates(
+            bitmap,
+            normalized,
+            threshold: 180,
+            normalizePaddingEnabled: coordinateOcrSettings.CoordinateTemplateNormalizeDigitPaddingEnabled,
+            horizontalPadding: coordinateOcrSettings.CoordinateTemplateDigitHorizontalPaddingPixels,
+            verticalPadding: coordinateOcrSettings.CoordinateTemplateDigitVerticalPaddingPixels);
         var sampleTemplates = sampleBuild.Templates;
         var now = DateTime.UtcNow;
 
@@ -238,11 +264,17 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             profile.LastSegmentationMode = sampleBuild.Mode;
             profile.LastLowQualityDigits = sampleBuild.LowQualityDigits.ToList();
 
+            var knownDigitsForDigitOcr = profile.DigitTemplates
+                .Where(x => x.Value.Count > 0)
+                .Select(x => x.Key)
+                .ToHashSet(StringComparer.Ordinal);
+
             var digitOcr = ValidateAndFilterTemplatesWithDigitOcr(
                 bitmap,
                 sampleTemplates,
                 coordinateOcrSettings,
-                perDigitOcrReader);
+                perDigitOcrReader,
+                knownDigitsForDigitOcr);
 
             profile.LastDigitOcrValidatedDigits = digitOcr.ValidatedDigits.ToList();
             profile.LastDigitOcrRejectedDigits = digitOcr.RejectedDigits.ToList();
@@ -322,11 +354,35 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
                 if (best <= coordinateOcrSettings.CoordinateTemplateAutoProfileValidationMaxDigitScore)
                 {
                     validatedDigits.Add(digit);
+
+                    if (coordinateOcrSettings.CoordinateTemplateDebugPrintDigitBitmaps)
+                    {
+                        DebugPrintKnownTemplateValidation(
+                            passed: true,
+                            coordinate: normalized,
+                            digit: digit,
+                            score: best,
+                            maxScore: coordinateOcrSettings.CoordinateTemplateAutoProfileValidationMaxDigitScore,
+                            candidates: candidates,
+                            learnedTemplates: profile.DigitTemplates[digit]);
+                    }
                 }
                 else
                 {
                     rejectedDigits.Add(digit);
                     validationMessages.Add($"{digit} score {best:F3}");
+
+                    if (coordinateOcrSettings.CoordinateTemplateDebugPrintDigitBitmaps)
+                    {
+                        DebugPrintKnownTemplateValidation(
+                            passed: false,
+                            coordinate: normalized,
+                            digit: digit,
+                            score: best,
+                            maxScore: coordinateOcrSettings.CoordinateTemplateAutoProfileValidationMaxDigitScore,
+                            candidates: candidates,
+                            learnedTemplates: profile.DigitTemplates[digit]);
+                    }
                 }
             }
 
@@ -472,7 +528,7 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
                 NeedsRecalibration: incompleteStatus.NeedsRecalibration);
         }
 
-        var read = TryReadRuntimeCoordinate(bitmap, profile);
+        var read = TryReadRuntimeCoordinate(bitmap, profile, settings);
         if (read is not null)
         {
             lock (_gate)
@@ -503,7 +559,25 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             NeedsRecalibration: status.NeedsRecalibration);
     }
 
-    public void ResetFailures()
+            public void DeleteProfile()
+    {
+        lock (_gate)
+        {
+            if (File.Exists(_profilePath))
+                File.Delete(_profilePath);
+
+            var imageRoot = GetProfileImageRootBase();
+            if (Directory.Exists(imageRoot))
+                Directory.Delete(imageRoot, recursive: true);
+
+            _failedReadCount = 0;
+            _needsRecalibration = false;
+            _lastFailureReason = null;
+            _updatedAtUtc = DateTime.UtcNow;
+        }
+    }
+
+public void ResetFailures()
     {
         lock (_gate)
         {
@@ -593,7 +667,7 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             return LoadProfileLocked();
     }
 
-    private CoordinateTemplateProfile? LoadProfileLocked()
+        private CoordinateTemplateProfile? LoadProfileLocked()
     {
         try
         {
@@ -605,7 +679,10 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
                 JsonOptions);
 
             if (profile is not null)
+            {
+                HydrateTemplateImagesLocked(profile);
                 profile.MissingDigitTemplates = BuildMissingDigits(profile.DigitTemplates);
+            }
 
             return profile;
         }
@@ -615,7 +692,8 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
         }
     }
 
-    private void SaveProfileLocked(CoordinateTemplateProfile profile)
+
+        private void SaveProfileLocked(CoordinateTemplateProfile profile)
     {
         profile.MissingDigitTemplates = BuildMissingDigits(profile.DigitTemplates);
 
@@ -623,10 +701,231 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
         if (!string.IsNullOrWhiteSpace(folder))
             Directory.CreateDirectory(folder);
 
-        var tempPath = $"{_profilePath}.tmp";
-        File.WriteAllText(tempPath, JsonSerializer.Serialize(profile, JsonOptions));
-        File.Move(tempPath, _profilePath, overwrite: true);
+        SaveTemplateImagesLocked(profile);
+
+        // Keep the profile JSON small:
+        // save digit bitmap pixels as PNG files, not as large string[] patterns in JSON.
+        var pixelBackups = new List<(CoordinateDigitTemplate Template, string[] Pixels)>();
+
+        foreach (var template in profile.DigitTemplates.Values.SelectMany(x => x))
+        {
+            pixelBackups.Add((template, template.Pixels));
+            template.Pixels = Array.Empty<string>();
+        }
+
+        try
+        {
+            var tempPath = $"{_profilePath}.tmp";
+            File.WriteAllText(tempPath, JsonSerializer.Serialize(profile, JsonOptions));
+            File.Move(tempPath, _profilePath, overwrite: true);
+        }
+        finally
+        {
+            foreach (var backup in pixelBackups)
+                backup.Template.Pixels = backup.Pixels;
+        }
     }
+
+    private string GetProfileImageRootBase()
+    {
+        var folder = Path.GetDirectoryName(_profilePath);
+
+        if (string.IsNullOrWhiteSpace(folder))
+            folder = AppContext.BaseDirectory;
+
+        var profileFileName = Path.GetFileNameWithoutExtension(_profilePath);
+
+        if (string.IsNullOrWhiteSpace(profileFileName))
+            profileFileName = "coordinate-template-profile";
+
+        return Path.Combine(folder, $"{profileFileName}-images");
+    }
+
+    private string GetProfileImageRoot(CoordinateTemplateProfile profile)
+    {
+        var profileId = string.IsNullOrWhiteSpace(profile.ProfileId)
+            ? "default"
+            : profile.ProfileId;
+
+        return Path.Combine(GetProfileImageRootBase(), profileId);
+    }
+
+    private string GetAbsoluteTemplateImagePath(string imagePath)
+    {
+        if (Path.IsPathRooted(imagePath))
+            return Path.GetFullPath(imagePath);
+
+        var folder = Path.GetDirectoryName(_profilePath);
+
+        if (string.IsNullOrWhiteSpace(folder))
+            folder = AppContext.BaseDirectory;
+
+        return Path.GetFullPath(
+            Path.Combine(
+                folder,
+                imagePath.Replace('/', Path.DirectorySeparatorChar)));
+    }
+
+    private string ToProfileRelativePath(string absolutePath)
+    {
+        var folder = Path.GetDirectoryName(_profilePath);
+
+        if (string.IsNullOrWhiteSpace(folder))
+            folder = AppContext.BaseDirectory;
+
+        return Path.GetRelativePath(folder, absolutePath)
+            .Replace('\\', '/');
+    }
+
+    private void SaveTemplateImagesLocked(CoordinateTemplateProfile profile)
+    {
+        var root = GetProfileImageRoot(profile);
+        Directory.CreateDirectory(root);
+
+        foreach (var (digit, templates) in profile.DigitTemplates.OrderBy(x => x.Key))
+        {
+            for (var i = 0; i < templates.Count; i++)
+            {
+                var template = templates[i];
+
+                if (template.Width <= 0 || template.Height <= 0)
+                    continue;
+
+                // One file per learned digit template.
+                // Current design uses one template per digit, but index keeps it safe if variants exist.
+                var fileName = templates.Count == 1
+                    ? $"{digit}.png"
+                    : $"{digit}_{i}.png";
+
+                var absolutePath = Path.Combine(root, fileName);
+
+                if (template.Pixels.Length > 0)
+                    SaveTemplateImage(template, absolutePath);
+
+                template.ImagePath = ToProfileRelativePath(absolutePath);
+            }
+        }
+    }
+
+            private static void SaveTemplateImage(CoordinateDigitTemplate template, string absolutePath)
+    {
+        var folder = Path.GetDirectoryName(absolutePath);
+        if (!string.IsNullOrWhiteSpace(folder))
+            Directory.CreateDirectory(folder);
+
+        var cleaned = new CoordinateDigitTemplate
+        {
+            Digit = template.Digit,
+            Width = template.Width,
+            Height = template.Height,
+            Pixels = template.Pixels.ToArray(),
+            Side = template.Side,
+            DistanceFromSeparator = template.DistanceFromSeparator,
+            TouchesCropEdge = template.TouchesCropEdge,
+            QualityScore = template.QualityScore,
+            SourceX = template.SourceX,
+            SourceY = template.SourceY
+        };
+
+        NormalizeTemplatePaddingInPlace(
+            cleaned,
+            horizontalPadding: 2,
+            verticalPadding: 1);
+
+        using var bitmap = new Bitmap(cleaned.Width, cleaned.Height);
+
+        for (var y = 0; y < cleaned.Height; y++)
+        {
+            for (var x = 0; x < cleaned.Width; x++)
+            {
+                var index = y * cleaned.Width + x;
+
+                var isInk =
+                    index >= 0 &&
+                    index < cleaned.Pixels.Length &&
+                    string.Equals(cleaned.Pixels[index], InkPixel, StringComparison.Ordinal);
+
+                bitmap.SetPixel(x, y, isInk ? Color.White : Color.Black);
+            }
+        }
+
+        bitmap.Save(absolutePath, ImageFormat.Png);
+    }
+
+
+
+    private void HydrateTemplateImagesLocked(CoordinateTemplateProfile profile)
+    {
+        foreach (var template in profile.DigitTemplates.Values.SelectMany(x => x))
+        {
+            if (template.Pixels.Length > 0)
+                continue;
+
+            if (string.IsNullOrWhiteSpace(template.ImagePath))
+                continue;
+
+            var absolutePath = GetAbsoluteTemplateImagePath(template.ImagePath);
+
+            if (!TryLoadTemplateImage(
+                    absolutePath,
+                    out var width,
+                    out var height,
+                    out var pixels))
+            {
+                continue;
+            }
+
+            template.Width = width;
+            template.Height = height;
+            template.Pixels = pixels;
+        }
+    }
+
+    private static bool TryLoadTemplateImage(
+        string absolutePath,
+        out int width,
+        out int height,
+        out string[] pixels)
+    {
+        width = 0;
+        height = 0;
+        pixels = Array.Empty<string>();
+
+        try
+        {
+            if (!File.Exists(absolutePath))
+                return false;
+
+            using var bitmap = new Bitmap(absolutePath);
+
+            width = bitmap.Width;
+            height = bitmap.Height;
+            pixels = new string[width * height];
+
+            var index = 0;
+
+            for (var y = 0; y < height; y++)
+            {
+                for (var x = 0; x < width; x++)
+                {
+                    pixels[index++] = Gray(bitmap.GetPixel(x, y)) >= 128
+                        ? InkPixel
+                        : BackgroundPixel;
+                }
+            }
+
+            return true;
+        }
+        catch
+        {
+            width = 0;
+            height = 0;
+            pixels = Array.Empty<string>();
+            return false;
+        }
+    }
+
+
 
     private static string ValidateAndNormalizeCoordinate(string? value, int worldWidth, int worldHeight)
     {
@@ -647,10 +946,13 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
         return $"{x},{y}";
     }
 
-    private static TemplateBuildResult BuildTemplates(
+            private static TemplateBuildResult BuildTemplates(
         Bitmap bitmap,
         string coordinate,
-        int threshold)
+        int threshold,
+        bool normalizePaddingEnabled = true,
+        int horizontalPadding = 2,
+        int verticalPadding = 1)
     {
         var segmentation = SegmentGlyphs(bitmap, coordinate, threshold);
         var glyphs = segmentation.Glyphs
@@ -672,7 +974,7 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
                 templates[digit] = list;
             }
 
-            list.Add(new CoordinateDigitTemplate
+            var template = new CoordinateDigitTemplate
             {
                 Digit = digit,
                 Width = glyph.Width,
@@ -684,7 +986,17 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
                 QualityScore = glyph.QualityScore,
                 SourceX = glyph.SourceX,
                 SourceY = glyph.SourceY
-            });
+            };
+
+            if (normalizePaddingEnabled)
+            {
+                NormalizeTemplatePaddingInPlace(
+                    template,
+                    horizontalPadding,
+                    verticalPadding);
+            }
+
+            list.Add(template);
         }
 
         return new TemplateBuildResult(
@@ -692,6 +1004,8 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             Mode: segmentation.Mode,
             LowQualityDigits: segmentation.LowQualityDigits);
     }
+
+
 
     private static SegmentationResult SegmentGlyphs(Bitmap bitmap, string coordinate, int threshold)
     {
@@ -1270,11 +1584,12 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
         return (minX, maxX);
     }
 
-    private static DigitOcrTemplateFilterResult ValidateAndFilterTemplatesWithDigitOcr(
+                private static DigitOcrTemplateFilterResult ValidateAndFilterTemplatesWithDigitOcr(
         Bitmap source,
         IReadOnlyDictionary<string, List<CoordinateDigitTemplate>> sampleTemplates,
         CoordinateOcrSettingsResponse settings,
-        Func<Bitmap, string?>? perDigitOcrReader)
+        Func<Bitmap, string?>? perDigitOcrReader,
+        ISet<string>? knownDigits = null)
     {
         if (!settings.CoordinateTemplateRequirePerDigitOcrValidation)
         {
@@ -1296,13 +1611,30 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
                 Message: "Per-digit OCR validation required, but no digit OCR reader was provided.");
         }
 
+        knownDigits ??= new HashSet<string>(StringComparer.Ordinal);
+
+        // If 3+ digits are known, the sample can be anchored by known-template validation.
+        // That lets us learn missing digits like 7/9 even when isolated PaddleOCR fails.
+        var allowFullOcrFallbackForMissingDigits = knownDigits.Count >= 3;
+
         var validatedTemplates = new Dictionary<string, List<CoordinateDigitTemplate>>(StringComparer.Ordinal);
-        var validatedDigits = new SortedSet<string>(StringComparer.Ordinal);
-        var rejectedDigits = new SortedSet<string>(StringComparer.Ordinal);
+        var ocrValidatedDigits = new SortedSet<string>(StringComparer.Ordinal);
+        var ocrRejectedDigits = new SortedSet<string>(StringComparer.Ordinal);
+        var fallbackAcceptedDigits = new SortedSet<string>(StringComparer.Ordinal);
         var messages = new List<string>();
+
+        if (settings.CoordinateTemplateDebugPrintDigitBitmaps)
+        {
+            Console.WriteLine("========== DIGIT OCR VALIDATION START ==========");
+            Console.WriteLine($"Known digits: {(knownDigits.Count == 0 ? "none" : string.Join(",", knownDigits.OrderBy(x => x)))}");
+            Console.WriteLine($"Allow full-coordinate fallback for missing digits: {allowFullOcrFallbackForMissingDigits}");
+            Console.WriteLine($"Sample digits: {string.Join(",", sampleTemplates.Keys.OrderBy(x => x))}");
+        }
 
         foreach (var (expectedDigit, templates) in sampleTemplates.OrderBy(x => x.Key))
         {
+            var templateIndex = 0;
+
             foreach (var template in templates)
             {
                 using var crop = CropTemplate(source, template);
@@ -1310,7 +1642,37 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
                 var raw = perDigitOcrReader(crop);
                 var actual = NormalizeSingleDigit(raw);
 
-                if (actual == expectedDigit)
+                var ocrMatch = actual == expectedDigit;
+                var isKnownDigit = knownDigits.Contains(expectedDigit);
+
+                var keepByKnownTemplateValidation = isKnownDigit;
+                var keepByFullCoordinateFallback =
+                    !isKnownDigit &&
+                    allowFullOcrFallbackForMissingDigits;
+
+                var keep =
+                    ocrMatch ||
+                    keepByKnownTemplateValidation ||
+                    keepByFullCoordinateFallback;
+
+                if (settings.CoordinateTemplateDebugPrintDigitBitmaps)
+                {
+                    Console.WriteLine("---------- DIGIT OCR VALIDATION ----------");
+                    Console.WriteLine($"Expected digit: {expectedDigit}");
+                    Console.WriteLine($"Actual single-digit OCR: {actual ?? "null"}");
+                    Console.WriteLine($"Raw OCR: '{raw}'");
+                    Console.WriteLine($"Template index: {templateIndex}");
+                    Console.WriteLine($"Template size: {template.Width}x{template.Height}");
+                    Console.WriteLine($"Known digit: {isKnownDigit}");
+                    Console.WriteLine($"OCR match: {ocrMatch}");
+                    Console.WriteLine($"Keep by known-template validation: {keepByKnownTemplateValidation}");
+                    Console.WriteLine($"Keep by full-coordinate fallback: {keepByFullCoordinateFallback}");
+                    Console.WriteLine($"Final keep decision: {keep}");
+                    DebugPrintBitmap($"CROP SENT TO SINGLE-DIGIT OCR expected={expectedDigit} actual={actual ?? "null"}", crop, threshold: 128);
+                    DebugPrintTemplate($"TEMPLATE PIXELS expected={expectedDigit}", template);
+                }
+
+                if (keep)
                 {
                     if (!validatedTemplates.TryGetValue(expectedDigit, out var list))
                     {
@@ -1319,45 +1681,100 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
                     }
 
                     list.Add(template);
-                    validatedDigits.Add(expectedDigit);
+
+                    if (ocrMatch)
+                    {
+                        ocrValidatedDigits.Add(expectedDigit);
+                    }
+                    else
+                    {
+                        ocrRejectedDigits.Add(expectedDigit);
+                        fallbackAcceptedDigits.Add(expectedDigit);
+                        messages.Add(
+                            $"{expectedDigit}->{(string.IsNullOrWhiteSpace(raw) ? "empty" : raw.Trim())}; kept");
+                    }
                 }
                 else
                 {
-                    rejectedDigits.Add(expectedDigit);
-                    messages.Add($"{expectedDigit}->{(string.IsNullOrWhiteSpace(raw) ? "empty" : raw.Trim())}");
+                    ocrRejectedDigits.Add(expectedDigit);
+                    messages.Add(
+                        $"{expectedDigit}->{(string.IsNullOrWhiteSpace(raw) ? "empty" : raw.Trim())}; rejected");
                 }
+
+                templateIndex++;
             }
+        }
+
+        if (settings.CoordinateTemplateDebugPrintDigitBitmaps)
+        {
+            Console.WriteLine($"OCR matched: {(ocrValidatedDigits.Count == 0 ? "none" : string.Join(",", ocrValidatedDigits))}");
+            Console.WriteLine($"OCR rejected: {(ocrRejectedDigits.Count == 0 ? "none" : string.Join(",", ocrRejectedDigits))}");
+            Console.WriteLine($"Fallback kept: {(fallbackAcceptedDigits.Count == 0 ? "none" : string.Join(",", fallbackAcceptedDigits))}");
+            Console.WriteLine("========== DIGIT OCR VALIDATION END ==========");
         }
 
         var accepted = validatedTemplates.Count > 0;
 
+        var message =
+            accepted
+                ? $"Per-digit OCR matched {(ocrValidatedDigits.Count == 0 ? "none" : string.Join(",", ocrValidatedDigits))}; " +
+                  $"OCR rejected {(ocrRejectedDigits.Count == 0 ? "none" : string.Join(",", ocrRejectedDigits))}; " +
+                  $"fallback-kept {(fallbackAcceptedDigits.Count == 0 ? "none" : string.Join(",", fallbackAcceptedDigits))}."
+                : $"Per-digit OCR rejected all digits ({string.Join("; ", messages)}).";
+
         return new DigitOcrTemplateFilterResult(
             Accepted: accepted,
             ValidatedTemplates: validatedTemplates,
-            ValidatedDigits: validatedDigits.ToArray(),
-            RejectedDigits: rejectedDigits.ToArray(),
-            Message: accepted
-                ? $"Per-digit OCR accepted {string.Join(",", validatedDigits)}; rejected {(rejectedDigits.Count == 0 ? "none" : string.Join(",", rejectedDigits))}."
-                : $"Per-digit OCR rejected all digits ({string.Join("; ", messages)}).");
+            ValidatedDigits: ocrValidatedDigits.ToArray(),
+            RejectedDigits: ocrRejectedDigits.ToArray(),
+            Message: message);
     }
 
-    private static Bitmap CropTemplate(Bitmap source, CoordinateDigitTemplate template)
+
+
+
+        private static Bitmap CropTemplate(Bitmap source, CoordinateDigitTemplate template)
     {
-        var x = Math.Clamp(template.SourceX, 0, Math.Max(0, source.Width - 1));
-        var y = Math.Clamp(template.SourceY, 0, Math.Max(0, source.Height - 1));
-        var width = Math.Clamp(template.Width, 1, source.Width - x);
-        var height = Math.Clamp(template.Height, 1, source.Height - y);
+        if (template.Width > 0 &&
+            template.Height > 0 &&
+            template.Pixels.Length == template.Width * template.Height)
+        {
+            var output = new Bitmap(template.Width, template.Height);
+
+            for (var y = 0; y < template.Height; y++)
+            {
+                for (var x = 0; x < template.Width; x++)
+                {
+                    var index = y * template.Width + x;
+
+                    var isInk =
+                        index >= 0 &&
+                        index < template.Pixels.Length &&
+                        string.Equals(template.Pixels[index], InkPixel, StringComparison.Ordinal);
+
+                    output.SetPixel(x, y, isInk ? Color.White : Color.Black);
+                }
+            }
+
+            return output;
+        }
+
+        var sourceX = Math.Clamp(template.SourceX, 0, Math.Max(0, source.Width - 1));
+        var sourceY = Math.Clamp(template.SourceY, 0, Math.Max(0, source.Height - 1));
+        var width = Math.Clamp(template.Width, 1, source.Width - sourceX);
+        var height = Math.Clamp(template.Height, 1, source.Height - sourceY);
         var crop = new Bitmap(width, height);
 
         using var graphics = Graphics.FromImage(crop);
         graphics.DrawImage(
             source,
             new Rectangle(0, 0, width, height),
-            new Rectangle(x, y, width, height),
+            new Rectangle(sourceX, sourceY, width, height),
             GraphicsUnit.Pixel);
 
         return crop;
     }
+
 
     private static string? NormalizeSingleDigit(string? raw)
     {
@@ -1368,7 +1785,505 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
         return digits.Length == 1 ? digits[0].ToString() : null;
     }
 
-    private static void AddTemplateVariant(
+        private static void CleanTemplateInPlace(CoordinateDigitTemplate template)
+    {
+        if (template.Width <= 0 ||
+            template.Height <= 0 ||
+            template.Pixels.Length == 0)
+        {
+            return;
+        }
+
+        template.Pixels = CleanTemplatePixels(
+            template.Pixels,
+            template.Width,
+            template.Height);
+    }
+
+    private static string[] CleanTemplatePixels(
+        IReadOnlyList<string> pixels,
+        int width,
+        int height)
+    {
+        if (width <= 0 || height <= 0 || pixels.Count == 0)
+            return pixels.ToArray();
+
+        var components = FindTemplateComponents(pixels, width, height);
+
+        if (components.Count <= 1)
+            return pixels.ToArray();
+
+        var largest = components
+            .OrderByDescending(x => x.PixelCount)
+            .First();
+
+        var totalInk = components.Sum(x => x.PixelCount);
+
+        var keep = components
+            .Where(component => ShouldKeepTemplateComponent(component, largest, totalInk, width, height))
+            .ToHashSet();
+
+        var result = new string[width * height];
+
+        for (var i = 0; i < result.Length; i++)
+            result[i] = BackgroundPixel;
+
+        foreach (var component in keep)
+        {
+            foreach (var index in component.PixelIndexes)
+            {
+                if (index >= 0 && index < result.Length)
+                    result[index] = InkPixel;
+            }
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyList<TemplateComponent> FindTemplateComponents(
+        IReadOnlyList<string> pixels,
+        int width,
+        int height)
+    {
+        var visited = new bool[width * height];
+        var components = new List<TemplateComponent>();
+
+        for (var start = 0; start < pixels.Count && start < visited.Length; start++)
+        {
+            if (visited[start] ||
+                !string.Equals(pixels[start], InkPixel, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var queue = new Queue<int>();
+            var indexes = new List<int>();
+
+            var minX = width;
+            var minY = height;
+            var maxX = -1;
+            var maxY = -1;
+
+            visited[start] = true;
+            queue.Enqueue(start);
+
+            while (queue.Count > 0)
+            {
+                var current = queue.Dequeue();
+                indexes.Add(current);
+
+                var x = current % width;
+                var y = current / width;
+
+                minX = Math.Min(minX, x);
+                minY = Math.Min(minY, y);
+                maxX = Math.Max(maxX, x);
+                maxY = Math.Max(maxY, y);
+
+                for (var dy = -1; dy <= 1; dy++)
+                {
+                    for (var dx = -1; dx <= 1; dx++)
+                    {
+                        if (dx == 0 && dy == 0)
+                            continue;
+
+                        var nx = x + dx;
+                        var ny = y + dy;
+
+                        if (nx < 0 || nx >= width || ny < 0 || ny >= height)
+                            continue;
+
+                        var next = ny * width + nx;
+
+                        if (visited[next])
+                            continue;
+
+                        if (!string.Equals(pixels[next], InkPixel, StringComparison.Ordinal))
+                            continue;
+
+                        visited[next] = true;
+                        queue.Enqueue(next);
+                    }
+                }
+            }
+
+            components.Add(new TemplateComponent(
+                indexes,
+                indexes.Count,
+                minX,
+                minY,
+                maxX,
+                maxY));
+        }
+
+        return components;
+    }
+
+    private static bool ShouldKeepTemplateComponent(
+        TemplateComponent component,
+        TemplateComponent largest,
+        int totalInk,
+        int width,
+        int height)
+    {
+        // Always keep the main digit body.
+        if (ReferenceEquals(component, largest))
+            return true;
+
+        // Tiny disconnected parts are usually capture noise from the next/previous digit.
+        var tinyThreshold = Math.Max(1, (int)Math.Ceiling(largest.PixelCount * 0.18));
+        if (component.PixelCount <= tinyThreshold)
+            return false;
+
+        // Also remove small components stuck to the far left/right edge.
+        // This is the common symptom when the capture slot includes part of a neighbor.
+        var touchesHorizontalEdge = component.MinX <= 0 || component.MaxX >= width - 1;
+        var smallComparedToDigit = component.PixelCount <= Math.Max(2, (int)Math.Ceiling(totalInk * 0.25));
+
+        if (touchesHorizontalEdge && smallComparedToDigit)
+            return false;
+
+        // Keep a fairly large disconnected part, because the digit itself might be
+        // broken by thresholding. This is safer than blindly keeping only largest.
+        return true;
+    }
+
+    private static void NormalizeTemplatePaddingInPlace(
+        CoordinateDigitTemplate template,
+        int horizontalPadding,
+        int verticalPadding)
+    {
+        if (template.Width <= 0 ||
+            template.Height <= 0 ||
+            template.Pixels.Length == 0)
+        {
+            return;
+        }
+
+        var normalized = NormalizeTemplatePixels(
+            template.Pixels,
+            template.Width,
+            template.Height,
+            Math.Max(0, horizontalPadding),
+            Math.Max(0, verticalPadding),
+            out var newWidth,
+            out var newHeight);
+
+        template.Width = newWidth;
+        template.Height = newHeight;
+        template.Pixels = normalized;
+    }
+
+    private static string[] NormalizeTemplatePixels(
+        IReadOnlyList<string> pixels,
+        int width,
+        int height,
+        int horizontalPadding,
+        int verticalPadding,
+        out int newWidth,
+        out int newHeight)
+    {
+        var cleaned = KeepMainDigitComponents(pixels, width, height);
+
+        var minX = width;
+        var minY = height;
+        var maxX = -1;
+        var maxY = -1;
+
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var index = y * width + x;
+
+                if (index < 0 ||
+                    index >= cleaned.Length ||
+                    !string.Equals(cleaned[index], InkPixel, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                minX = Math.Min(minX, x);
+                minY = Math.Min(minY, y);
+                maxX = Math.Max(maxX, x);
+                maxY = Math.Max(maxY, y);
+            }
+        }
+
+        if (maxX < minX || maxY < minY)
+        {
+            newWidth = Math.Max(1, width);
+            newHeight = Math.Max(1, height);
+            return cleaned;
+        }
+
+        var inkWidth = maxX - minX + 1;
+        var inkHeight = maxY - minY + 1;
+
+        newWidth = Math.Max(1, inkWidth + horizontalPadding * 2);
+        newHeight = Math.Max(1, inkHeight + verticalPadding * 2);
+
+        var result = new string[newWidth * newHeight];
+
+        for (var i = 0; i < result.Length; i++)
+            result[i] = BackgroundPixel;
+
+        for (var y = minY; y <= maxY; y++)
+        {
+            for (var x = minX; x <= maxX; x++)
+            {
+                var sourceIndex = y * width + x;
+
+                if (sourceIndex < 0 ||
+                    sourceIndex >= cleaned.Length ||
+                    !string.Equals(cleaned[sourceIndex], InkPixel, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var targetX = (x - minX) + horizontalPadding;
+                var targetY = (y - minY) + verticalPadding;
+                var targetIndex = targetY * newWidth + targetX;
+
+                if (targetIndex >= 0 && targetIndex < result.Length)
+                    result[targetIndex] = InkPixel;
+            }
+        }
+
+        return result;
+    }
+
+    private static string[] KeepMainDigitComponents(
+        IReadOnlyList<string> pixels,
+        int width,
+        int height)
+    {
+        if (width <= 0 || height <= 0 || pixels.Count == 0)
+            return pixels.ToArray();
+
+        var components = FindDigitTemplateComponents(pixels, width, height);
+
+        if (components.Count <= 1)
+            return pixels.ToArray();
+
+        var largest = components
+            .OrderByDescending(x => x.PixelCount)
+            .First();
+
+        var totalInk = components.Sum(x => x.PixelCount);
+
+        var keep = components
+            .Where(component => ShouldKeepDigitTemplateComponent(component, largest, totalInk, width))
+            .ToHashSet();
+
+        var result = new string[width * height];
+
+        for (var i = 0; i < result.Length; i++)
+            result[i] = BackgroundPixel;
+
+        foreach (var component in keep)
+        {
+            foreach (var index in component.PixelIndexes)
+            {
+                if (index >= 0 && index < result.Length)
+                    result[index] = InkPixel;
+            }
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyList<DigitTemplateComponent> FindDigitTemplateComponents(
+        IReadOnlyList<string> pixels,
+        int width,
+        int height)
+    {
+        var visited = new bool[width * height];
+        var components = new List<DigitTemplateComponent>();
+
+        for (var start = 0; start < pixels.Count && start < visited.Length; start++)
+        {
+            if (visited[start] ||
+                !string.Equals(pixels[start], InkPixel, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var queue = new Queue<int>();
+            var indexes = new List<int>();
+
+            var minX = width;
+            var minY = height;
+            var maxX = -1;
+            var maxY = -1;
+
+            visited[start] = true;
+            queue.Enqueue(start);
+
+            while (queue.Count > 0)
+            {
+                var current = queue.Dequeue();
+                indexes.Add(current);
+
+                var x = current % width;
+                var y = current / width;
+
+                minX = Math.Min(minX, x);
+                minY = Math.Min(minY, y);
+                maxX = Math.Max(maxX, x);
+                maxY = Math.Max(maxY, y);
+
+                for (var dy = -1; dy <= 1; dy++)
+                {
+                    for (var dx = -1; dx <= 1; dx++)
+                    {
+                        if (dx == 0 && dy == 0)
+                            continue;
+
+                        var nx = x + dx;
+                        var ny = y + dy;
+
+                        if (nx < 0 || nx >= width || ny < 0 || ny >= height)
+                            continue;
+
+                        var next = ny * width + nx;
+
+                        if (visited[next])
+                            continue;
+
+                        if (!string.Equals(pixels[next], InkPixel, StringComparison.Ordinal))
+                            continue;
+
+                        visited[next] = true;
+                        queue.Enqueue(next);
+                    }
+                }
+            }
+
+            components.Add(new DigitTemplateComponent(
+                indexes,
+                indexes.Count,
+                minX,
+                minY,
+                maxX,
+                maxY));
+        }
+
+        return components;
+    }
+
+    private static bool ShouldKeepDigitTemplateComponent(
+        DigitTemplateComponent component,
+        DigitTemplateComponent largest,
+        int totalInk,
+        int width)
+    {
+        if (ReferenceEquals(component, largest))
+            return true;
+
+        // If a crop includes part of the previous/next digit, that part is usually:
+        // - disconnected
+        // - small
+        // - touching the left/right edge.
+        var tinyComparedToMain = component.PixelCount <= Math.Max(1, (int)Math.Ceiling(largest.PixelCount * 0.18));
+        if (tinyComparedToMain)
+            return false;
+
+        var touchesSide = component.MinX <= 0 || component.MaxX >= width - 1;
+        var smallComparedToAll = component.PixelCount <= Math.Max(2, (int)Math.Ceiling(totalInk * 0.25));
+
+        if (touchesSide && smallComparedToAll)
+            return false;
+
+        // Keep larger disconnected pieces because thresholding can break a valid digit.
+        return true;
+    }
+
+    
+
+    
+
+    private static void DebugPrintBitmap(string title, Bitmap bitmap, int threshold)
+    {
+        var pixels = new string[bitmap.Width * bitmap.Height];
+
+        var index = 0;
+        for (var y = 0; y < bitmap.Height; y++)
+        {
+            for (var x = 0; x < bitmap.Width; x++)
+            {
+                pixels[index++] = Gray(bitmap.GetPixel(x, y)) >= threshold
+                    ? InkPixel
+                    : BackgroundPixel;
+            }
+        }
+
+        DebugPrintPixels(title, pixels, bitmap.Width, bitmap.Height);
+    }
+
+    private static void DebugPrintTemplate(string title, CoordinateDigitTemplate template)
+    {
+        DebugPrintPixels(title, template.Pixels, template.Width, template.Height);
+    }
+
+    private static void DebugPrintPixels(
+        string title,
+        IReadOnlyList<string> pixels,
+        int width,
+        int height)
+    {
+        Console.WriteLine(title);
+        Console.WriteLine($"size={width}x{height}");
+
+        for (var y = 0; y < height; y++)
+        {
+            var chars = new char[width];
+
+            for (var x = 0; x < width; x++)
+            {
+                var index = y * width + x;
+
+                chars[x] = index >= 0 &&
+                           index < pixels.Count &&
+                           string.Equals(pixels[index], InkPixel, StringComparison.Ordinal)
+                    ? '#'
+                    : '.';
+            }
+
+            Console.WriteLine(new string(chars));
+        }
+    }
+
+    private static void DebugPrintKnownTemplateValidation(
+        bool passed,
+        string coordinate,
+        string digit,
+        double score,
+        double maxScore,
+        IReadOnlyList<CoordinateDigitTemplate> candidates,
+        IReadOnlyList<CoordinateDigitTemplate> learnedTemplates)
+    {
+        Console.WriteLine(passed
+            ? "========== KNOWN TEMPLATE VALIDATION PASS =========="
+            : "========== KNOWN TEMPLATE VALIDATION FAILURE ==========");
+
+        Console.WriteLine($"Coordinate sample: {coordinate}");
+        Console.WriteLine($"Digit: {digit}");
+        Console.WriteLine($"Score: {score:F6}");
+        Console.WriteLine($"Max allowed score: {maxScore:F6}");
+        Console.WriteLine($"Candidate count in sample: {candidates.Count}");
+        Console.WriteLine($"Learned template count: {learnedTemplates.Count}");
+
+        for (var candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++)
+            DebugPrintTemplate($"CANDIDATE digit={digit} candidate={candidateIndex}", candidates[candidateIndex]);
+
+        for (var learnedIndex = 0; learnedIndex < learnedTemplates.Count; learnedIndex++)
+            DebugPrintTemplate($"LEARNED TEMPLATE digit={digit} template={learnedIndex}", learnedTemplates[learnedIndex]);
+
+        Console.WriteLine("====================================================");
+    }
+
+private static void AddTemplateVariant(
         List<CoordinateDigitTemplate> existingTemplates,
         CoordinateDigitTemplate candidate,
         int maxTemplates)
@@ -1559,73 +2474,39 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
         }
     }
 
-    private RuntimeReadResult? TryReadRuntimeCoordinate(
+        private RuntimeReadResult? TryReadRuntimeCoordinate(
         Bitmap bitmap,
-        CoordinateTemplateProfile profile)
+        CoordinateTemplateProfile profile,
+        CoordinateOcrSettingsResponse settings)
     {
-        var runs = FindColumnRuns(bitmap, profile.BrightnessWhiteThreshold);
+        var candidates = TryBuildRuntimeFixedSlotCandidates(bitmap, profile, settings);
 
-        if (runs.Count == 0)
+        if (candidates is null || candidates.Count == 0)
             return null;
 
-        var candidates = new List<(int Left, int Right, string? Digit, double Score, bool IsSeparator)>();
-
-        foreach (var run in runs)
-        {
-            var stats = MeasureRun(bitmap, run.Left, run.Right, profile.BrightnessWhiteThreshold);
-            var isLikelySeparator =
-                stats.Height <= Math.Max(3, bitmap.Height / 2) &&
-                stats.Top >= bitmap.Height / 3;
-
-            if (isLikelySeparator)
-            {
-                candidates.Add((run.Left, run.Right, null, 0, true));
-                continue;
-            }
-
-            var glyph = ExtractGlyph(
-                bitmap,
-                '?',
-                run.Left,
-                run.Right,
-                profile.BrightnessWhiteThreshold,
-                "runtime",
-                0,
-                run.Left <= 0 || run.Right >= bitmap.Width - 1,
-                100);
-
-            var digitMatch = MatchDigit(glyph, profile);
-            if (digitMatch is null)
-                return null;
-
-            candidates.Add((run.Left, run.Right, digitMatch.Value.Digit, digitMatch.Value.Score, false));
-        }
-
-        if (candidates.Count(x => !x.IsSeparator) < 5)
-            return null;
-
-        var ordered = candidates.OrderBy(x => x.Left).ToList();
+        var ordered = candidates
+            .OrderBy(x => x.Left)
+            .ToList();
 
         string raw;
-        var separatorIndex = ordered.FindIndex(x => x.IsSeparator);
 
-        if (separatorIndex >= 0)
+        if (ordered.Any(x => x.IsSeparator))
         {
             var chars = new List<string>();
 
-            for (var i = 0; i < ordered.Count; i++)
+            foreach (var candidate in ordered)
             {
-                if (ordered[i].IsSeparator)
+                if (candidate.IsSeparator)
                 {
                     if (chars.Count == 0 || chars[^1] == ",")
                         continue;
 
                     chars.Add(",");
+                    continue;
                 }
-                else if (ordered[i].Digit is not null)
-                {
-                    chars.Add(ordered[i].Digit!);
-                }
+
+                if (candidate.Digit is not null)
+                    chars.Add(candidate.Digit);
             }
 
             raw = string.Concat(chars);
@@ -1642,19 +2523,202 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             raw = $"{digits[..^4]},{digits[^4..]}";
         }
 
-        var match = CoordinateRegex.Match(raw);
-        if (!match.Success)
+        var coordinateMatch = CoordinateRegex.Match(raw);
+        if (!coordinateMatch.Success)
             return null;
 
-        var x = int.Parse(match.Groups["x"].Value);
-        var y = int.Parse(match.Groups["y"].Value);
+        var x = int.Parse(coordinateMatch.Groups["x"].Value);
+        var y = int.Parse(coordinateMatch.Groups["y"].Value);
 
         return new RuntimeReadResult(
             RawText: raw,
             Parsed: new ParsedCoordinate(x, y, raw));
     }
 
-    private static (string Digit, double Score)? MatchDigit(
+    private List<(int Left, int Right, string? Digit, double Score, bool IsSeparator)>? TryBuildRuntimeFixedSlotCandidates(
+        Bitmap bitmap,
+        CoordinateTemplateProfile profile,
+        CoordinateOcrSettingsResponse settings)
+    {
+        var bounds = TryFindInkBounds(bitmap, profile.BrightnessWhiteThreshold);
+        if (bounds is null)
+            return null;
+
+        var textBounds = bounds.Value;
+        var runs = FindColumnRuns(bitmap, profile.BrightnessWhiteThreshold);
+
+        if (runs.Count == 0)
+            return null;
+
+        var runCenters = runs
+            .Select(run => (run.Left + run.Right) / 2.0)
+            .OrderBy(x => x)
+            .ToList();
+
+        var widestRun = runs.Max(run => Math.Max(1, run.Right - run.Left + 1));
+        var charCount = runs.Count;
+
+        if (charCount < 5)
+            return null;
+
+        var separatorRunIndex = FindRuntimeSeparatorRunIndex(
+            bitmap,
+            runs,
+            profile.BrightnessWhiteThreshold);
+
+        var advance = EstimateFixedAdvance(
+            runCenters,
+            textBounds.Width,
+            charCount,
+            widestRun);
+
+        if (advance <= 0)
+            return null;
+
+        var firstCenter = EstimateFirstCellCenter(
+            runCenters,
+            textBounds,
+            advance,
+            charCount);
+
+        var top = Math.Max(0, textBounds.Top - 1);
+        var bottom = Math.Min(bitmap.Height - 1, textBounds.Bottom);
+
+        if (bottom <= top)
+            return null;
+
+        var candidates = new List<(int Left, int Right, string? Digit, double Score, bool IsSeparator)>();
+
+        for (var i = 0; i < charCount; i++)
+        {
+            var center = firstCenter + (i * advance);
+            var left = (int)Math.Floor(center - (advance / 2.0));
+            var right = (int)Math.Ceiling(center + (advance / 2.0)) - 1;
+
+            left = Math.Clamp(left, 0, bitmap.Width - 1);
+            right = Math.Clamp(right, left, bitmap.Width - 1);
+
+            if (separatorRunIndex.HasValue && i == separatorRunIndex.Value)
+            {
+                candidates.Add((left, right, null, 0, true));
+
+                if (settings.CoordinateTemplateDebugPrintDigitBitmaps)
+                {
+                    using var separatorCrop = CropBitmap(
+                        bitmap,
+                        left,
+                        top,
+                        Math.Max(1, right - left + 1),
+                        Math.Max(1, bottom - top + 1));
+
+                    DebugPrintBitmap(
+                        $"RUNTIME SEPARATOR SLOT index={i}",
+                        separatorCrop,
+                        profile.BrightnessWhiteThreshold);
+                }
+
+                continue;
+            }
+
+            var glyph = ExtractFixedSlotGlyph(
+                bitmap,
+                '?',
+                left,
+                right,
+                top,
+                bottom,
+                profile.BrightnessWhiteThreshold,
+                "runtime-fixed-advance",
+                i,
+                left <= 0 || right >= bitmap.Width - 1,
+                100);
+
+            var digitMatch = MatchDigit(glyph, profile);
+            if (digitMatch is null)
+                return null;
+
+            if (settings.CoordinateTemplateDebugPrintDigitBitmaps)
+                DebugPrintGlyph($"RUNTIME DIGIT BITMAP slot={i} match={digitMatch.Value.Digit} score={digitMatch.Value.Score:F3}", glyph);
+
+            candidates.Add((left, right, digitMatch.Value.Digit, digitMatch.Value.Score, false));
+        }
+
+        return candidates;
+    }
+
+    private static int? FindRuntimeSeparatorRunIndex(
+        Bitmap bitmap,
+        IReadOnlyList<(int Left, int Right)> runs,
+        int threshold)
+    {
+        var bestIndex = -1;
+        var bestScore = double.PositiveInfinity;
+
+        for (var i = 0; i < runs.Count; i++)
+        {
+            var run = runs[i];
+            var stats = MeasureRun(bitmap, run.Left, run.Right, threshold);
+
+            if (stats.Height <= 0)
+                continue;
+
+            var width = Math.Max(1, run.Right - run.Left + 1);
+            var centerY = (stats.Top + stats.Bottom) / 2.0;
+            var lowerBias = centerY / Math.Max(1, bitmap.Height);
+            var smallHeightScore = stats.Height / (double)Math.Max(1, bitmap.Height);
+            var smallWidthScore = width / (double)Math.Max(1, bitmap.Width);
+
+            if (lowerBias < 0.45)
+                continue;
+
+            if (stats.Height > Math.Max(4, bitmap.Height * 0.65))
+                continue;
+
+            var score = smallHeightScore + smallWidthScore - lowerBias;
+
+            if (score < bestScore)
+            {
+                bestScore = score;
+                bestIndex = i;
+            }
+        }
+
+        return bestIndex >= 0
+            ? bestIndex
+            : null;
+    }
+
+    private static Bitmap CropBitmap(Bitmap source, int x, int y, int width, int height)
+    {
+        x = Math.Clamp(x, 0, Math.Max(0, source.Width - 1));
+        y = Math.Clamp(y, 0, Math.Max(0, source.Height - 1));
+        width = Math.Clamp(width, 1, source.Width - x);
+        height = Math.Clamp(height, 1, source.Height - y);
+
+        var crop = new Bitmap(width, height);
+
+        using var graphics = Graphics.FromImage(crop);
+        graphics.DrawImage(
+            source,
+            new Rectangle(0, 0, width, height),
+            new Rectangle(x, y, width, height),
+            GraphicsUnit.Pixel);
+
+        return crop;
+    }
+
+    private static void DebugPrintGlyph(string title, TemplateGlyph glyph)
+    {
+        DebugPrintPixels(title, glyph.Pixels, glyph.Width, glyph.Height);
+    }
+
+    
+
+    
+
+
+
+            private static (string Digit, double Score)? MatchDigit(
         TemplateGlyph glyph,
         CoordinateTemplateProfile profile)
     {
@@ -1671,6 +2735,11 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             SourceX = glyph.SourceX,
             SourceY = glyph.SourceY
         };
+
+        NormalizeTemplatePaddingInPlace(
+            sample,
+            horizontalPadding: 2,
+            verticalPadding: 1);
 
         string? bestDigit = null;
         var bestScore = double.PositiveInfinity;
@@ -1693,6 +2762,8 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             ? null
             : (bestDigit, bestScore);
     }
+
+
 
     private static List<(int Left, int Right)> FindColumnRuns(Bitmap bitmap, int threshold)
     {
@@ -1951,4 +3022,18 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
     private sealed record RuntimeReadResult(
         string RawText,
         ParsedCoordinate Parsed);
+    private sealed record TemplateComponent(
+        IReadOnlyList<int> PixelIndexes,
+        int PixelCount,
+        int MinX,
+        int MinY,
+        int MaxX,
+        int MaxY);
+    private sealed record DigitTemplateComponent(
+        IReadOnlyList<int> PixelIndexes,
+        int PixelCount,
+        int MinX,
+        int MinY,
+        int MaxX,
+        int MaxY);
 }

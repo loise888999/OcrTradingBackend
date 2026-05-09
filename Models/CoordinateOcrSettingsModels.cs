@@ -29,7 +29,11 @@ public sealed record CoordinateOcrSettingsResponse(
     int CoordinateTemplateAutoProfileMaxSamples,
     double CoordinateTemplateAutoProfileValidationMaxDigitScore,
     int CoordinateTemplateMaxTemplatesPerDigit,
-    bool CoordinateTemplateRequirePerDigitOcrValidation);
+    bool CoordinateTemplateRequirePerDigitOcrValidation,
+    bool CoordinateTemplateDebugPrintDigitBitmaps = false,
+    bool CoordinateTemplateNormalizeDigitPaddingEnabled = true,
+    int CoordinateTemplateDigitHorizontalPaddingPixels = 1,
+    int CoordinateTemplateDigitVerticalPaddingPixels = 1);
 
 public sealed record UpdateCoordinateOcrSettingsRequest(
     string? CoordinateReadMode,
@@ -44,7 +48,11 @@ public sealed record UpdateCoordinateOcrSettingsRequest(
     int? CoordinateTemplateAutoProfileMaxSamples,
     double? CoordinateTemplateAutoProfileValidationMaxDigitScore,
     int? CoordinateTemplateMaxTemplatesPerDigit,
-    bool? CoordinateTemplateRequirePerDigitOcrValidation);
+    bool? CoordinateTemplateRequirePerDigitOcrValidation,
+    bool? CoordinateTemplateDebugPrintDigitBitmaps = null,
+    bool? CoordinateTemplateNormalizeDigitPaddingEnabled = null,
+    int? CoordinateTemplateDigitHorizontalPaddingPixels = null,
+    int? CoordinateTemplateDigitVerticalPaddingPixels = null);
 
 public sealed record CoordinateTemplateOcrStatus(
     int FailedReadCount,
@@ -123,6 +131,7 @@ public sealed class CoordinateDigitTemplate
     public int DistanceFromSeparator { get; set; }
     public bool TouchesCropEdge { get; set; }
     public double QualityScore { get; set; } = 50;
+    public string? ImagePath { get; set; }
     public int SourceX { get; set; }
     public int SourceY { get; set; }
 }

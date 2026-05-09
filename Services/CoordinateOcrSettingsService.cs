@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Microsoft.Extensions.Options;
 using OcrTradingBackend.Models;
+using System.Text.Json;
 
 namespace OcrTradingBackend.Services;
 
@@ -58,7 +58,8 @@ public sealed class CoordinateOcrSettingsService : ICoordinateOcrSettingsService
             CoordinateTemplateAutoProfileMaxSamples: saved?.CoordinateTemplateAutoProfileMaxSamples ?? defaults.CoordinateTemplateAutoProfileMaxSamples,
             CoordinateTemplateAutoProfileValidationMaxDigitScore: saved?.CoordinateTemplateAutoProfileValidationMaxDigitScore ?? defaults.CoordinateTemplateAutoProfileValidationMaxDigitScore,
             CoordinateTemplateMaxTemplatesPerDigit: saved?.CoordinateTemplateMaxTemplatesPerDigit ?? defaults.CoordinateTemplateMaxTemplatesPerDigit,
-            CoordinateTemplateRequirePerDigitOcrValidation: saved?.CoordinateTemplateRequirePerDigitOcrValidation ?? defaults.CoordinateTemplateRequirePerDigitOcrValidation));
+            CoordinateTemplateRequirePerDigitOcrValidation: saved?.CoordinateTemplateRequirePerDigitOcrValidation ?? defaults.CoordinateTemplateRequirePerDigitOcrValidation,
+            CoordinateTemplateDebugPrintDigitBitmaps: saved?.CoordinateTemplateDebugPrintDigitBitmaps ?? defaults.CoordinateTemplateDebugPrintDigitBitmaps));
     }
 
     public async Task<CoordinateOcrSettingsResponse> UpdateAsync(
@@ -80,7 +81,8 @@ public sealed class CoordinateOcrSettingsService : ICoordinateOcrSettingsService
             CoordinateTemplateAutoProfileMaxSamples: request.CoordinateTemplateAutoProfileMaxSamples ?? current.CoordinateTemplateAutoProfileMaxSamples,
             CoordinateTemplateAutoProfileValidationMaxDigitScore: request.CoordinateTemplateAutoProfileValidationMaxDigitScore ?? current.CoordinateTemplateAutoProfileValidationMaxDigitScore,
             CoordinateTemplateMaxTemplatesPerDigit: request.CoordinateTemplateMaxTemplatesPerDigit ?? current.CoordinateTemplateMaxTemplatesPerDigit,
-            CoordinateTemplateRequirePerDigitOcrValidation: request.CoordinateTemplateRequirePerDigitOcrValidation ?? current.CoordinateTemplateRequirePerDigitOcrValidation));
+            CoordinateTemplateRequirePerDigitOcrValidation: request.CoordinateTemplateRequirePerDigitOcrValidation ?? current.CoordinateTemplateRequirePerDigitOcrValidation,
+            CoordinateTemplateDebugPrintDigitBitmaps: request.CoordinateTemplateDebugPrintDigitBitmaps ?? current.CoordinateTemplateDebugPrintDigitBitmaps));
 
         var folder = Path.GetDirectoryName(_path);
         if (!string.IsNullOrWhiteSpace(folder))
@@ -125,7 +127,9 @@ public sealed class CoordinateOcrSettingsService : ICoordinateOcrSettingsService
             CoordinateTemplateMinContrast = Math.Clamp(settings.CoordinateTemplateMinContrast, 0, 255),
             CoordinateTemplateAutoProfileMaxSamples = Math.Clamp(settings.CoordinateTemplateAutoProfileMaxSamples, 1, 10_000),
             CoordinateTemplateAutoProfileValidationMaxDigitScore = Math.Clamp(settings.CoordinateTemplateAutoProfileValidationMaxDigitScore, 0, 1),
-            CoordinateTemplateMaxTemplatesPerDigit = Math.Clamp(settings.CoordinateTemplateMaxTemplatesPerDigit, 1, 100)
+            CoordinateTemplateMaxTemplatesPerDigit = Math.Clamp(settings.CoordinateTemplateMaxTemplatesPerDigit, 1, 100),
+            CoordinateTemplateDigitHorizontalPaddingPixels = Math.Clamp(settings.CoordinateTemplateDigitHorizontalPaddingPixels, 0, 3),
+            CoordinateTemplateDigitVerticalPaddingPixels = Math.Clamp(settings.CoordinateTemplateDigitVerticalPaddingPixels, 0, 3)
         };
 
     private static string ResolvePath(string path, string root)
