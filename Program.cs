@@ -147,6 +147,8 @@ builder.Services.AddSingleton<IOcrDebugSnapshotService, OcrDebugSnapshotService>
 builder.Services.AddSingleton<IOcrImagePreprocessingService, OcrImagePreprocessingService>();
 builder.Services.AddSingleton<IOcrTextPresenceAnalyzer, OcrTextPresenceAnalyzer>();
 builder.Services.AddSingleton<IOcrLayoutService, OcrLayoutService>();
+builder.Services.AddSingleton<ICoordinateOcrSettingsService, CoordinateOcrSettingsService>();
+builder.Services.AddSingleton<ICoordinateTemplateOcrService, CoordinateTemplateOcrService>();
 builder.Services.AddScoped<IOcrCalibrationService, OcrCalibrationService>();
 builder.Services.AddScoped<IWindowRelativeOcrZoneService, WindowRelativeOcrZoneService>();
 builder.Services.AddScoped<ITradingRecommendationService, TradingRecommendationService>();
@@ -249,6 +251,143 @@ app.MapPost("/api/settings/value", async (AppDbContext db, AppSetting setting) =
     }
     await db.SaveChangesAsync();
     return Results.Ok(setting);
+});
+
+app.MapGet("/api/settings/coordinate-ocr", (
+    ICoordinateOcrSettingsService coordinateOcrSettings) =>
+    Results.Ok(coordinateOcrSettings.Get()));
+
+app.MapPost("/api/settings/coordinate-ocr", async (
+    UpdateCoordinateOcrSettingsRequest request,
+    ICoordinateOcrSettingsService coordinateOcrSettings,
+    CancellationToken ct) =>
+{
+    if (!string.IsNullOrWhiteSpace(request.CoordinateReadMode) &&
+        !CoordinateOcrModes.IsValid(request.CoordinateReadMode))
+    {
+        return Results.BadRequest(new
+        {
+            message = "CoordinateReadMode must be NormalOcr or FastTemplate."
+        });
+    }
+
+    var updated = await coordinateOcrSettings.UpdateAsync(request, ct);
+    return Results.Ok(updated);
+});
+
+app.MapGet("/api/settings/coordinate-ocr/status", (
+    ICoordinateOcrSettingsService coordinateOcrSettings,
+    ICoordinateTemplateOcrService templateOcr) =>
+{
+    var settings = coordinateOcrSettings.Get();
+    return Results.Ok(new
+    {
+        settings,
+        fastTemplate = templateOcr.GetStatus(),
+        profile = templateOcr.GetProfileStatus(settings.CoordinateTemplateAutoProfileEnabled)
+    });
+});
+
+app.MapGet("/api/coordinate-template/profile/status", (
+    ICoordinateOcrSettingsService coordinateOcrSettings,
+    ICoordinateTemplateOcrService templateOcr) =>
+{
+    var settings = coordinateOcrSettings.Get();
+    return Results.Ok(templateOcr.GetProfileStatus(settings.CoordinateTemplateAutoProfileEnabled));
+});
+
+app.MapPost("/api/coordinate-template/profile/auto/start", async (
+    ICoordinateOcrSettingsService coordinateOcrSettings,
+    CancellationToken ct) =>
+{
+    var settings = await coordinateOcrSettings.UpdateAsync(
+        new UpdateCoordinateOcrSettingsRequest(
+            CoordinateReadMode: null,
+            CoordinateTemplateFallbackToNormalOcr: null,
+            CoordinateTemplateCountFailedReadsForRecalibration: null,
+            CoordinateTemplateRecalibrationFailureLimit: null,
+            CoordinateTemplateRequireVisibleTextForFailure: null,
+            CoordinateTemplateMinTextPixelsPercent: null,
+            CoordinateTemplateMinContrast: null,
+            CoordinateTemplateAutoProfileEnabled: true,
+            CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode: null,
+            CoordinateTemplateAutoProfileMaxSamples: null,
+            CoordinateTemplateAutoProfileValidationMaxDigitScore: null,
+            CoordinateTemplateMaxTemplatesPerDigit: null,
+            CoordinateTemplateRequirePerDigitOcrValidation: null),
+        ct);
+
+    return Results.Ok(settings);
+});
+
+app.MapPost("/api/coordinate-template/profile/auto/stop", async (
+    ICoordinateOcrSettingsService coordinateOcrSettings,
+    CancellationToken ct) =>
+{
+    var settings = await coordinateOcrSettings.UpdateAsync(
+        new UpdateCoordinateOcrSettingsRequest(
+            CoordinateReadMode: null,
+            CoordinateTemplateFallbackToNormalOcr: null,
+            CoordinateTemplateCountFailedReadsForRecalibration: null,
+            CoordinateTemplateRecalibrationFailureLimit: null,
+            CoordinateTemplateRequireVisibleTextForFailure: null,
+            CoordinateTemplateMinTextPixelsPercent: null,
+            CoordinateTemplateMinContrast: null,
+            CoordinateTemplateAutoProfileEnabled: false,
+            CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode: null,
+            CoordinateTemplateAutoProfileMaxSamples: null,
+            CoordinateTemplateAutoProfileValidationMaxDigitScore: null,
+            CoordinateTemplateMaxTemplatesPerDigit: null,
+            CoordinateTemplateRequirePerDigitOcrValidation: null),
+        ct);
+
+    return Results.Ok(settings);
+});
+
+app.MapPost("/api/coordinate-template/profile", async (
+    CreateCoordinateTemplateProfileRequest request,
+    IOcrLayoutService layoutService,
+    IScreenCaptureService capture,
+    ICoordinateTemplateOcrService templateOcr,
+    IOptionsMonitor<OcrRuntimeSettings> settings,
+    CancellationToken ct) =>
+{
+    try
+    {
+        var layout = await layoutService.LoadAsync(ct);
+        var coordinateBox = layout.Zones.Coordinate;
+
+        if (coordinateBox is not { IsValid: true })
+        {
+            return Results.BadRequest(new
+            {
+                message = "Coordinate layout box is missing. Open coordinate calibration and save a coordinate box first."
+            });
+        }
+
+        var zone = layoutService.TryGetCoordinateZone(layout);
+        if (zone is null)
+        {
+            return Results.BadRequest(new
+            {
+                message = "Could not resolve coordinate box to screen coordinates. Make sure the game window is selected/found first."
+            });
+        }
+
+        using var bitmap = capture.Capture(zone);
+        var profile = await templateOcr.CreateProfileAsync(
+            bitmap,
+            coordinateBox,
+            request,
+            settings.CurrentValue,
+            ct);
+
+        return Results.Ok(profile);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { message = ex.Message });
+    }
 });
 
 app.MapPost("/api/ocr/start", (OcrControlState c) => { c.Enabled = true; c.LastError = null; return Results.Ok(new { c.Enabled }); });

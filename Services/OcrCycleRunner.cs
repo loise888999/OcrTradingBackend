@@ -32,6 +32,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly IOcrImagePreprocessingService _preprocessor;
     private readonly IOcrTextPresenceAnalyzer _textPresenceAnalyzer;
     private readonly IOcrLayoutService _layoutService;
+    private readonly ICoordinateOcrSettingsService _coordinateOcrSettings;
+    private readonly ICoordinateTemplateOcrService _coordinateTemplateOcr;
     private readonly IPriceOcrBatchService _priceBatch;
     private readonly IPriceLayoutRowCacheService _priceLayoutRowCache;
     private readonly IPriceLayoutRowFingerprintService _priceLayoutRowFingerprint;
@@ -56,6 +58,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         IOcrImagePreprocessingService preprocessor,
         IOcrTextPresenceAnalyzer textPresenceAnalyzer,
         IOcrLayoutService layoutService,
+        ICoordinateOcrSettingsService coordinateOcrSettings,
+        ICoordinateTemplateOcrService coordinateTemplateOcr,
         IPriceOcrBatchService priceBatch,
         IPriceLayoutRowCacheService priceLayoutRowCache,
         IPriceLayoutRowFingerprintService priceLayoutRowFingerprint,
@@ -79,6 +83,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _preprocessor = preprocessor;
         _textPresenceAnalyzer = textPresenceAnalyzer;
         _layoutService = layoutService;
+        _coordinateOcrSettings = coordinateOcrSettings;
+        _coordinateTemplateOcr = coordinateTemplateOcr;
         _priceBatch = priceBatch;
         _priceLayoutRowCache = priceLayoutRowCache;
         _priceLayoutRowFingerprint = priceLayoutRowFingerprint;
@@ -208,6 +214,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
                 var parsed = await TryReadCoordinateAsync(
                     coordinateZone,
+                    layout.Zones.Coordinate,
                     previousCoordinate,
                     settings,
                     ct);
@@ -451,7 +458,73 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
     private async Task<ParsedCoordinate?> TryReadCoordinateAsync(
         OcrZone coordinateZone,
+        OcrLayoutBox? coordinateBox,
         CoordinateCapture? previousCoordinate,
+        OcrRuntimeSettings settings,
+        CancellationToken ct)
+    {
+        var coordinateOcrSettings = _coordinateOcrSettings.GetEffective(settings);
+
+        if (coordinateOcrSettings.CoordinateReadMode.Equals(
+                CoordinateOcrModes.FastTemplate,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            var fast = TryReadCoordinateWithFastTemplate(
+                coordinateZone,
+                previousCoordinate,
+                settings,
+                coordinateOcrSettings);
+
+            if (fast is not null)
+                return fast;
+
+            if (!coordinateOcrSettings.CoordinateTemplateFallbackToNormalOcr)
+                return null;
+        }
+
+        return await TryReadCoordinateWithNormalOcrAsync(
+            coordinateZone,
+            coordinateBox,
+            previousCoordinate,
+            coordinateOcrSettings,
+            settings,
+            ct);
+    }
+
+    private ParsedCoordinate? TryReadCoordinateWithFastTemplate(
+        OcrZone coordinateZone,
+        CoordinateCapture? previousCoordinate,
+        OcrRuntimeSettings settings,
+        CoordinateOcrSettingsResponse coordinateOcrSettings)
+    {
+        using var bitmap = _capture.Capture(coordinateZone);
+        var attempt = _coordinateTemplateOcr.TryRead(bitmap, coordinateOcrSettings);
+
+        if (attempt.Success && attempt.Parsed is not null)
+        {
+            _coordinateTemplateOcr.ResetFailures();
+            _lastResults.SetCoordinate("fast-template", attempt.RawText ?? attempt.Parsed.RawText, attempt.Parsed, null);
+            return attempt.Parsed with { RawText = $"fast-template: {attempt.Parsed.RawText}" };
+        }
+
+        _lastResults.SetCoordinate("fast-template", attempt.RawText ?? string.Empty, null, null);
+
+        if (coordinateOcrSettings.CoordinateTemplateFallbackToNormalOcr)
+        {
+            _logger.LogInformation(
+                "Fast coordinate OCR failed; falling back to normal OCR. Reason={Reason}; NeedsRecalibration={NeedsRecalibration}",
+                attempt.Reason,
+                attempt.NeedsRecalibration);
+        }
+
+        return null;
+    }
+
+    private async Task<ParsedCoordinate?> TryReadCoordinateWithNormalOcrAsync(
+        OcrZone coordinateZone,
+        OcrLayoutBox? coordinateBox,
+        CoordinateCapture? previousCoordinate,
+        CoordinateOcrSettingsResponse coordinateOcrSettings,
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
@@ -479,7 +552,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                         ct);
 
                     if (result is not null)
+                    {
+                        MaybeAddAutoProfileSample(fixedBitmap, coordinateBox, result, coordinateOcrSettings, settings);
                         return result;
+                    }
                 }
             }
             else
@@ -494,7 +570,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                     ct);
 
                 if (direct is not null)
+                {
+                    MaybeAddAutoProfileSample(fixedBitmap, coordinateBox, direct, coordinateOcrSettings, settings);
                     return direct;
+                }
 
                 var preprocessed = _preprocessor.TryPrepareCoordinateImage(fixedBitmap, settings);
                 if (preprocessed is not null)
@@ -509,13 +588,92 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                             ct);
 
                         if (result is not null)
+                        {
+                            MaybeAddAutoProfileSample(fixedBitmap, coordinateBox, result, coordinateOcrSettings, settings);
                             return result;
+                        }
                     }
                 }
             }
         }
 
         return null;
+    }
+
+    private void MaybeAddAutoProfileSample(
+        Bitmap sourceBitmap,
+        OcrLayoutBox? coordinateBox,
+        ParsedCoordinate parsed,
+        CoordinateOcrSettingsResponse coordinateOcrSettings,
+        OcrRuntimeSettings settings)
+    {
+        if (!coordinateOcrSettings.CoordinateTemplateAutoProfileEnabled)
+            return;
+
+        if (coordinateOcrSettings.CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode &&
+            !coordinateOcrSettings.CoordinateReadMode.Equals(CoordinateOcrModes.NormalOcr, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (coordinateBox is not { IsValid: true })
+            return;
+
+        try
+        {
+            var status = _coordinateTemplateOcr.AddProfileSampleFromNormalOcr(
+                sourceBitmap,
+                coordinateBox,
+                parsed,
+                coordinateOcrSettings,
+                settings,
+                digitCrop => ReadCalibrationDigitOcr(digitCrop, settings));
+
+            if (settings.OcrBenchmarkLogging)
+            {
+                _logger.LogInformation(
+                    "Coordinate template auto profile sample. Coordinate={Coordinate}; LearnedDigits={LearnedDigits}; MissingDigits={MissingDigits}; Samples={Samples}; Message={Message}",
+                    $"{parsed.X},{parsed.Y}",
+                    string.Join(",", status.LearnedDigits),
+                    string.Join(",", status.MissingDigitTemplates),
+                    status.SampleCount,
+                    status.LastAutoSampleMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(
+                ex,
+                "Skipped coordinate template auto profile sample for parsed coordinate {Coordinate}.",
+                $"{parsed.X},{parsed.Y}");
+        }
+    }
+
+    private string? ReadCalibrationDigitOcr(Bitmap digitCrop, OcrRuntimeSettings settings)
+    {
+        Bitmap? prepared = null;
+
+        try
+        {
+            prepared = OcrImagePreprocessor.PrepareCoordinateImage(
+                digitCrop,
+                scale: 4,
+                threshold: settings.CoordinateOcrThreshold,
+                cleanupOptions: OcrImagePreprocessor.BuildCoordinateCleanupOptions(settings));
+
+            var read = _ocr.ReadText(
+                "coordinate-template-digit-calibration",
+                prepared,
+                OcrFieldKind.Coordinate,
+                settings).Text;
+            var digits = read.Where(char.IsDigit).Distinct().ToArray();
+
+            return digits.Length == 1 ? digits[0].ToString() : read;
+        }
+        finally
+        {
+            prepared?.Dispose();
+        }
     }
 
     private async Task<ParsedCoordinate?> TryOcrAndParseCoordinateAsync(
