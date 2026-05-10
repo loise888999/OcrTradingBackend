@@ -33,7 +33,8 @@ public sealed record CoordinateOcrSettingsResponse(
     bool CoordinateTemplateDebugPrintDigitBitmaps = false,
     bool CoordinateTemplateNormalizeDigitPaddingEnabled = true,
     int CoordinateTemplateDigitHorizontalPaddingPixels = 1,
-    int CoordinateTemplateDigitVerticalPaddingPixels = 1);
+    int CoordinateTemplateDigitVerticalPaddingPixels = 1,
+    int CoordinateTemplateFastModeSpeedMultiplier = 8);
 
 public sealed record UpdateCoordinateOcrSettingsRequest(
     string? CoordinateReadMode,
@@ -52,7 +53,8 @@ public sealed record UpdateCoordinateOcrSettingsRequest(
     bool? CoordinateTemplateDebugPrintDigitBitmaps = null,
     bool? CoordinateTemplateNormalizeDigitPaddingEnabled = null,
     int? CoordinateTemplateDigitHorizontalPaddingPixels = null,
-    int? CoordinateTemplateDigitVerticalPaddingPixels = null);
+    int? CoordinateTemplateDigitVerticalPaddingPixels = null,
+    int? CoordinateTemplateFastModeSpeedMultiplier = null);
 
 public sealed record CoordinateTemplateOcrStatus(
     int FailedReadCount,

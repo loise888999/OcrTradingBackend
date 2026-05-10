@@ -172,9 +172,12 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 wasInKnownCityBeforeCoordinate &&
                 IsPriceOcrDue(settings);
 
+            var coordinateOcrSettingsForDue =
+                _coordinateOcrSettings.GetEffective(settings);
+
             var coordinateDue =
                 coordinateZone is not null &&
-                IsCoordinateOcrDue(settings);
+                IsCoordinateOcrDue(settings, coordinateOcrSettingsForDue);
 
             if (!coordinateRecentlyVisible &&
                 priceDue &&
@@ -481,13 +484,18 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 return null;
         }
 
-        return await TryReadCoordinateWithNormalOcrAsync(
+        var sw = Stopwatch.StartNew();
+        var nomalReadOCR = await TryReadCoordinateWithNormalOcrAsync(
             coordinateZone,
             coordinateBox,
             previousCoordinate,
             coordinateOcrSettings,
             settings,
             ct);
+        sw.Stop();
+        _logger.LogWarning("Normal OCR ms" + sw.ElapsedMilliseconds);
+
+        return nomalReadOCR;
     }
 
     private ParsedCoordinate? TryReadCoordinateWithFastTemplate(
@@ -497,7 +505,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         CoordinateOcrSettingsResponse coordinateOcrSettings)
     {
         using var bitmap = _capture.Capture(coordinateZone);
+        var sw = Stopwatch.StartNew();
         var attempt = _coordinateTemplateOcr.TryRead(bitmap, coordinateOcrSettings);
+        sw.Stop();
+        _logger.LogWarning("Fast OCR ms" + sw.ElapsedMilliseconds);
 
         if (attempt.Success && attempt.Parsed is not null)
         {
@@ -599,12 +610,12 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         return null;
     }
 
-        private void MaybeAddAutoProfileSample(
-        Bitmap sourceBitmap,
-        OcrLayoutBox? coordinateBox,
-        ParsedCoordinate parsed,
-        CoordinateOcrSettingsResponse coordinateOcrSettings,
-        OcrRuntimeSettings settings)
+    private void MaybeAddAutoProfileSample(
+    Bitmap sourceBitmap,
+    OcrLayoutBox? coordinateBox,
+    ParsedCoordinate parsed,
+    CoordinateOcrSettingsResponse coordinateOcrSettings,
+    OcrRuntimeSettings settings)
     {
         _logger.LogWarning(
             "AUTO PROFILE CHECK: Enabled={Enabled}; ReadMode={ReadMode}; OnlyNormalMode={OnlyNormalMode}; BoxValid={BoxValid}; RequireDigitOcr={RequireDigitOcr}; Parsed={Parsed}",
@@ -668,7 +679,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     }
 
 
-        private string? ReadCalibrationDigitOcr(Bitmap digitCrop, OcrRuntimeSettings settings)
+    private string? ReadCalibrationDigitOcr(Bitmap digitCrop, OcrRuntimeSettings settings)
     {
         var attempts = new List<(int Padding, int Scale, int Threshold, bool Cleanup)>
         {
@@ -755,9 +766,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     }
 
 
-    
 
-    
+
+
 
     private async Task<ParsedCoordinate?> TryOcrAndParseCoordinateAsync(
         Bitmap bitmap,
@@ -950,16 +961,39 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                TimeSpan.FromSeconds(intervalSeconds);
     }
 
-    private bool IsCoordinateOcrDue(OcrRuntimeSettings settings)
+        private bool IsCoordinateOcrDue(
+        OcrRuntimeSettings settings,
+        CoordinateOcrSettingsResponse coordinateOcrSettings)
     {
         if (_control.LastCoordinateAttemptUtc is null)
             return true;
 
-        var interval = TimeSpan.FromMilliseconds(
-            Math.Clamp(settings.CoordinateIntervalMilliseconds, 250, 60_000));
+        var baseIntervalMs = Math.Clamp(
+            settings.CoordinateIntervalMilliseconds,
+            250,
+            60_000);
+
+        var effectiveIntervalMs = baseIntervalMs;
+
+        if (coordinateOcrSettings.CoordinateReadMode.Equals(
+                CoordinateOcrModes.FastTemplate,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            var multiplier = Math.Clamp(
+                coordinateOcrSettings.CoordinateTemplateFastModeSpeedMultiplier,
+                1,
+                50);
+
+            effectiveIntervalMs = Math.Max(
+                50,
+                baseIntervalMs / multiplier);
+        }
+
+        var interval = TimeSpan.FromMilliseconds(effectiveIntervalMs);
 
         return DateTime.UtcNow - _control.LastCoordinateAttemptUtc.Value >= interval;
     }
+
 
     private bool IsCoordinateRecentlyVisible(OcrRuntimeSettings settings)
     {

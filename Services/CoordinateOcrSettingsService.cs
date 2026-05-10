@@ -128,6 +128,7 @@ public sealed class CoordinateOcrSettingsService : ICoordinateOcrSettingsService
             CoordinateTemplateAutoProfileMaxSamples = Math.Clamp(settings.CoordinateTemplateAutoProfileMaxSamples, 1, 10_000),
             CoordinateTemplateAutoProfileValidationMaxDigitScore = Math.Clamp(settings.CoordinateTemplateAutoProfileValidationMaxDigitScore, 0, 1),
             CoordinateTemplateMaxTemplatesPerDigit = Math.Clamp(settings.CoordinateTemplateMaxTemplatesPerDigit, 1, 100),
+            CoordinateTemplateFastModeSpeedMultiplier = Math.Clamp(settings.CoordinateTemplateFastModeSpeedMultiplier, 1, 50),
             CoordinateTemplateDigitHorizontalPaddingPixels = Math.Clamp(settings.CoordinateTemplateDigitHorizontalPaddingPixels, 0, 3),
             CoordinateTemplateDigitVerticalPaddingPixels = Math.Clamp(settings.CoordinateTemplateDigitVerticalPaddingPixels, 0, 3)
         };

@@ -74,3 +74,5 @@ appsettings.Development.json
 appsettings.Local.json
 Data/ocr-layout.local.json
 Data/ocr-models/
+/Data/coordinate-template-profile.json
+/Data/coordinate-template-profile-images/70bd3274e0244d5fa91d1054f1c908a3

@@ -1,5 +1,5 @@
 {
-  "CoordinateReadMode": "FastTemplate",
+  "CoordinateReadMode": "NormalOcr",
   "CoordinateTemplateFallbackToNormalOcr": false,
   "CoordinateTemplateCountFailedReadsForRecalibration": false,
   "CoordinateTemplateRecalibrationFailureLimit": 5,
@@ -15,5 +15,6 @@
   "CoordinateTemplateDebugPrintDigitBitmaps": true,
   "CoordinateTemplateNormalizeDigitPaddingEnabled": true,
   "CoordinateTemplateDigitHorizontalPaddingPixels": 1,
-  "CoordinateTemplateDigitVerticalPaddingPixels": 1
+  "CoordinateTemplateDigitVerticalPaddingPixels": 1,
+  "CoordinateTemplateFastModeSpeedMultiplier": 8
 }
