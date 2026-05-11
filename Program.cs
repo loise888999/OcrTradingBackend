@@ -20,6 +20,17 @@ static IReadOnlyList<string> SplitMulti(string? value) =>
     string.IsNullOrWhiteSpace(value)
         ? Array.Empty<string>()
         : value.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+static string CleanCityNameForLatestCityGoods(string? value)
+{
+    if (string.IsNullOrWhiteSpace(value))
+        return string.Empty;
+
+    return value
+        .Split('(', 2)[0]
+        .Split('\n', 2)[0]
+        .Split('\r', 2)[0]
+        .Trim();
+}
 
 static OcrFieldKind GetLayoutTestFieldKind(string kind)
 {
@@ -720,6 +731,48 @@ app.MapPost("/api/pending-trade-goods/{id}/dismiss", (IPendingTradeGoodService s
     return result.Success ? Results.Ok(result) : Results.BadRequest(result);
 });
 
+app.MapGet("/api/trading/latest-city-goods", async (
+    AppDbContext db,
+    string? city,
+    string? tradeType,
+    int take = 50000) =>
+{
+    var resultLimit = Math.Clamp(take, 1, 100000);
+    var query = db.PriceCaptures.AsNoTracking().AsQueryable();
+
+    if (!string.IsNullOrWhiteSpace(city))
+    {
+        var requestedCity = CleanCityNameForLatestCityGoods(city);
+        query = query.Where(x => x.City == city || x.City == requestedCity);
+    }
+
+    if (!string.IsNullOrWhiteSpace(tradeType))
+        query = query.Where(x => x.TradeType == tradeType);
+
+    var rows = await query.ToListAsync();
+
+    var latestRows = rows
+        .Where(x =>
+            !string.IsNullOrWhiteSpace(CleanCityNameForLatestCityGoods(x.City)) &&
+            !string.IsNullOrWhiteSpace(x.ItemName))
+        .GroupBy(x => new
+        {
+            City = CleanCityNameForLatestCityGoods(x.City).ToLowerInvariant(),
+            Item = x.ItemName.Trim().ToLowerInvariant(),
+            TradeType = (x.TradeType ?? string.Empty).Trim().ToLowerInvariant()
+        })
+        .Select(g => g
+            .OrderByDescending(x => x.CapturedAtUtc)
+            .ThenByDescending(x => x.Id)
+            .First())
+        .OrderBy(x => CleanCityNameForLatestCityGoods(x.City))
+        .ThenBy(x => x.TradeType)
+        .ThenBy(x => x.ItemName)
+        .Take(resultLimit)
+        .ToList();
+
+    return Results.Ok(latestRows);
+});
 app.MapGet("/api/trading/search", async (AppDbContext db, ICityCatalog cities, string? city, string? item, string? tradeType, string? mainRegion, string? subRegion, string? seaTradeRegion, int take = 250) =>
     Results.Ok(await TradingQueryService.SearchAsync(db, cities, city, item, tradeType, mainRegion, subRegion, seaTradeRegion, take)));
 
