@@ -40,6 +40,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly OcrLastResultState _lastResults;
     private readonly ILogger<OcrCycleRunner> _logger;
     private readonly CoordinateFarJumpConfirmationGate _coordinateFarJumpGate;
+    private readonly ICoordinateStreamService _coordinateStream;
 
     public OcrCycleRunner(
         AppDbContext db,
@@ -65,6 +66,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         IPriceRecentHashCacheService priceRecentHashCache,
         OcrLastResultState lastResults,
         CoordinateFarJumpConfirmationGate coordinateFarJumpGate,
+        ICoordinateStreamService coordinateStream,
         ILogger<OcrCycleRunner> logger)
     {
         _db = db;
@@ -90,6 +92,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _priceRecentHashCache = priceRecentHashCache;
         _lastResults = lastResults;
         _coordinateFarJumpGate = coordinateFarJumpGate;
+        _coordinateStream = coordinateStream;
         _logger = logger;
     }
 
@@ -268,7 +271,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                                 parsed.RawText);
                         }
 
-                        await AddUniqueCoordinateAsync(parsed, ct);
+                        if (await AddUniqueCoordinateAsync(parsed, ct))
+                        {
+                            _coordinateStream.Publish(parsed);
+                        }
                         SetLatestCityUnknownIfNeeded(latestCityBeforeCoordinate, parsed.RawText);
 
                         if (ignoreCoordinateJumpThisRead)
@@ -961,9 +967,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                TimeSpan.FromSeconds(intervalSeconds);
     }
 
-        private bool IsCoordinateOcrDue(
-        OcrRuntimeSettings settings,
-        CoordinateOcrSettingsResponse coordinateOcrSettings)
+    private bool IsCoordinateOcrDue(
+    OcrRuntimeSettings settings,
+    CoordinateOcrSettingsResponse coordinateOcrSettings)
     {
         if (_control.LastCoordinateAttemptUtc is null)
             return true;
@@ -1485,101 +1491,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             rawText,
             tradeType,
             _strictTradeGoodMatcher.Find);
-    }
-
-    private static string ExtractLayoutRowItemText(string rawText)
-    {
-        if (string.IsNullOrWhiteSpace(rawText))
-            return string.Empty;
-
-        var normalized = rawText
-            .Replace("Ã¯Â¼â€¦", "%")
-            .Replace("ï¼…", "%")
-            .Replace(",", "")
-            .Replace(".", " ")
-            .Replace("\r", " ")
-            .Replace("\n", " ");
-
-        var multiplierMatch = Regex.Match(
-            normalized,
-            @"(?<mult>\d{1,3})\s*%",
-            RegexOptions.CultureInvariant);
-
-        var searchEnd = multiplierMatch.Success
-            ? multiplierMatch.Index
-            : normalized.Length;
-
-        var beforeMultiplier = normalized[..searchEnd];
-        var priceMatches = Regex.Matches(
-                beforeMultiplier,
-                @"\d+",
-                RegexOptions.CultureInvariant)
-            .Cast<Match>()
-            .ToList();
-
-        if (priceMatches.Count > 0)
-            beforeMultiplier = beforeMultiplier[..priceMatches[^1].Index];
-
-        return CleanLayoutFieldText(beforeMultiplier);
-    }
-
-    private static bool TryParseLayoutRowPrice(
-        string rawText,
-        out decimal price,
-        out decimal multiplier)
-    {
-        price = 0;
-        multiplier = 0;
-
-        var normalized = rawText
-            .Replace("ï¼…", "%")
-            .Replace("％", "%")
-            .Replace(",", "")
-            .Replace(".", "");
-
-        var multiplierMatch = Regex.Match(
-            normalized,
-            @"(?<mult>\d{1,3})\s*%",
-            RegexOptions.CultureInvariant);
-
-        if (multiplierMatch.Success &&
-            decimal.TryParse(
-                multiplierMatch.Groups["mult"].Value,
-                NumberStyles.Number,
-                CultureInfo.InvariantCulture,
-                out var parsedMultiplier))
-        {
-            multiplier = parsedMultiplier;
-        }
-        else
-        {
-            return false;
-        }
-
-        var beforeMultiplier = normalized[..multiplierMatch.Index];
-        var numbers = Regex.Matches(
-                beforeMultiplier,
-                @"\d+",
-                RegexOptions.CultureInvariant)
-            .Select(match => match.Value)
-            .ToList();
-
-        if (numbers.Count == 0)
-            return false;
-
-        foreach (var number in numbers.AsEnumerable().Reverse())
-        {
-            if (decimal.TryParse(
-                    number,
-                    NumberStyles.Number,
-                    CultureInfo.InvariantCulture,
-                    out price))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private sealed record LayoutRowRead(
@@ -2644,7 +2555,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _priceRecentHashCache.NotifyCityStatus("Unknown");
     }
 
-    private async Task AddUniqueCoordinateAsync(
+    private async Task<bool> AddUniqueCoordinateAsync(
         ParsedCoordinate parsed,
         CancellationToken ct)
     {
@@ -2654,7 +2565,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             .ToListAsync(ct);
 
         if (lastFive.Any(x => x.X == parsed.X && x.Y == parsed.Y))
-            return;
+            return false;
 
         _db.CoordinateCaptures.Add(new CoordinateCapture
         {
@@ -2663,6 +2574,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             RawText = parsed.RawText,
             CapturedAtUtc = DateTime.UtcNow
         });
+
+        return true;
     }
 
     private static int DecimalToInt(decimal value)

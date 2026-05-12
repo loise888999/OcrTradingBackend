@@ -5,6 +5,7 @@ using OcrTradingBackend.Data;
 using OcrTradingBackend.Models;
 using OcrTradingBackend.Services;
 using System.Drawing.Imaging;
+using System.Text.Json;
 
 try
 {
@@ -80,6 +81,22 @@ static string EncodePngDataUrl(Bitmap bitmap)
     bitmap.Save(stream, ImageFormat.Png);
     return $"data:image/png;base64,{Convert.ToBase64String(stream.ToArray())}";
 }
+static async Task WriteSseCoordinateEventAsync(
+    HttpResponse response,
+    CoordinateStreamEvent coordinate,
+    CancellationToken ct)
+{
+    var json = JsonSerializer.Serialize(
+        coordinate,
+        new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+
+    await response.WriteAsync("event: coordinate\n", ct);
+    await response.WriteAsync($"data: {json}\n\n", ct);
+    await response.Body.FlushAsync(ct);
+}
 
 static (double Score, string Status, string Message, string? ParsedText) ScoreLayoutTestBox(
     string kind,
@@ -135,6 +152,7 @@ builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(builder.Configurati
 
 builder.Services.AddSingleton<OcrControlState>();
 builder.Services.AddSingleton<OcrLastResultState>();
+builder.Services.AddSingleton<ICoordinateStreamService, CoordinateStreamService>();
 builder.Services.AddSingleton<ICoordinateParser, CoordinateParser>();
 builder.Services.AddSingleton<CoordinateFarJumpConfirmationGate>();
 builder.Services.AddSingleton<ICityCatalog, CityCatalog>();
@@ -170,7 +188,13 @@ builder.Services.AddHostedService<OcrBackgroundWorker>();
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
     .AllowAnyHeader()
     .AllowAnyMethod()
-    .WithOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost:3000")));
+    .WithOrigins(
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:3000")));
 
 var app = builder.Build();
 app.UseCors();
@@ -582,6 +606,81 @@ app.MapGet("/api/coordinates/latest", async (AppDbContext db, int take = 20) =>
     var limit = Math.Clamp(take, 2, 100);
     var rows = await db.CoordinateCaptures.OrderByDescending(x => x.CapturedAtUtc).Take(limit).OrderBy(x => x.CapturedAtUtc).ToListAsync();
     return Results.Ok(rows);
+});
+app.MapGet("/api/coordinates/stream", async (
+    HttpContext httpContext,
+    ICoordinateStreamService coordinateStream,
+    AppDbContext db,
+    int history = 20,
+    CancellationToken ct = default) =>
+{
+    httpContext.Response.ContentType = "text/event-stream";
+    httpContext.Response.Headers.CacheControl = "no-cache";
+    httpContext.Response.Headers.Connection = "keep-alive";
+    httpContext.Response.Headers["X-Accel-Buffering"] = "no";
+
+    var subscription = coordinateStream.Subscribe();
+    var historyLimit = Math.Clamp(history, 0, 100);
+
+    await httpContext.Response.WriteAsync(": connected\n\n", ct);
+    await httpContext.Response.Body.FlushAsync(ct);
+
+    if (historyLimit > 0)
+    {
+        var recent = await db.CoordinateCaptures
+            .AsNoTracking()
+            .OrderByDescending(x => x.CapturedAtUtc)
+            .Take(historyLimit)
+            .OrderBy(x => x.CapturedAtUtc)
+            .ToListAsync(ct);
+
+        foreach (var coordinate in recent)
+        {
+            await WriteSseCoordinateEventAsync(
+                httpContext.Response,
+                new CoordinateStreamEvent(
+                    coordinate.Id,
+                    coordinate.X,
+                    coordinate.Y,
+                    coordinate.RawText,
+                    coordinate.CapturedAtUtc),
+                ct);
+        }
+    }
+
+    try
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            var waitForCoordinate = subscription.Reader.WaitToReadAsync(ct).AsTask();
+            var waitForHeartbeat = Task.Delay(TimeSpan.FromSeconds(15), ct);
+
+            if (await Task.WhenAny(waitForCoordinate, waitForHeartbeat) == waitForHeartbeat)
+            {
+                await httpContext.Response.WriteAsync(": heartbeat\n\n", ct);
+                await httpContext.Response.Body.FlushAsync(ct);
+                continue;
+            }
+
+            if (!await waitForCoordinate)
+            {
+                break;
+            }
+
+            while (subscription.Reader.TryRead(out var coordinate))
+            {
+                await WriteSseCoordinateEventAsync(httpContext.Response, coordinate, ct);
+            }
+        }
+    }
+    catch (OperationCanceledException)
+    {
+        // Client closed the stream.
+    }
+    finally
+    {
+        coordinateStream.Unsubscribe(subscription.Id);
+    }
 });
 
 app.MapGet("/api/prices/history", async (AppDbContext db, string? city, string? item, string? tradeType, int take = 250) =>
