@@ -159,6 +159,7 @@ builder.Services.AddSingleton<ICityCatalog, CityCatalog>();
 builder.Services.AddSingleton<ICityParser, CityParser>();
 builder.Services.AddSingleton<ITradeGoodCatalog, TradeGoodCatalog>();
 builder.Services.AddSingleton<ISpecialCraftBonusItemCatalog, SpecialCraftBonusItemCatalog>();
+builder.Services.AddSingleton<INpcNormalCraftingCatalog, NpcNormalCraftingCatalog>();
 builder.Services.AddSingleton<IStrictTradeGoodMatcher, StrictTradeGoodMatcher>();
 builder.Services.AddSingleton<IPendingTradeGoodService, PendingTradeGoodService>();
 builder.Services.AddSingleton<IPriceParser, PriceParser>();
@@ -1024,6 +1025,17 @@ app.MapGet("/api/trading/special-craft-bonus-items", (
     string? location,
     int take = 500) =>
     Results.Ok(catalog.Search(item, type, bonus, material, location, take)));
+
+app.MapGet("/api/trading/npc-normal-crafting", (
+    INpcNormalCraftingCatalog catalog,
+    string? product,
+    string? category,
+    string? npc,
+    string? skill,
+    string? material,
+    string? location,
+    int take = 500) =>
+    Results.Ok(catalog.Search(product, category, npc, skill, material, location, take)));
 
 app.MapGet("/api/ocr-layout", async (
     IOcrLayoutService layoutService,
