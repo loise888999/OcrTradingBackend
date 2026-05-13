@@ -158,6 +158,7 @@ builder.Services.AddSingleton<CoordinateFarJumpConfirmationGate>();
 builder.Services.AddSingleton<ICityCatalog, CityCatalog>();
 builder.Services.AddSingleton<ICityParser, CityParser>();
 builder.Services.AddSingleton<ITradeGoodCatalog, TradeGoodCatalog>();
+builder.Services.AddSingleton<ISpecialCraftBonusItemCatalog, SpecialCraftBonusItemCatalog>();
 builder.Services.AddSingleton<IStrictTradeGoodMatcher, StrictTradeGoodMatcher>();
 builder.Services.AddSingleton<IPendingTradeGoodService, PendingTradeGoodService>();
 builder.Services.AddSingleton<IPriceParser, PriceParser>();
@@ -1013,6 +1014,16 @@ app.MapGet("/api/trading/multi-good-routes", async (
     int minItems = 2,
     int take = 100) =>
     Results.Ok(await service.GetMultiGoodRoutesAsync(type, SplitMulti(buyRegions), SplitMulti(sellRegions), minProfitPerGood, minTotalProfit, minItems, take)));
+
+app.MapGet("/api/trading/special-craft-bonus-items", (
+    ISpecialCraftBonusItemCatalog catalog,
+    string? item,
+    string? type,
+    string? bonus,
+    string? material,
+    string? location,
+    int take = 500) =>
+    Results.Ok(catalog.Search(item, type, bonus, material, location, take)));
 
 app.MapGet("/api/ocr-layout", async (
     IOcrLayoutService layoutService,
