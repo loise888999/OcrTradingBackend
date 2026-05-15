@@ -559,7 +559,7 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             NeedsRecalibration: status.NeedsRecalibration);
     }
 
-            public void DeleteProfile()
+    public void DeleteProfile()
     {
         lock (_gate)
         {
@@ -577,7 +577,7 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
         }
     }
 
-public void ResetFailures()
+    public void ResetFailures()
     {
         lock (_gate)
         {
@@ -667,7 +667,7 @@ public void ResetFailures()
             return LoadProfileLocked();
     }
 
-        private CoordinateTemplateProfile? LoadProfileLocked()
+    private CoordinateTemplateProfile? LoadProfileLocked()
     {
         try
         {
@@ -693,7 +693,7 @@ public void ResetFailures()
     }
 
 
-        private void SaveProfileLocked(CoordinateTemplateProfile profile)
+    private void SaveProfileLocked(CoordinateTemplateProfile profile)
     {
         profile.MissingDigitTemplates = BuildMissingDigits(profile.DigitTemplates);
 
@@ -807,7 +807,7 @@ public void ResetFailures()
         }
     }
 
-            private static void SaveTemplateImage(CoordinateDigitTemplate template, string absolutePath)
+    private static void SaveTemplateImage(CoordinateDigitTemplate template, string absolutePath)
     {
         var folder = Path.GetDirectoryName(absolutePath);
         if (!string.IsNullOrWhiteSpace(folder))
@@ -946,13 +946,13 @@ public void ResetFailures()
         return $"{x},{y}";
     }
 
-            private static TemplateBuildResult BuildTemplates(
-        Bitmap bitmap,
-        string coordinate,
-        int threshold,
-        bool normalizePaddingEnabled = true,
-        int horizontalPadding = 2,
-        int verticalPadding = 1)
+    private static TemplateBuildResult BuildTemplates(
+Bitmap bitmap,
+string coordinate,
+int threshold,
+bool normalizePaddingEnabled = true,
+int horizontalPadding = 2,
+int verticalPadding = 1)
     {
         var segmentation = SegmentGlyphs(bitmap, coordinate, threshold);
         var glyphs = segmentation.Glyphs
@@ -1584,12 +1584,12 @@ public void ResetFailures()
         return (minX, maxX);
     }
 
-                private static DigitOcrTemplateFilterResult ValidateAndFilterTemplatesWithDigitOcr(
-        Bitmap source,
-        IReadOnlyDictionary<string, List<CoordinateDigitTemplate>> sampleTemplates,
-        CoordinateOcrSettingsResponse settings,
-        Func<Bitmap, string?>? perDigitOcrReader,
-        ISet<string>? knownDigits = null)
+    private static DigitOcrTemplateFilterResult ValidateAndFilterTemplatesWithDigitOcr(
+Bitmap source,
+IReadOnlyDictionary<string, List<CoordinateDigitTemplate>> sampleTemplates,
+CoordinateOcrSettingsResponse settings,
+Func<Bitmap, string?>? perDigitOcrReader,
+ISet<string>? knownDigits = null)
     {
         if (!settings.CoordinateTemplateRequirePerDigitOcrValidation)
         {
@@ -1733,7 +1733,7 @@ public void ResetFailures()
 
 
 
-        private static Bitmap CropTemplate(Bitmap source, CoordinateDigitTemplate template)
+    private static Bitmap CropTemplate(Bitmap source, CoordinateDigitTemplate template)
     {
         if (template.Width > 0 &&
             template.Height > 0 &&
@@ -1785,7 +1785,7 @@ public void ResetFailures()
         return digits.Length == 1 ? digits[0].ToString() : null;
     }
 
-        private static void CleanTemplateInPlace(CoordinateDigitTemplate template)
+    private static void CleanTemplateInPlace(CoordinateDigitTemplate template)
     {
         if (template.Width <= 0 ||
             template.Height <= 0 ||
@@ -2199,9 +2199,9 @@ public void ResetFailures()
         return true;
     }
 
-    
 
-    
+
+
 
     private static void DebugPrintBitmap(string title, Bitmap bitmap, int threshold)
     {
@@ -2283,10 +2283,10 @@ public void ResetFailures()
         Console.WriteLine("====================================================");
     }
 
-private static void AddTemplateVariant(
-        List<CoordinateDigitTemplate> existingTemplates,
-        CoordinateDigitTemplate candidate,
-        int maxTemplates)
+    private static void AddTemplateVariant(
+            List<CoordinateDigitTemplate> existingTemplates,
+            CoordinateDigitTemplate candidate,
+            int maxTemplates)
     {
         // This app learns exactly one template per digit: 0-9.
         // No variants are added after a digit is already learned.
@@ -2474,10 +2474,10 @@ private static void AddTemplateVariant(
         }
     }
 
-        private RuntimeReadResult? TryReadRuntimeCoordinate(
-        Bitmap bitmap,
-        CoordinateTemplateProfile profile,
-        CoordinateOcrSettingsResponse settings)
+    private RuntimeReadResult? TryReadRuntimeCoordinate(
+    Bitmap bitmap,
+    CoordinateTemplateProfile profile,
+    CoordinateOcrSettingsResponse settings)
     {
         var candidates = TryBuildRuntimeFixedSlotCandidates(bitmap, profile, settings);
 
@@ -2712,15 +2712,15 @@ private static void AddTemplateVariant(
         DebugPrintPixels(title, glyph.Pixels, glyph.Width, glyph.Height);
     }
 
-    
-
-    
 
 
 
-            private static (string Digit, double Score)? MatchDigit(
-        TemplateGlyph glyph,
-        CoordinateTemplateProfile profile)
+
+
+
+    private static (string Digit, double Score)? MatchDigit(
+TemplateGlyph glyph,
+CoordinateTemplateProfile profile)
     {
         var sample = new CoordinateDigitTemplate
         {
@@ -2948,7 +2948,7 @@ private static void AddTemplateVariant(
         var max = 0;
         var ink = 0;
         var total = bitmap.Width * bitmap.Height;
-        var threshold = 180;
+        var threshold = 185;
 
         for (var y = 0; y < bitmap.Height; y++)
         {

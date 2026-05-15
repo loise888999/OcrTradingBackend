@@ -24,6 +24,7 @@
   <ItemGroup>
     <None Include="Data\trade-goods.csv"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
     <None Include="Data\cities.csv"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
+    <None Include="Data\uwo_florence_craftsman_contribution.csv"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="OcrTradingBackend.Tests\**\*.cs" />
