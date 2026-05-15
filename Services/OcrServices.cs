@@ -277,6 +277,36 @@ public sealed class OcrRuntimeSettingsValidator : IValidateOptions<OcrRuntimeSet
                 "OcrSettings:OcrTextPresenceGateMode must be one of: Off, BeforePreprocess, AfterPreprocess, BeforeAndAfter.");
         }
 
+        if (!CoordinateOcrModes.IsValid(settings.CoordinateReadMode))
+        {
+            failures.Add(
+                "OcrSettings:CoordinateReadMode must be one of: NormalOcr, FastTemplate.");
+        }
+
+        if (settings.CoordinateTemplateRecalibrationFailureLimit < 1)
+        {
+            failures.Add(
+                "OcrSettings:CoordinateTemplateRecalibrationFailureLimit must be at least 1.");
+        }
+
+        if (settings.CoordinateTemplateAutoProfileMaxSamples < 1)
+        {
+            failures.Add(
+                "OcrSettings:CoordinateTemplateAutoProfileMaxSamples must be at least 1.");
+        }
+
+        if (settings.CoordinateTemplateAutoProfileValidationMaxDigitScore is < 0 or > 1)
+        {
+            failures.Add(
+                "OcrSettings:CoordinateTemplateAutoProfileValidationMaxDigitScore must be between 0 and 1.");
+        }
+
+        if (settings.CoordinateTemplateMaxTemplatesPerDigit < 1)
+        {
+            failures.Add(
+                "OcrSettings:CoordinateTemplateMaxTemplatesPerDigit must be at least 1.");
+        }
+
         if (!settings.UseEnglishModels || settings.FallbackToBundledModel)
         {
             return failures.Count == 0

@@ -1,0 +1,20 @@
+{
+  "CoordinateReadMode": "NormalOcr",
+  "CoordinateTemplateFallbackToNormalOcr": false,
+  "CoordinateTemplateCountFailedReadsForRecalibration": false,
+  "CoordinateTemplateRecalibrationFailureLimit": 5,
+  "CoordinateTemplateRequireVisibleTextForFailure": false,
+  "CoordinateTemplateMinTextPixelsPercent": 0.35,
+  "CoordinateTemplateMinContrast": 18,
+  "CoordinateTemplateAutoProfileEnabled": false,
+  "CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode": true,
+  "CoordinateTemplateAutoProfileMaxSamples": 10000,
+  "CoordinateTemplateAutoProfileValidationMaxDigitScore": 0.18,
+  "CoordinateTemplateMaxTemplatesPerDigit": 1,
+  "CoordinateTemplateRequirePerDigitOcrValidation": true,
+  "CoordinateTemplateDebugPrintDigitBitmaps": true,
+  "CoordinateTemplateNormalizeDigitPaddingEnabled": true,
+  "CoordinateTemplateDigitHorizontalPaddingPixels": 1,
+  "CoordinateTemplateDigitVerticalPaddingPixels": 1,
+  "CoordinateTemplateFastModeSpeedMultiplier": 8
+}

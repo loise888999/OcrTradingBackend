@@ -1,11 +1,10 @@
-using System.Diagnostics;
-using System.Drawing;
-using System.Globalization;
-using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OcrTradingBackend.Data;
 using OcrTradingBackend.Models;
+using System.Diagnostics;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace OcrTradingBackend.Services;
 
@@ -32,6 +31,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly IOcrImagePreprocessingService _preprocessor;
     private readonly IOcrTextPresenceAnalyzer _textPresenceAnalyzer;
     private readonly IOcrLayoutService _layoutService;
+    private readonly ICoordinateOcrSettingsService _coordinateOcrSettings;
+    private readonly ICoordinateTemplateOcrService _coordinateTemplateOcr;
     private readonly IPriceOcrBatchService _priceBatch;
     private readonly IPriceLayoutRowCacheService _priceLayoutRowCache;
     private readonly IPriceLayoutRowFingerprintService _priceLayoutRowFingerprint;
@@ -39,6 +40,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly OcrLastResultState _lastResults;
     private readonly ILogger<OcrCycleRunner> _logger;
     private readonly CoordinateFarJumpConfirmationGate _coordinateFarJumpGate;
+    private readonly ICoordinateStreamService _coordinateStream;
 
     public OcrCycleRunner(
         AppDbContext db,
@@ -56,12 +58,15 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         IOcrImagePreprocessingService preprocessor,
         IOcrTextPresenceAnalyzer textPresenceAnalyzer,
         IOcrLayoutService layoutService,
+        ICoordinateOcrSettingsService coordinateOcrSettings,
+        ICoordinateTemplateOcrService coordinateTemplateOcr,
         IPriceOcrBatchService priceBatch,
         IPriceLayoutRowCacheService priceLayoutRowCache,
         IPriceLayoutRowFingerprintService priceLayoutRowFingerprint,
         IPriceRecentHashCacheService priceRecentHashCache,
         OcrLastResultState lastResults,
         CoordinateFarJumpConfirmationGate coordinateFarJumpGate,
+        ICoordinateStreamService coordinateStream,
         ILogger<OcrCycleRunner> logger)
     {
         _db = db;
@@ -79,12 +84,15 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _preprocessor = preprocessor;
         _textPresenceAnalyzer = textPresenceAnalyzer;
         _layoutService = layoutService;
+        _coordinateOcrSettings = coordinateOcrSettings;
+        _coordinateTemplateOcr = coordinateTemplateOcr;
         _priceBatch = priceBatch;
         _priceLayoutRowCache = priceLayoutRowCache;
         _priceLayoutRowFingerprint = priceLayoutRowFingerprint;
         _priceRecentHashCache = priceRecentHashCache;
         _lastResults = lastResults;
         _coordinateFarJumpGate = coordinateFarJumpGate;
+        _coordinateStream = coordinateStream;
         _logger = logger;
     }
 
@@ -167,9 +175,12 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 wasInKnownCityBeforeCoordinate &&
                 IsPriceOcrDue(settings);
 
+            var coordinateOcrSettingsForDue =
+                _coordinateOcrSettings.GetEffective(settings);
+
             var coordinateDue =
                 coordinateZone is not null &&
-                IsCoordinateOcrDue(settings);
+                IsCoordinateOcrDue(settings, coordinateOcrSettingsForDue);
 
             if (!coordinateRecentlyVisible &&
                 priceDue &&
@@ -208,6 +219,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
                 var parsed = await TryReadCoordinateAsync(
                     coordinateZone,
+                    layout.Zones.Coordinate,
                     previousCoordinate,
                     settings,
                     ct);
@@ -259,7 +271,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                                 parsed.RawText);
                         }
 
-                        await AddUniqueCoordinateAsync(parsed, ct);
+                        if (await AddUniqueCoordinateAsync(parsed, ct))
+                        {
+                            _coordinateStream.Publish(parsed);
+                        }
                         SetLatestCityUnknownIfNeeded(latestCityBeforeCoordinate, parsed.RawText);
 
                         if (ignoreCoordinateJumpThisRead)
@@ -451,7 +466,81 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
     private async Task<ParsedCoordinate?> TryReadCoordinateAsync(
         OcrZone coordinateZone,
+        OcrLayoutBox? coordinateBox,
         CoordinateCapture? previousCoordinate,
+        OcrRuntimeSettings settings,
+        CancellationToken ct)
+    {
+        var coordinateOcrSettings = _coordinateOcrSettings.GetEffective(settings);
+
+        if (coordinateOcrSettings.CoordinateReadMode.Equals(
+                CoordinateOcrModes.FastTemplate,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            var fast = TryReadCoordinateWithFastTemplate(
+                coordinateZone,
+                previousCoordinate,
+                settings,
+                coordinateOcrSettings);
+
+            if (fast is not null)
+                return fast;
+
+            if (!coordinateOcrSettings.CoordinateTemplateFallbackToNormalOcr)
+                return null;
+        }
+
+        var sw = Stopwatch.StartNew();
+        var nomalReadOCR = await TryReadCoordinateWithNormalOcrAsync(
+            coordinateZone,
+            coordinateBox,
+            previousCoordinate,
+            coordinateOcrSettings,
+            settings,
+            ct);
+        sw.Stop();
+        _logger.LogWarning("Normal OCR ms" + sw.ElapsedMilliseconds);
+
+        return nomalReadOCR;
+    }
+
+    private ParsedCoordinate? TryReadCoordinateWithFastTemplate(
+        OcrZone coordinateZone,
+        CoordinateCapture? previousCoordinate,
+        OcrRuntimeSettings settings,
+        CoordinateOcrSettingsResponse coordinateOcrSettings)
+    {
+        using var bitmap = _capture.Capture(coordinateZone);
+        var sw = Stopwatch.StartNew();
+        var attempt = _coordinateTemplateOcr.TryRead(bitmap, coordinateOcrSettings);
+        sw.Stop();
+        _logger.LogWarning("Fast OCR ms" + sw.ElapsedMilliseconds);
+
+        if (attempt.Success && attempt.Parsed is not null)
+        {
+            _coordinateTemplateOcr.ResetFailures();
+            _lastResults.SetCoordinate("fast-template", attempt.RawText ?? attempt.Parsed.RawText, attempt.Parsed, null);
+            return attempt.Parsed with { RawText = $"fast-template: {attempt.Parsed.RawText}" };
+        }
+
+        _lastResults.SetCoordinate("fast-template", attempt.RawText ?? string.Empty, null, null);
+
+        if (coordinateOcrSettings.CoordinateTemplateFallbackToNormalOcr)
+        {
+            _logger.LogInformation(
+                "Fast coordinate OCR failed; falling back to normal OCR. Reason={Reason}; NeedsRecalibration={NeedsRecalibration}",
+                attempt.Reason,
+                attempt.NeedsRecalibration);
+        }
+
+        return null;
+    }
+
+    private async Task<ParsedCoordinate?> TryReadCoordinateWithNormalOcrAsync(
+        OcrZone coordinateZone,
+        OcrLayoutBox? coordinateBox,
+        CoordinateCapture? previousCoordinate,
+        CoordinateOcrSettingsResponse coordinateOcrSettings,
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
@@ -479,7 +568,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                         ct);
 
                     if (result is not null)
+                    {
+                        MaybeAddAutoProfileSample(fixedBitmap, coordinateBox, result, coordinateOcrSettings, settings);
                         return result;
+                    }
                 }
             }
             else
@@ -494,7 +586,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                     ct);
 
                 if (direct is not null)
+                {
+                    MaybeAddAutoProfileSample(fixedBitmap, coordinateBox, direct, coordinateOcrSettings, settings);
                     return direct;
+                }
 
                 var preprocessed = _preprocessor.TryPrepareCoordinateImage(fixedBitmap, settings);
                 if (preprocessed is not null)
@@ -509,7 +604,10 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                             ct);
 
                         if (result is not null)
+                        {
+                            MaybeAddAutoProfileSample(fixedBitmap, coordinateBox, result, coordinateOcrSettings, settings);
                             return result;
+                        }
                     }
                 }
             }
@@ -517,6 +615,166 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         return null;
     }
+
+    private void MaybeAddAutoProfileSample(
+    Bitmap sourceBitmap,
+    OcrLayoutBox? coordinateBox,
+    ParsedCoordinate parsed,
+    CoordinateOcrSettingsResponse coordinateOcrSettings,
+    OcrRuntimeSettings settings)
+    {
+        _logger.LogWarning(
+            "AUTO PROFILE CHECK: Enabled={Enabled}; ReadMode={ReadMode}; OnlyNormalMode={OnlyNormalMode}; BoxValid={BoxValid}; RequireDigitOcr={RequireDigitOcr}; Parsed={Parsed}",
+            coordinateOcrSettings.CoordinateTemplateAutoProfileEnabled,
+            coordinateOcrSettings.CoordinateReadMode,
+            coordinateOcrSettings.CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode,
+            coordinateBox is { IsValid: true },
+            coordinateOcrSettings.CoordinateTemplateRequirePerDigitOcrValidation,
+            $"{parsed.X},{parsed.Y}");
+
+        if (!coordinateOcrSettings.CoordinateTemplateAutoProfileEnabled)
+        {
+            _logger.LogWarning("AUTO PROFILE STOPPED: CoordinateTemplateAutoProfileEnabled is false.");
+            return;
+        }
+
+        if (coordinateOcrSettings.CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode &&
+            !coordinateOcrSettings.CoordinateReadMode.Equals(CoordinateOcrModes.NormalOcr, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning(
+                "AUTO PROFILE STOPPED: CoordinateReadMode is {ReadMode}, but auto profile only runs in NormalOcr mode.",
+                coordinateOcrSettings.CoordinateReadMode);
+
+            return;
+        }
+
+        if (coordinateBox is not { IsValid: true })
+        {
+            _logger.LogWarning("AUTO PROFILE STOPPED: coordinate layout box is missing or invalid.");
+            return;
+        }
+
+        try
+        {
+            _logger.LogWarning("AUTO PROFILE ENTERING: AddProfileSampleFromNormalOcr.");
+
+            var status = _coordinateTemplateOcr.AddProfileSampleFromNormalOcr(
+                sourceBitmap,
+                coordinateBox,
+                parsed,
+                coordinateOcrSettings,
+                settings,
+                digitCrop => ReadCalibrationDigitOcr(digitCrop, settings));
+
+            _logger.LogWarning(
+                "AUTO PROFILE RESULT: Accepted={Accepted}; Learned={Learned}; Missing={Missing}; DigitOcrValidated={Validated}; DigitOcrRejected={Rejected}; Message={Message}",
+                status.LastSampleAccepted,
+                string.Join(",", status.LastLearnedDigits),
+                string.Join(",", status.MissingDigitTemplates),
+                string.Join(",", status.LastDigitOcrValidatedDigits),
+                string.Join(",", status.LastDigitOcrRejectedDigits),
+                status.LastAutoSampleMessage);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "AUTO PROFILE ERROR: Failed to add coordinate template sample for parsed coordinate {Coordinate}.",
+                $"{parsed.X},{parsed.Y}");
+        }
+    }
+
+
+    private string? ReadCalibrationDigitOcr(Bitmap digitCrop, OcrRuntimeSettings settings)
+    {
+        var attempts = new List<(int Padding, int Scale, int Threshold, bool Cleanup)>
+        {
+            (2, 2, settings.CoordinateOcrThreshold, false),
+            (2, 2, Math.Clamp(settings.CoordinateOcrThreshold - 20, 0, 255), false),
+            (2, 2, Math.Clamp(settings.CoordinateOcrThreshold + 20, 0, 255), false),
+            (4, 2, settings.CoordinateOcrThreshold, false),
+            (2, Math.Clamp(settings.CoordinateOcrUpscale, 1, 6), settings.CoordinateOcrThreshold, false),
+            (2, 3, settings.CoordinateOcrThreshold, false),
+            (2, 4, settings.CoordinateOcrThreshold, false),
+            (2, 2, settings.CoordinateOcrThreshold, true)
+        };
+
+        foreach (var attempt in attempts)
+        {
+            using var padded = AddDigitPadding(digitCrop, attempt.Padding);
+
+            Bitmap? prepared = null;
+
+            try
+            {
+                prepared = OcrImagePreprocessor.PrepareCoordinateImage(
+                    padded,
+                    scale: attempt.Scale,
+                    threshold: attempt.Threshold,
+                    cleanupOptions: attempt.Cleanup
+                        ? OcrImagePreprocessor.BuildCoordinateCleanupOptions(settings)
+                        : null);
+
+                var read = _ocr.ReadText(
+                    "coordinate-template-digit-calibration",
+                    prepared,
+                    OcrFieldKind.Coordinate,
+                    settings).Text;
+
+                var normalized = NormalizeSingleCalibrationDigit(read);
+
+                if (normalized is not null)
+                    return normalized;
+            }
+            finally
+            {
+                prepared?.Dispose();
+            }
+        }
+
+        return null;
+    }
+
+    private static Bitmap AddDigitPadding(Bitmap source, int padding)
+    {
+        var output = new Bitmap(
+            source.Width + padding * 2,
+            source.Height + padding * 2);
+
+        using var graphics = Graphics.FromImage(output);
+        graphics.Clear(Color.Black);
+
+        graphics.DrawImage(
+            source,
+            new Rectangle(padding, padding, source.Width, source.Height),
+            new Rectangle(0, 0, source.Width, source.Height),
+            GraphicsUnit.Pixel);
+
+        return output;
+    }
+
+    private static string? NormalizeSingleCalibrationDigit(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return null;
+
+        var digits = raw
+            .Where(char.IsDigit)
+            .ToArray();
+
+        if (digits.Length == 1)
+            return digits[0].ToString();
+
+        if (digits.Length > 1 && digits.Distinct().Count() == 1)
+            return digits[0].ToString();
+
+        return null;
+    }
+
+
+
+
+
 
     private async Task<ParsedCoordinate?> TryOcrAndParseCoordinateAsync(
         Bitmap bitmap,
@@ -709,16 +967,39 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                TimeSpan.FromSeconds(intervalSeconds);
     }
 
-    private bool IsCoordinateOcrDue(OcrRuntimeSettings settings)
+    private bool IsCoordinateOcrDue(
+    OcrRuntimeSettings settings,
+    CoordinateOcrSettingsResponse coordinateOcrSettings)
     {
         if (_control.LastCoordinateAttemptUtc is null)
             return true;
 
-        var interval = TimeSpan.FromMilliseconds(
-            Math.Clamp(settings.CoordinateIntervalMilliseconds, 250, 60_000));
+        var baseIntervalMs = Math.Clamp(
+            settings.CoordinateIntervalMilliseconds,
+            250,
+            60_000);
+
+        var effectiveIntervalMs = baseIntervalMs;
+
+        if (coordinateOcrSettings.CoordinateReadMode.Equals(
+                CoordinateOcrModes.FastTemplate,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            var multiplier = Math.Clamp(
+                coordinateOcrSettings.CoordinateTemplateFastModeSpeedMultiplier,
+                1,
+                50);
+
+            effectiveIntervalMs = Math.Max(
+                50,
+                baseIntervalMs / multiplier);
+        }
+
+        var interval = TimeSpan.FromMilliseconds(effectiveIntervalMs);
 
         return DateTime.UtcNow - _control.LastCoordinateAttemptUtc.Value >= interval;
     }
+
 
     private bool IsCoordinateRecentlyVisible(OcrRuntimeSettings settings)
     {
@@ -1210,101 +1491,6 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             rawText,
             tradeType,
             _strictTradeGoodMatcher.Find);
-    }
-
-    private static string ExtractLayoutRowItemText(string rawText)
-    {
-        if (string.IsNullOrWhiteSpace(rawText))
-            return string.Empty;
-
-        var normalized = rawText
-            .Replace("Ã¯Â¼â€¦", "%")
-            .Replace("ï¼…", "%")
-            .Replace(",", "")
-            .Replace(".", " ")
-            .Replace("\r", " ")
-            .Replace("\n", " ");
-
-        var multiplierMatch = Regex.Match(
-            normalized,
-            @"(?<mult>\d{1,3})\s*%",
-            RegexOptions.CultureInvariant);
-
-        var searchEnd = multiplierMatch.Success
-            ? multiplierMatch.Index
-            : normalized.Length;
-
-        var beforeMultiplier = normalized[..searchEnd];
-        var priceMatches = Regex.Matches(
-                beforeMultiplier,
-                @"\d+",
-                RegexOptions.CultureInvariant)
-            .Cast<Match>()
-            .ToList();
-
-        if (priceMatches.Count > 0)
-            beforeMultiplier = beforeMultiplier[..priceMatches[^1].Index];
-
-        return CleanLayoutFieldText(beforeMultiplier);
-    }
-
-    private static bool TryParseLayoutRowPrice(
-        string rawText,
-        out decimal price,
-        out decimal multiplier)
-    {
-        price = 0;
-        multiplier = 0;
-
-        var normalized = rawText
-            .Replace("ï¼…", "%")
-            .Replace("％", "%")
-            .Replace(",", "")
-            .Replace(".", "");
-
-        var multiplierMatch = Regex.Match(
-            normalized,
-            @"(?<mult>\d{1,3})\s*%",
-            RegexOptions.CultureInvariant);
-
-        if (multiplierMatch.Success &&
-            decimal.TryParse(
-                multiplierMatch.Groups["mult"].Value,
-                NumberStyles.Number,
-                CultureInfo.InvariantCulture,
-                out var parsedMultiplier))
-        {
-            multiplier = parsedMultiplier;
-        }
-        else
-        {
-            return false;
-        }
-
-        var beforeMultiplier = normalized[..multiplierMatch.Index];
-        var numbers = Regex.Matches(
-                beforeMultiplier,
-                @"\d+",
-                RegexOptions.CultureInvariant)
-            .Select(match => match.Value)
-            .ToList();
-
-        if (numbers.Count == 0)
-            return false;
-
-        foreach (var number in numbers.AsEnumerable().Reverse())
-        {
-            if (decimal.TryParse(
-                    number,
-                    NumberStyles.Number,
-                    CultureInfo.InvariantCulture,
-                    out price))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private sealed record LayoutRowRead(
@@ -2369,7 +2555,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _priceRecentHashCache.NotifyCityStatus("Unknown");
     }
 
-    private async Task AddUniqueCoordinateAsync(
+    private async Task<bool> AddUniqueCoordinateAsync(
         ParsedCoordinate parsed,
         CancellationToken ct)
     {
@@ -2379,7 +2565,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             .ToListAsync(ct);
 
         if (lastFive.Any(x => x.X == parsed.X && x.Y == parsed.Y))
-            return;
+            return false;
 
         _db.CoordinateCaptures.Add(new CoordinateCapture
         {
@@ -2388,6 +2574,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             RawText = parsed.RawText,
             CapturedAtUtc = DateTime.UtcNow
         });
+
+        return true;
     }
 
     private static int DecimalToInt(decimal value)

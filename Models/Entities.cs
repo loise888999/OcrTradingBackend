@@ -77,6 +77,27 @@ public sealed class OcrRuntimeSettings
     public int WorldWidth { get; set; } = 16500;
     public int WorldHeight { get; set; } = 7200;
     public int XZeroVisualOffset { get; set; } = 8250;
+    public string CoordinateReadMode { get; set; } = "NormalOcr";
+    public bool CoordinateTemplateFallbackToNormalOcr { get; set; }
+    public bool CoordinateTemplateCountFailedReadsForRecalibration { get; set; } = true;
+    public int CoordinateTemplateRecalibrationFailureLimit { get; set; } = 5;
+    public bool CoordinateTemplateRequireVisibleTextForFailure { get; set; } = true;
+    public double CoordinateTemplateMinTextPixelsPercent { get; set; } = 0.35;
+    public int CoordinateTemplateMinContrast { get; set; } = 18;
+    public bool CoordinateTemplateAutoProfileEnabled { get; set; }
+    public bool CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode { get; set; } = true;
+    public int CoordinateTemplateAutoProfileMaxSamples { get; set; } = 200;
+    public double CoordinateTemplateAutoProfileValidationMaxDigitScore { get; set; } = 0.18;
+    public int CoordinateTemplateMaxTemplatesPerDigit { get; set; } = 5;
+    public bool CoordinateTemplateRequirePerDigitOcrValidation { get; set; } = true;
+    public bool CoordinateTemplateNormalizeDigitPaddingEnabled { get; set; } = true;
+    public int CoordinateTemplateDigitHorizontalPaddingPixels { get; set; } = 1;
+    public int CoordinateTemplateDigitVerticalPaddingPixels { get; set; } = 1;
+    public bool CoordinateTemplateDebugPrintDigitBitmaps { get; set; }
+    // When CoordinateReadMode is FastTemplate, divide CoordinateIntervalMilliseconds by this value.
+    // Example: 1500ms / 8 = about 188ms.
+    public int CoordinateTemplateFastModeSpeedMultiplier { get; set; } = 8;
+
     public int CoordinateIntervalMilliseconds { get; set; } = 2000;
     public int CoordinateRecentlyVisibleSeconds { get; set; } = 10;
     public bool CoordinateRequiresProbablyAtSea { get; set; } = true;

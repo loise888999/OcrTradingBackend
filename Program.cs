@@ -5,6 +5,7 @@ using OcrTradingBackend.Data;
 using OcrTradingBackend.Models;
 using OcrTradingBackend.Services;
 using System.Drawing.Imaging;
+using System.Text.Json;
 
 try
 {
@@ -20,6 +21,17 @@ static IReadOnlyList<string> SplitMulti(string? value) =>
     string.IsNullOrWhiteSpace(value)
         ? Array.Empty<string>()
         : value.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+static string CleanCityNameForLatestCityGoods(string? value)
+{
+    if (string.IsNullOrWhiteSpace(value))
+        return string.Empty;
+
+    return value
+        .Split('(', 2)[0]
+        .Split('\n', 2)[0]
+        .Split('\r', 2)[0]
+        .Trim();
+}
 
 static OcrFieldKind GetLayoutTestFieldKind(string kind)
 {
@@ -68,6 +80,22 @@ static string EncodePngDataUrl(Bitmap bitmap)
     using var stream = new MemoryStream();
     bitmap.Save(stream, ImageFormat.Png);
     return $"data:image/png;base64,{Convert.ToBase64String(stream.ToArray())}";
+}
+static async Task WriteSseCoordinateEventAsync(
+    HttpResponse response,
+    CoordinateStreamEvent coordinate,
+    CancellationToken ct)
+{
+    var json = JsonSerializer.Serialize(
+        coordinate,
+        new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
+
+    await response.WriteAsync("event: coordinate\n", ct);
+    await response.WriteAsync($"data: {json}\n\n", ct);
+    await response.Body.FlushAsync(ct);
 }
 
 static (double Score, string Status, string Message, string? ParsedText) ScoreLayoutTestBox(
@@ -124,11 +152,15 @@ builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(builder.Configurati
 
 builder.Services.AddSingleton<OcrControlState>();
 builder.Services.AddSingleton<OcrLastResultState>();
+builder.Services.AddSingleton<ICoordinateStreamService, CoordinateStreamService>();
 builder.Services.AddSingleton<ICoordinateParser, CoordinateParser>();
 builder.Services.AddSingleton<CoordinateFarJumpConfirmationGate>();
 builder.Services.AddSingleton<ICityCatalog, CityCatalog>();
 builder.Services.AddSingleton<ICityParser, CityParser>();
 builder.Services.AddSingleton<ITradeGoodCatalog, TradeGoodCatalog>();
+builder.Services.AddSingleton<ISpecialCraftBonusItemCatalog, SpecialCraftBonusItemCatalog>();
+builder.Services.AddSingleton<INpcNormalCraftingCatalog, NpcNormalCraftingCatalog>();
+builder.Services.AddSingleton<IFlorenceCraftsmanContributionCatalog, FlorenceCraftsmanContributionCatalog>();
 builder.Services.AddSingleton<IStrictTradeGoodMatcher, StrictTradeGoodMatcher>();
 builder.Services.AddSingleton<IPendingTradeGoodService, PendingTradeGoodService>();
 builder.Services.AddSingleton<IPriceParser, PriceParser>();
@@ -147,6 +179,8 @@ builder.Services.AddSingleton<IOcrDebugSnapshotService, OcrDebugSnapshotService>
 builder.Services.AddSingleton<IOcrImagePreprocessingService, OcrImagePreprocessingService>();
 builder.Services.AddSingleton<IOcrTextPresenceAnalyzer, OcrTextPresenceAnalyzer>();
 builder.Services.AddSingleton<IOcrLayoutService, OcrLayoutService>();
+builder.Services.AddSingleton<ICoordinateOcrSettingsService, CoordinateOcrSettingsService>();
+builder.Services.AddSingleton<ICoordinateTemplateOcrService, CoordinateTemplateOcrService>();
 builder.Services.AddScoped<IOcrCalibrationService, OcrCalibrationService>();
 builder.Services.AddScoped<IWindowRelativeOcrZoneService, WindowRelativeOcrZoneService>();
 builder.Services.AddScoped<ITradingRecommendationService, TradingRecommendationService>();
@@ -157,7 +191,13 @@ builder.Services.AddHostedService<OcrBackgroundWorker>();
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
     .AllowAnyHeader()
     .AllowAnyMethod()
-    .WithOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost:3000")));
+    .WithOrigins(
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:3000")));
 
 var app = builder.Build();
 app.UseCors();
@@ -251,6 +291,287 @@ app.MapPost("/api/settings/value", async (AppDbContext db, AppSetting setting) =
     return Results.Ok(setting);
 });
 
+app.MapGet("/api/settings/coordinate-ocr", (
+    ICoordinateOcrSettingsService coordinateOcrSettings) =>
+    Results.Ok(coordinateOcrSettings.Get()));
+
+app.MapPost("/api/settings/coordinate-ocr", async (
+    UpdateCoordinateOcrSettingsRequest request,
+    ICoordinateOcrSettingsService coordinateOcrSettings,
+    CancellationToken ct) =>
+{
+    if (!string.IsNullOrWhiteSpace(request.CoordinateReadMode) &&
+        !CoordinateOcrModes.IsValid(request.CoordinateReadMode))
+    {
+        return Results.BadRequest(new
+        {
+            message = "CoordinateReadMode must be NormalOcr or FastTemplate."
+        });
+    }
+
+    var updated = await coordinateOcrSettings.UpdateAsync(request, ct);
+    return Results.Ok(updated);
+});
+
+app.MapGet("/api/settings/coordinate-ocr/status", (
+    ICoordinateOcrSettingsService coordinateOcrSettings,
+    ICoordinateTemplateOcrService templateOcr) =>
+{
+    var settings = coordinateOcrSettings.Get();
+    return Results.Ok(new
+    {
+        settings,
+        fastTemplate = templateOcr.GetStatus(),
+        profile = templateOcr.GetProfileStatus(settings.CoordinateTemplateAutoProfileEnabled)
+    });
+});
+
+app.MapGet("/api/coordinate-template/profile/status", (
+    ICoordinateOcrSettingsService coordinateOcrSettings,
+    ICoordinateTemplateOcrService templateOcr) =>
+{
+    var settings = coordinateOcrSettings.Get();
+
+    return Results.Ok(
+        templateOcr.GetProfileStatus(
+            settings.CoordinateTemplateAutoProfileEnabled));
+});
+
+app.MapDelete("/api/coordinate-template/profile", (
+    ICoordinateTemplateOcrService templateOcr) =>
+{
+    templateOcr.DeleteProfile();
+
+    return Results.Ok(new
+    {
+        deleted = true,
+        message = "Coordinate template profile deleted. Start auto build again to relearn digits."
+    });
+});
+
+app.MapPost("/api/coordinate-template/profile/reset", (
+    ICoordinateTemplateOcrService templateOcr) =>
+{
+    templateOcr.DeleteProfile();
+
+    return Results.Ok(new
+    {
+        deleted = true,
+        message = "Coordinate template profile reset. Start auto build again to relearn digits."
+    });
+});
+
+
+
+app.MapPost("/api/coordinate-template/profile/auto/start", async (
+    ICoordinateOcrSettingsService coordinateOcrSettings,
+    CancellationToken ct) =>
+{
+    var settings = await coordinateOcrSettings.UpdateAsync(
+        new UpdateCoordinateOcrSettingsRequest(
+            CoordinateReadMode: CoordinateOcrModes.NormalOcr,
+            CoordinateTemplateFallbackToNormalOcr: true,
+            CoordinateTemplateCountFailedReadsForRecalibration: null,
+            CoordinateTemplateRecalibrationFailureLimit: null,
+            CoordinateTemplateRequireVisibleTextForFailure: null,
+            CoordinateTemplateMinTextPixelsPercent: null,
+            CoordinateTemplateMinContrast: null,
+            CoordinateTemplateAutoProfileEnabled: true,
+            CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode: true,
+            CoordinateTemplateAutoProfileMaxSamples: 10000,
+            CoordinateTemplateAutoProfileValidationMaxDigitScore: null,
+            CoordinateTemplateMaxTemplatesPerDigit: 1,
+            CoordinateTemplateRequirePerDigitOcrValidation: true),
+        ct);
+
+    return Results.Ok(new
+    {
+        message = "Auto profile calibration started. Move in-game until all digits 0-9 are learned.",
+        settings
+    });
+});
+
+app.MapPost("/api/coordinate-template/profile/auto/stop", async (
+    ICoordinateOcrSettingsService coordinateOcrSettings,
+    CancellationToken ct) =>
+{
+    var settings = await coordinateOcrSettings.UpdateAsync(
+        new UpdateCoordinateOcrSettingsRequest(
+            CoordinateReadMode: null,
+            CoordinateTemplateFallbackToNormalOcr: null,
+            CoordinateTemplateCountFailedReadsForRecalibration: null,
+            CoordinateTemplateRecalibrationFailureLimit: null,
+            CoordinateTemplateRequireVisibleTextForFailure: null,
+            CoordinateTemplateMinTextPixelsPercent: null,
+            CoordinateTemplateMinContrast: null,
+            CoordinateTemplateAutoProfileEnabled: false,
+            CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode: null,
+            CoordinateTemplateAutoProfileMaxSamples: null,
+            CoordinateTemplateAutoProfileValidationMaxDigitScore: null,
+            CoordinateTemplateMaxTemplatesPerDigit: null,
+            CoordinateTemplateRequirePerDigitOcrValidation: null),
+        ct);
+
+    return Results.Ok(new
+    {
+        message = "Auto profile calibration stopped.",
+        settings
+    });
+});
+
+app.MapPost("/api/coordinate-template/profile/use-fast", async (
+    ICoordinateOcrSettingsService coordinateOcrSettings,
+    ICoordinateTemplateOcrService templateOcr,
+    CancellationToken ct) =>
+{
+    var current = coordinateOcrSettings.Get();
+    var profile = templateOcr.GetProfileStatus(current.CoordinateTemplateAutoProfileEnabled);
+
+    if (!profile.ProfileReady || profile.MissingDigitTemplates.Count > 0)
+    {
+        return Results.BadRequest(new
+        {
+            message = "Fast OCR profile is not ready. Learn all digits 0-9 first.",
+            profileReady = profile.ProfileReady,
+            missing = profile.MissingDigitTemplates
+        });
+    }
+
+    var settings = await coordinateOcrSettings.UpdateAsync(
+        new UpdateCoordinateOcrSettingsRequest(
+            CoordinateReadMode: CoordinateOcrModes.FastTemplate,
+            CoordinateTemplateFallbackToNormalOcr: true,
+            CoordinateTemplateCountFailedReadsForRecalibration: null,
+            CoordinateTemplateRecalibrationFailureLimit: null,
+            CoordinateTemplateRequireVisibleTextForFailure: null,
+            CoordinateTemplateMinTextPixelsPercent: null,
+            CoordinateTemplateMinContrast: null,
+            CoordinateTemplateAutoProfileEnabled: false,
+            CoordinateTemplateAutoProfileOnlyWhenNormalOcrMode: null,
+            CoordinateTemplateAutoProfileMaxSamples: null,
+            CoordinateTemplateAutoProfileValidationMaxDigitScore: null,
+            CoordinateTemplateMaxTemplatesPerDigit: null,
+            CoordinateTemplateRequirePerDigitOcrValidation: null),
+        ct);
+
+    return Results.Ok(new
+    {
+        message = "Fast OCR enabled. Auto profile learning disabled.",
+        settings,
+        profile
+    });
+});
+
+app.MapPost("/api/coordinate-template/test-current", async (
+    IOcrLayoutService layoutService,
+    IScreenCaptureService capture,
+    ICoordinateOcrSettingsService coordinateOcrSettings,
+    ICoordinateTemplateOcrService templateOcr,
+    CancellationToken ct) =>
+{
+    var layout = await layoutService.LoadAsync(ct);
+
+    if (!layout.Enabled)
+    {
+        return Results.BadRequest(new
+        {
+            message = "OCR layout is disabled. Enable and save the OCR layout first."
+        });
+    }
+
+    var coordinateBox = layout.Zones.Coordinate;
+
+    if (coordinateBox is not { IsValid: true })
+    {
+        return Results.BadRequest(new
+        {
+            message = "Coordinate layout box is missing. Open coordinate calibration and save a coordinate box first."
+        });
+    }
+
+    var zone = layoutService.TryGetCoordinateZone(layout);
+
+    if (zone is null)
+    {
+        return Results.BadRequest(new
+        {
+            message = "Could not resolve coordinate box to screen coordinates. Make sure the game window is selected/found first."
+        });
+    }
+
+    var settings = coordinateOcrSettings.Get();
+
+    using var bitmap = capture.Capture(zone);
+    var attempt = templateOcr.TryRead(bitmap, settings);
+    var profile = templateOcr.GetProfileStatus(settings.CoordinateTemplateAutoProfileEnabled);
+
+    return Results.Ok(new
+    {
+        success = attempt.Success,
+        rawText = attempt.RawText,
+        parsed = attempt.Parsed is null
+            ? null
+            : new
+            {
+                x = attempt.Parsed.X,
+                y = attempt.Parsed.Y,
+                rawText = attempt.Parsed.RawText
+            },
+        reason = attempt.Reason,
+        needsRecalibration = attempt.NeedsRecalibration,
+        settings,
+        profile
+    });
+});
+
+
+
+app.MapPost("/api/coordinate-template/profile", async (
+    CreateCoordinateTemplateProfileRequest request,
+    IOcrLayoutService layoutService,
+    IScreenCaptureService capture,
+    ICoordinateTemplateOcrService templateOcr,
+    IOptionsMonitor<OcrRuntimeSettings> settings,
+    CancellationToken ct) =>
+{
+    try
+    {
+        var layout = await layoutService.LoadAsync(ct);
+        var coordinateBox = layout.Zones.Coordinate;
+
+        if (coordinateBox is not { IsValid: true })
+        {
+            return Results.BadRequest(new
+            {
+                message = "Coordinate layout box is missing. Open coordinate calibration and save a coordinate box first."
+            });
+        }
+
+        var zone = layoutService.TryGetCoordinateZone(layout);
+        if (zone is null)
+        {
+            return Results.BadRequest(new
+            {
+                message = "Could not resolve coordinate box to screen coordinates. Make sure the game window is selected/found first."
+            });
+        }
+
+        using var bitmap = capture.Capture(zone);
+        var profile = await templateOcr.CreateProfileAsync(
+            bitmap,
+            coordinateBox,
+            request,
+            settings.CurrentValue,
+            ct);
+
+        return Results.Ok(profile);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { message = ex.Message });
+    }
+});
+
 app.MapPost("/api/ocr/start", (OcrControlState c) => { c.Enabled = true; c.LastError = null; return Results.Ok(new { c.Enabled }); });
 app.MapPost("/api/ocr/stop", (OcrControlState c) => { c.Enabled = false; return Results.Ok(new { c.Enabled }); });
 app.MapGet("/api/ocr/status", (OcrControlState c) => Results.Ok(c));
@@ -288,6 +609,81 @@ app.MapGet("/api/coordinates/latest", async (AppDbContext db, int take = 20) =>
     var limit = Math.Clamp(take, 2, 100);
     var rows = await db.CoordinateCaptures.OrderByDescending(x => x.CapturedAtUtc).Take(limit).OrderBy(x => x.CapturedAtUtc).ToListAsync();
     return Results.Ok(rows);
+});
+app.MapGet("/api/coordinates/stream", async (
+    HttpContext httpContext,
+    ICoordinateStreamService coordinateStream,
+    AppDbContext db,
+    int history = 20,
+    CancellationToken ct = default) =>
+{
+    httpContext.Response.ContentType = "text/event-stream";
+    httpContext.Response.Headers.CacheControl = "no-cache";
+    httpContext.Response.Headers.Connection = "keep-alive";
+    httpContext.Response.Headers["X-Accel-Buffering"] = "no";
+
+    var subscription = coordinateStream.Subscribe();
+    var historyLimit = Math.Clamp(history, 0, 100);
+
+    await httpContext.Response.WriteAsync(": connected\n\n", ct);
+    await httpContext.Response.Body.FlushAsync(ct);
+
+    if (historyLimit > 0)
+    {
+        var recent = await db.CoordinateCaptures
+            .AsNoTracking()
+            .OrderByDescending(x => x.CapturedAtUtc)
+            .Take(historyLimit)
+            .OrderBy(x => x.CapturedAtUtc)
+            .ToListAsync(ct);
+
+        foreach (var coordinate in recent)
+        {
+            await WriteSseCoordinateEventAsync(
+                httpContext.Response,
+                new CoordinateStreamEvent(
+                    coordinate.Id,
+                    coordinate.X,
+                    coordinate.Y,
+                    coordinate.RawText,
+                    coordinate.CapturedAtUtc),
+                ct);
+        }
+    }
+
+    try
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            var waitForCoordinate = subscription.Reader.WaitToReadAsync(ct).AsTask();
+            var waitForHeartbeat = Task.Delay(TimeSpan.FromSeconds(15), ct);
+
+            if (await Task.WhenAny(waitForCoordinate, waitForHeartbeat) == waitForHeartbeat)
+            {
+                await httpContext.Response.WriteAsync(": heartbeat\n\n", ct);
+                await httpContext.Response.Body.FlushAsync(ct);
+                continue;
+            }
+
+            if (!await waitForCoordinate)
+            {
+                break;
+            }
+
+            while (subscription.Reader.TryRead(out var coordinate))
+            {
+                await WriteSseCoordinateEventAsync(httpContext.Response, coordinate, ct);
+            }
+        }
+    }
+    catch (OperationCanceledException)
+    {
+        // Client closed the stream.
+    }
+    finally
+    {
+        coordinateStream.Unsubscribe(subscription.Id);
+    }
 });
 
 app.MapGet("/api/prices/history", async (AppDbContext db, string? city, string? item, string? tradeType, int take = 250) =>
@@ -437,6 +833,48 @@ app.MapPost("/api/pending-trade-goods/{id}/dismiss", (IPendingTradeGoodService s
     return result.Success ? Results.Ok(result) : Results.BadRequest(result);
 });
 
+app.MapGet("/api/trading/latest-city-goods", async (
+    AppDbContext db,
+    string? city,
+    string? tradeType,
+    int take = 50000) =>
+{
+    var resultLimit = Math.Clamp(take, 1, 100000);
+    var query = db.PriceCaptures.AsNoTracking().AsQueryable();
+
+    if (!string.IsNullOrWhiteSpace(city))
+    {
+        var requestedCity = CleanCityNameForLatestCityGoods(city);
+        query = query.Where(x => x.City == city || x.City == requestedCity);
+    }
+
+    if (!string.IsNullOrWhiteSpace(tradeType))
+        query = query.Where(x => x.TradeType == tradeType);
+
+    var rows = await query.ToListAsync();
+
+    var latestRows = rows
+        .Where(x =>
+            !string.IsNullOrWhiteSpace(CleanCityNameForLatestCityGoods(x.City)) &&
+            !string.IsNullOrWhiteSpace(x.ItemName))
+        .GroupBy(x => new
+        {
+            City = CleanCityNameForLatestCityGoods(x.City).ToLowerInvariant(),
+            Item = x.ItemName.Trim().ToLowerInvariant(),
+            TradeType = (x.TradeType ?? string.Empty).Trim().ToLowerInvariant()
+        })
+        .Select(g => g
+            .OrderByDescending(x => x.CapturedAtUtc)
+            .ThenByDescending(x => x.Id)
+            .First())
+        .OrderBy(x => CleanCityNameForLatestCityGoods(x.City))
+        .ThenBy(x => x.TradeType)
+        .ThenBy(x => x.ItemName)
+        .Take(resultLimit)
+        .ToList();
+
+    return Results.Ok(latestRows);
+});
 app.MapGet("/api/trading/search", async (AppDbContext db, ICityCatalog cities, string? city, string? item, string? tradeType, string? mainRegion, string? subRegion, string? seaTradeRegion, int take = 250) =>
     Results.Ok(await TradingQueryService.SearchAsync(db, cities, city, item, tradeType, mainRegion, subRegion, seaTradeRegion, take)));
 
@@ -578,6 +1016,37 @@ app.MapGet("/api/trading/multi-good-routes", async (
     int minItems = 2,
     int take = 100) =>
     Results.Ok(await service.GetMultiGoodRoutesAsync(type, SplitMulti(buyRegions), SplitMulti(sellRegions), minProfitPerGood, minTotalProfit, minItems, take)));
+
+app.MapGet("/api/trading/special-craft-bonus-items", (
+    ISpecialCraftBonusItemCatalog catalog,
+    string? item,
+    string? type,
+    string? bonus,
+    string? material,
+    string? location,
+    int take = 500) =>
+    Results.Ok(catalog.Search(item, type, bonus, material, location, take)));
+
+app.MapGet("/api/trading/npc-normal-crafting", (
+    INpcNormalCraftingCatalog catalog,
+    string? product,
+    string? category,
+    string? npc,
+    string? skill,
+    string? material,
+    string? location,
+    int take = 500) =>
+    Results.Ok(catalog.Search(product, category, npc, skill, material, location, take)));
+
+app.MapGet("/api/trading/florence-craftsman-contribution", (
+    IFlorenceCraftsmanContributionCatalog catalog,
+    string? good,
+    string? type,
+    string? skill,
+    string? confidence,
+    string? source,
+    int take = 500) =>
+    Results.Ok(catalog.Search(good, type, skill, confidence, source, take)));
 
 app.MapGet("/api/ocr-layout", async (
     IOcrLayoutService layoutService,
