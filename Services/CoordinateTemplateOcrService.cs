@@ -411,13 +411,7 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
 
             foreach (var (digit, templates) in sampleTemplates.OrderBy(x => x.Key))
             {
-                if (profile.DigitTemplates.TryGetValue(digit, out var existingTemplates) &&
-                    existingTemplates.Count > 0)
-                {
-                    continue;
-                }
-
-                if (!profile.DigitTemplates.TryGetValue(digit, out existingTemplates))
+                if (!profile.DigitTemplates.TryGetValue(digit, out var existingTemplates))
                 {
                     existingTemplates = new List<CoordinateDigitTemplate>();
                     profile.DigitTemplates[digit] = existingTemplates;
@@ -430,9 +424,14 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
                 if (templateToLearn is null)
                     continue;
 
-                AddTemplateVariant(existingTemplates, templateToLearn, maxTemplates: 1);
+                var existingCount = existingTemplates.Count;
 
-                if (existingTemplates.Count > 0)
+                AddTemplateVariant(
+                    existingTemplates,
+                    templateToLearn,
+                    coordinateOcrSettings.CoordinateTemplateMaxTemplatesPerDigit);
+
+                if (existingCount == 0 && existingTemplates.Count > 0)
                     learnedDigits.Add(digit);
             }
 
@@ -2288,9 +2287,7 @@ ISet<string>? knownDigits = null)
             CoordinateDigitTemplate candidate,
             int maxTemplates)
     {
-        // This app learns exactly one template per digit: 0-9.
-        // No variants are added after a digit is already learned.
-        if (existingTemplates.Count == 0)
+        if (existingTemplates.Count < Math.Max(1, maxTemplates))
             existingTemplates.Add(candidate);
     }
 

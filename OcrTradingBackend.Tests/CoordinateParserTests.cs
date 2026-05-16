@@ -8,7 +8,7 @@ namespace OcrTradingBackend.Tests;
 public sealed class CoordinateParserTests
 {
     [TestMethod]
-    public void ParsesLabeledCoordinate()
+    public void NormalOcrPathParsesLabeledCoordinateText()
     {
         var parsed = Parser.TryParse("X: 1234 Y: 5678", 16384, 8192);
 

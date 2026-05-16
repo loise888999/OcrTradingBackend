@@ -1022,10 +1022,11 @@ app.MapGet("/api/trading/special-craft-bonus-items", (
     string? item,
     string? type,
     string? bonus,
+    int? minBonusValue,
     string? material,
     string? location,
     int take = 500) =>
-    Results.Ok(catalog.Search(item, type, bonus, material, location, take)));
+    Results.Ok(catalog.Search(item, type, bonus, minBonusValue, material, location, take)));
 
 app.MapGet("/api/trading/npc-normal-crafting", (
     INpcNormalCraftingCatalog catalog,

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using OcrTradingBackend.Models;
 
 namespace OcrTradingBackend.Services;
@@ -9,6 +10,7 @@ public interface ISpecialCraftBonusItemCatalog
         string? item,
         string? type,
         string? bonus,
+        int? minBonusValue,
         string? material,
         string? location,
         int take);
@@ -16,6 +18,7 @@ public interface ISpecialCraftBonusItemCatalog
 
 public sealed class SpecialCraftBonusItemCatalog : ISpecialCraftBonusItemCatalog
 {
+    private static readonly Regex NumberPattern = new(@"[-+]?\d+(?:\.\d+)?", RegexOptions.Compiled);
     private readonly string _path;
     private readonly object _lock = new();
     private IReadOnlyList<SpecialCraftBonusItem>? _items;
@@ -29,6 +32,7 @@ public sealed class SpecialCraftBonusItemCatalog : ISpecialCraftBonusItemCatalog
         string? item,
         string? type,
         string? bonus,
+        int? minBonusValue,
         string? material,
         string? location,
         int take)
@@ -37,7 +41,7 @@ public sealed class SpecialCraftBonusItemCatalog : ISpecialCraftBonusItemCatalog
         var limit = Math.Clamp(take, 1, 5000);
 
         return rows
-            .Where(row => Matches(row, item, type, bonus, material, location))
+            .Where(row => Matches(row, item, type, bonus, minBonusValue, material, location))
             .Take(limit)
             .ToList();
     }
@@ -113,12 +117,14 @@ public sealed class SpecialCraftBonusItemCatalog : ISpecialCraftBonusItemCatalog
         string? item,
         string? type,
         string? bonus,
+        int? minBonusValue,
         string? material,
         string? location)
     {
         return Contains(row.ItemName, item) &&
                Contains(row.ItemType, type) &&
                Contains(row.BonusStats, bonus) &&
+               MatchesMinimumBonusValue(row.BonusStats, bonus, minBonusValue) &&
                Contains(row.Materials, material) &&
                Contains($"{row.CraftLocation} {row.NpcOrFacility}", location);
     }
@@ -126,6 +132,31 @@ public sealed class SpecialCraftBonusItemCatalog : ISpecialCraftBonusItemCatalog
     private static bool Contains(string source, string? query)
         => string.IsNullOrWhiteSpace(query) ||
            source.Contains(query.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private static bool MatchesMinimumBonusValue(string bonusStats, string? bonus, int? minBonusValue)
+    {
+        if (minBonusValue is null)
+            return true;
+
+        var statQuery = bonus?.Trim();
+
+        foreach (var segment in bonusStats.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (!string.IsNullOrWhiteSpace(statQuery) &&
+                !segment.Contains(statQuery, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            foreach (Match match in NumberPattern.Matches(segment))
+            {
+                if (decimal.TryParse(match.Value, out var value) && value >= minBonusValue.Value)
+                    return true;
+            }
+        }
+
+        return false;
+    }
 
     private static string NormalizeHeader(string value)
         => value.Trim().TrimStart('\uFEFF').Replace(" ", "").Replace("_", "").ToLowerInvariant();

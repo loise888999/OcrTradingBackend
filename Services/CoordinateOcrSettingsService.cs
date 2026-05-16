@@ -59,7 +59,11 @@ public sealed class CoordinateOcrSettingsService : ICoordinateOcrSettingsService
             CoordinateTemplateAutoProfileValidationMaxDigitScore: saved?.CoordinateTemplateAutoProfileValidationMaxDigitScore ?? defaults.CoordinateTemplateAutoProfileValidationMaxDigitScore,
             CoordinateTemplateMaxTemplatesPerDigit: saved?.CoordinateTemplateMaxTemplatesPerDigit ?? defaults.CoordinateTemplateMaxTemplatesPerDigit,
             CoordinateTemplateRequirePerDigitOcrValidation: saved?.CoordinateTemplateRequirePerDigitOcrValidation ?? defaults.CoordinateTemplateRequirePerDigitOcrValidation,
-            CoordinateTemplateDebugPrintDigitBitmaps: saved?.CoordinateTemplateDebugPrintDigitBitmaps ?? defaults.CoordinateTemplateDebugPrintDigitBitmaps));
+            CoordinateTemplateDebugPrintDigitBitmaps: saved?.CoordinateTemplateDebugPrintDigitBitmaps ?? defaults.CoordinateTemplateDebugPrintDigitBitmaps,
+            CoordinateTemplateNormalizeDigitPaddingEnabled: saved?.CoordinateTemplateNormalizeDigitPaddingEnabled ?? defaults.CoordinateTemplateNormalizeDigitPaddingEnabled,
+            CoordinateTemplateDigitHorizontalPaddingPixels: saved?.CoordinateTemplateDigitHorizontalPaddingPixels ?? defaults.CoordinateTemplateDigitHorizontalPaddingPixels,
+            CoordinateTemplateDigitVerticalPaddingPixels: saved?.CoordinateTemplateDigitVerticalPaddingPixels ?? defaults.CoordinateTemplateDigitVerticalPaddingPixels,
+            CoordinateTemplateFastModeSpeedMultiplier: saved?.CoordinateTemplateFastModeSpeedMultiplier ?? defaults.CoordinateTemplateFastModeSpeedMultiplier));
     }
 
     public async Task<CoordinateOcrSettingsResponse> UpdateAsync(
@@ -82,7 +86,11 @@ public sealed class CoordinateOcrSettingsService : ICoordinateOcrSettingsService
             CoordinateTemplateAutoProfileValidationMaxDigitScore: request.CoordinateTemplateAutoProfileValidationMaxDigitScore ?? current.CoordinateTemplateAutoProfileValidationMaxDigitScore,
             CoordinateTemplateMaxTemplatesPerDigit: request.CoordinateTemplateMaxTemplatesPerDigit ?? current.CoordinateTemplateMaxTemplatesPerDigit,
             CoordinateTemplateRequirePerDigitOcrValidation: request.CoordinateTemplateRequirePerDigitOcrValidation ?? current.CoordinateTemplateRequirePerDigitOcrValidation,
-            CoordinateTemplateDebugPrintDigitBitmaps: request.CoordinateTemplateDebugPrintDigitBitmaps ?? current.CoordinateTemplateDebugPrintDigitBitmaps));
+            CoordinateTemplateDebugPrintDigitBitmaps: request.CoordinateTemplateDebugPrintDigitBitmaps ?? current.CoordinateTemplateDebugPrintDigitBitmaps,
+            CoordinateTemplateNormalizeDigitPaddingEnabled: request.CoordinateTemplateNormalizeDigitPaddingEnabled ?? current.CoordinateTemplateNormalizeDigitPaddingEnabled,
+            CoordinateTemplateDigitHorizontalPaddingPixels: request.CoordinateTemplateDigitHorizontalPaddingPixels ?? current.CoordinateTemplateDigitHorizontalPaddingPixels,
+            CoordinateTemplateDigitVerticalPaddingPixels: request.CoordinateTemplateDigitVerticalPaddingPixels ?? current.CoordinateTemplateDigitVerticalPaddingPixels,
+            CoordinateTemplateFastModeSpeedMultiplier: request.CoordinateTemplateFastModeSpeedMultiplier ?? current.CoordinateTemplateFastModeSpeedMultiplier));
 
         var folder = Path.GetDirectoryName(_path);
         if (!string.IsNullOrWhiteSpace(folder))
