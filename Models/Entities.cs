@@ -101,6 +101,10 @@ public sealed class OcrRuntimeSettings
     public int CoordinateIntervalMilliseconds { get; set; } = 2000;
     public int CoordinateRecentlyVisibleSeconds { get; set; } = 10;
     public bool CoordinateRequiresProbablyAtSea { get; set; } = true;
+    public bool CoordinateSpeedEnabled { get; set; } = true;
+    public int CoordinateSpeedResetAfterMilliseconds { get; set; } = 5000;
+    public int CoordinateSpeedWindowMilliseconds { get; set; } = 5000;
+    public int CoordinateSpeedRecentAverageCount { get; set; } = 3;
     public int ProbablyAtSeaAfterNoCityOrMenuSeconds { get; set; } = 30;
     public int MinCityNameLength { get; set; } = 5;
 

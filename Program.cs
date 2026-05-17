@@ -97,7 +97,7 @@ static string EncodePngDataUrl(Bitmap bitmap)
 }
 static async Task WriteSseCoordinateEventAsync(
     HttpResponse response,
-    CoordinateStreamEvent coordinate,
+    object coordinate,
     CancellationToken ct)
 {
     var json = JsonSerializer.Serialize(
@@ -167,6 +167,7 @@ builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(builder.Configurati
 builder.Services.AddSingleton<OcrControlState>();
 builder.Services.AddSingleton<OcrLastResultState>();
 builder.Services.AddSingleton<ICoordinateStreamService, CoordinateStreamService>();
+builder.Services.AddSingleton<ICoordinateSpeedService, CoordinateSpeedService>();
 builder.Services.AddSingleton<ICoordinateParser, CoordinateParser>();
 builder.Services.AddSingleton<CoordinateFarJumpConfirmationGate>();
 builder.Services.AddSingleton<ICityCatalog, CityCatalog>();
@@ -844,15 +845,21 @@ app.MapPost("/api/ocr/test/{zoneKind}", async (
     return Results.Ok(result);
 });
 
-app.MapGet("/api/coordinates/latest", async (AppDbContext db, int take = 20) =>
+app.MapGet("/api/coordinates/latest", async (
+    AppDbContext db,
+    IOptionsMonitor<OcrRuntimeSettings> settings,
+    ICoordinateSpeedService coordinateSpeed,
+    int take = 20) =>
 {
     var limit = Math.Clamp(take, 2, 100);
     var rows = await db.CoordinateCaptures.OrderByDescending(x => x.CapturedAtUtc).Take(limit).OrderBy(x => x.CapturedAtUtc).ToListAsync();
-    return Results.Ok(rows);
+    return Results.Ok(coordinateSpeed.BuildTimeline(rows, settings.CurrentValue));
 });
 app.MapGet("/api/coordinates/stream", async (
     HttpContext httpContext,
     ICoordinateStreamService coordinateStream,
+    ICoordinateSpeedService coordinateSpeed,
+    IOptionsMonitor<OcrRuntimeSettings> settings,
     AppDbContext db,
     int history = 20,
     CancellationToken ct = default) =>
@@ -877,16 +884,11 @@ app.MapGet("/api/coordinates/stream", async (
             .OrderBy(x => x.CapturedAtUtc)
             .ToListAsync(ct);
 
-        foreach (var coordinate in recent)
+        foreach (var coordinate in coordinateSpeed.BuildTimeline(recent, settings.CurrentValue))
         {
             await WriteSseCoordinateEventAsync(
                 httpContext.Response,
-                new CoordinateStreamEvent(
-                    coordinate.Id,
-                    coordinate.X,
-                    coordinate.Y,
-                    coordinate.RawText,
-                    coordinate.CapturedAtUtc),
+                coordinate,
                 ct);
         }
     }
@@ -924,6 +926,43 @@ app.MapGet("/api/coordinates/stream", async (
     {
         coordinateStream.Unsubscribe(subscription.Id);
     }
+});
+
+app.MapGet("/api/navigation/speed", async (
+    AppDbContext db,
+    IOptionsMonitor<OcrRuntimeSettings> settings,
+    ICoordinateSpeedService coordinateSpeed,
+    CancellationToken ct) =>
+{
+    var latest = coordinateSpeed.GetLatestSnapshot();
+    if (latest.SpeedResetReason != "no-coordinate")
+        return Results.Ok(latest);
+
+    var recent = await db.CoordinateCaptures
+        .AsNoTracking()
+        .OrderByDescending(x => x.CapturedAtUtc)
+        .Take(100)
+        .OrderBy(x => x.CapturedAtUtc)
+        .ToListAsync(ct);
+
+    var timeline = coordinateSpeed.BuildTimeline(recent, settings.CurrentValue);
+    var last = timeline.LastOrDefault();
+    if (last is null)
+        return Results.Ok(latest);
+
+    return Results.Ok(new CoordinateSpeedSnapshot(
+        CoordinateId: last.Id == 0 ? null : last.Id,
+        X: last.X,
+        Y: last.Y,
+        RawText: last.RawText,
+        CapturedAtUtc: last.CapturedAtUtc,
+        SpeedWorldUnitsPerSecond: last.SpeedWorldUnitsPerSecond,
+        SpeedKnots: last.SpeedKnots,
+        SpeedDistance: last.SpeedDistance,
+        SpeedDeltaMilliseconds: last.SpeedDeltaMilliseconds,
+        SpeedSampleCount: last.SpeedSampleCount,
+        SpeedReset: last.SpeedReset,
+        SpeedResetReason: last.SpeedResetReason));
 });
 
 app.MapGet("/api/prices/history", async (AppDbContext db, string? city, string? item, string? tradeType, int take = 250) =>

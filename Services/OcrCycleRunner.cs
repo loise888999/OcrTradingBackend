@@ -43,6 +43,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly ILogger<OcrCycleRunner> _logger;
     private readonly CoordinateFarJumpConfirmationGate _coordinateFarJumpGate;
     private readonly ICoordinateStreamService _coordinateStream;
+    private readonly ICoordinateSpeedService _coordinateSpeed;
 
     public OcrCycleRunner(
         AppDbContext db,
@@ -71,6 +72,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrLastResultState lastResults,
         CoordinateFarJumpConfirmationGate coordinateFarJumpGate,
         ICoordinateStreamService coordinateStream,
+        ICoordinateSpeedService coordinateSpeed,
         ILogger<OcrCycleRunner> logger)
     {
         _db = db;
@@ -99,6 +101,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _lastResults = lastResults;
         _coordinateFarJumpGate = coordinateFarJumpGate;
         _coordinateStream = coordinateStream;
+        _coordinateSpeed = coordinateSpeed;
         _logger = logger;
     }
 
@@ -305,9 +308,11 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                                 parsed.RawText);
                         }
 
-                        if (await AddUniqueCoordinateAsync(parsed, ct))
+                        var coordinate = await AddUniqueCoordinateAsync(parsed, ct);
+                        if (coordinate is not null)
                         {
-                            _coordinateStream.Publish(parsed);
+                            var speed = _coordinateSpeed.AddCoordinate(coordinate, settings);
+                            _coordinateStream.Publish(coordinate, speed);
                         }
                         SetLatestCityUnknownIfNeeded(latestCityBeforeCoordinate, parsed.RawText);
 
@@ -3230,7 +3235,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _priceRecentHashCache.NotifyCityStatus("Unknown");
     }
 
-    private async Task<bool> AddUniqueCoordinateAsync(
+    private async Task<CoordinateCapture?> AddUniqueCoordinateAsync(
         ParsedCoordinate parsed,
         CancellationToken ct)
     {
@@ -3240,17 +3245,18 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             .ToListAsync(ct);
 
         if (lastFive.Any(x => x.X == parsed.X && x.Y == parsed.Y))
-            return false;
+            return null;
 
-        _db.CoordinateCaptures.Add(new CoordinateCapture
+        var coordinate = new CoordinateCapture
         {
             X = parsed.X,
             Y = parsed.Y,
             RawText = parsed.RawText,
             CapturedAtUtc = DateTime.UtcNow
-        });
+        };
 
-        return true;
+        _db.CoordinateCaptures.Add(coordinate);
+        return coordinate;
     }
 
     private static int DecimalToInt(decimal value)

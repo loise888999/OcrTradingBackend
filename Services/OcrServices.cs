@@ -313,6 +313,24 @@ public sealed class OcrRuntimeSettingsValidator : IValidateOptions<OcrRuntimeSet
                 "OcrSettings:CoordinateTemplateMaxTemplatesPerDigit must be at least 1.");
         }
 
+        if (settings.CoordinateSpeedResetAfterMilliseconds < 1)
+        {
+            failures.Add(
+                "OcrSettings:CoordinateSpeedResetAfterMilliseconds must be at least 1.");
+        }
+
+        if (settings.CoordinateSpeedWindowMilliseconds < 1)
+        {
+            failures.Add(
+                "OcrSettings:CoordinateSpeedWindowMilliseconds must be at least 1.");
+        }
+
+        if (settings.CoordinateSpeedRecentAverageCount < 1)
+        {
+            failures.Add(
+                "OcrSettings:CoordinateSpeedRecentAverageCount must be at least 1.");
+        }
+
         if (settings.PriceTradeTypeTemplateMaxTemplatesPerType < 1)
         {
             failures.Add(
