@@ -337,6 +337,12 @@ public sealed class OcrRuntimeSettingsValidator : IValidateOptions<OcrRuntimeSet
                 "OcrSettings:PriceTradeTypeTemplateProbeIntervalMs must be at least 25.");
         }
 
+        if (settings.PriceLayoutRowsPerCycle < 1)
+        {
+            failures.Add(
+                "OcrSettings:PriceLayoutRowsPerCycle must be at least 1.");
+        }
+
         if (!settings.UseEnglishModels || settings.FallbackToBundledModel)
         {
             return failures.Count == 0

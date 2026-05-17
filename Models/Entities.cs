@@ -200,6 +200,15 @@ public sealed class OcrRuntimeSettings
     // Allowed difference for whole-row perceptual fingerprint cache hits.
     public int PriceLayoutRowFingerprintTolerance { get; set; } = 10;
 
+    // Reads only a small number of changed layout rows per price cycle.
+    public bool PriceLayoutRowFifoEnabled { get; set; } = true;
+
+    // Changed/uncached rows allowed to run OCR in one price cycle.
+    public int PriceLayoutRowsPerCycle { get; set; } = 1;
+
+    // Restarts row scanning from first visible row when Buy/Sell state changes.
+    public bool PriceLayoutRowFifoResetOnTradeStateChange { get; set; } = true;
+
     public bool OcrAllowedCharFilteringEnabled { get; set; } = true;
     public string CoordinateOcrAllowedChars { get; set; } = "0123456789XYxy,:=. \r\n";
     public string PriceNumberOcrAllowedChars { get; set; } = "0123456789,. \r\n";
@@ -239,6 +248,8 @@ public sealed class OcrControlState
     public DateTime? LastTradeTypeProbeUtc { get; set; }
     public DateTime? LastTradeTypeStateChangeUtc { get; set; }
     public string LastPriceReadTradeTypeState { get; set; } = "Unknown";
+    public int PriceLayoutRowFifoNextIndex { get; set; }
+    public bool PriceLayoutRowFifoResetPending { get; set; }
     public DateTime? LastNotAtSeaSignalUtc { get; set; }
     public DateTime? SeaCandidateSinceUtc { get; set; }
     public bool ProbablyAtSea { get; set; }
