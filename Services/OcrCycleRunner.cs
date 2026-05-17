@@ -347,6 +347,26 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                           (tradeTypeStateChangedToKnown || rowPriceDue)
                         : rowPriceDue;
 
+                    if (PriceLayoutRowWatcherGate.ShouldRun(
+                            settings,
+                            useFastTradeTypeTemplate,
+                            hasKnownCity: true,
+                            coordinateRecentlyVisible,
+                            tradeTypeForPriceRead,
+                            shouldReadPriceRows,
+                            _control.LastPriceRowWatcherUtc,
+                            DateTime.UtcNow))
+                    {
+                        _control.LastPriceRowWatcherUtc = DateTime.UtcNow;
+
+                        await WatchPriceRowsFromLayoutAsync(
+                            layout,
+                            latestCity!,
+                            tradeTypeForPriceRead!,
+                            settings,
+                            ct);
+                    }
+
                     if (shouldReadPriceRows)
                     {
                         await TryReadPricesAsync(
@@ -1366,6 +1386,142 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             .ToList();
     }
 
+    private async Task WatchPriceRowsFromLayoutAsync(
+        OcrLayoutSettings layout,
+        CityCapture latestCity,
+        string tradeType,
+        OcrRuntimeSettings settings,
+        CancellationToken ct)
+    {
+        if (!layout.Enabled ||
+            !layout.UseLayoutForPrice ||
+            !layout.Price.UseFieldBoxes ||
+            !PriceCaptureMergeService.IsKnownTradeType(tradeType))
+        {
+            return;
+        }
+
+        var visibleRows = layout.Price.Rows
+            .Where(x => x.Enabled && x.Row is { IsValid: true })
+            .OrderBy(x => x.Index)
+            .Take(Math.Max(1, layout.Price.VisibleRows))
+            .ToList();
+
+        if (visibleRows.Count == 0)
+            return;
+
+        if (settings.PriceLayoutRowFifoResetOnTradeStateChange &&
+            _control.PriceLayoutRowFifoResetPending)
+        {
+            _control.PriceLayoutRowFifoNextIndex = 0;
+            _control.PriceLayoutRowFifoResetPending = false;
+        }
+
+        var rowsToInspect = Math.Clamp(
+            settings.PriceLayoutRowWatcherRowsPerTick,
+            1,
+            visibleRows.Count);
+
+        var ocrBudget = Math.Clamp(
+            settings.PriceLayoutRowWatcherOcrBudgetPerTick,
+            1,
+            visibleRows.Count);
+
+        var rowsInProbeOrder = PriceLayoutRowFifoPlanner.OrderRows(
+            visibleRows,
+            _control.PriceLayoutRowFifoNextIndex);
+
+        var parsedChangedRows = new List<ParsedPriceLine>();
+        var inspectedRows = 0;
+        var consumedOcrBudget = 0;
+
+        foreach (var row in rowsInProbeOrder)
+        {
+            if (inspectedRows >= rowsToInspect)
+            {
+                break;
+            }
+
+            if (consumedOcrBudget >= ocrBudget)
+            {
+                if (!IsLayoutRowUnchangedByFingerprint(row, tradeType, settings))
+                    break;
+
+                inspectedRows++;
+                continue;
+            }
+
+            var parsedRow = await TryReadLayoutPriceRowAsync(
+                row,
+                tradeType,
+                settings,
+                ct);
+
+            inspectedRows++;
+
+            if (parsedRow.ChangedOrUncached &&
+                parsedRow.Parsed is not null)
+            {
+                parsedChangedRows.Add(parsedRow.Parsed);
+            }
+
+            if (parsedRow.ConsumedOcrBudget)
+            {
+                consumedOcrBudget++;
+            }
+        }
+
+        _control.PriceLayoutRowFifoNextIndex = PriceLayoutRowFifoPlanner.AdvanceNextIndex(
+            _control.PriceLayoutRowFifoNextIndex,
+            inspectedRows,
+            visibleRows.Count);
+
+        if (parsedChangedRows.Count == 0)
+            return;
+
+        var rawText = string.Join(
+            Environment.NewLine,
+            parsedChangedRows.Select(x => x.RawText));
+
+        await ProcessParsedPricesAsync(
+            selectedSource: "layout-row-watcher",
+            selectedRaw: rawText,
+            selectedDebugPath: null,
+            parsedPrices: parsedChangedRows,
+            latestCity: latestCity,
+            settings: settings,
+            ct: ct);
+    }
+
+    private bool IsLayoutRowUnchangedByFingerprint(
+        OcrPriceRowLayout row,
+        string tradeType,
+        OcrRuntimeSettings settings)
+    {
+        var rowZone = TryGetLayoutRowZone(row);
+        if (rowZone is null)
+            return true;
+
+        using var bitmap = _capture.Capture(rowZone);
+
+        var source = $"row-{row.Index}-combined-watcher-fingerprint";
+        if (ShouldSkipOcrByTextPresence("price-layout-row", source, "before-preprocess", bitmap, settings))
+            return true;
+
+        var fingerprint = _priceLayoutRowFingerprint.Compute(bitmap);
+        var rowKey = GetLayoutRowCacheKey(row.Index, tradeType);
+        var maxDistance = Math.Clamp(settings.PriceLayoutRowFingerprintTolerance, 0, 128);
+
+        return settings.SkipUnchangedOcrByHash &&
+               _priceLayoutRowCache.TryGet(
+                   rowKey,
+                   tradeType,
+                   fingerprint,
+                   maxDistance,
+                   out _,
+                   out _);
+    }
+
     private async Task<string> DetectTradeTypeFromLayoutAsync(
         OcrLayoutSettings layout,
         OcrRuntimeSettings settings,
@@ -1607,7 +1763,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         if (!hasRowBox && !hasFieldFallback)
         {
-            return LayoutPriceRowRead.Empty(false);
+            return LayoutPriceRowRead.Empty(false, false);
         }
 
         var rowRead = await TryReadCombinedLayoutPriceRowAsync(
@@ -1619,7 +1775,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         if (rowRead.Parsed is not null)
             return new LayoutPriceRowRead(
                 rowRead.Parsed,
-                rowRead.ConsumedOcrBudget);
+                rowRead.ConsumedOcrBudget,
+                !rowRead.SkippedByFingerprint);
 
         if (!settings.PriceLayoutFieldFallbackEnabled ||
             row.ItemName is not { IsValid: true } itemBox ||
@@ -1627,7 +1784,9 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             row.Multiplier is not { IsValid: true } multiplierBox)
         {
             RememberLayoutRowCache(row.Index, tradeType, rowRead.Fingerprint, null);
-            return LayoutPriceRowRead.Empty(rowRead.ConsumedOcrBudget);
+            return LayoutPriceRowRead.Empty(
+                rowRead.ConsumedOcrBudget,
+                !rowRead.SkippedByFingerprint);
         }
 
         var consumedOcrBudget = true;
@@ -1660,19 +1819,19 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         if (string.IsNullOrWhiteSpace(itemName))
         {
             RememberLayoutRowCache(row.Index, tradeType, rowRead.Fingerprint, null);
-            return LayoutPriceRowRead.Empty(consumedOcrBudget);
+            return LayoutPriceRowRead.Empty(consumedOcrBudget, true);
         }
 
         if (!TryParseLayoutDecimal(priceRaw, out var price))
         {
             RememberLayoutRowCache(row.Index, tradeType, rowRead.Fingerprint, null);
-            return LayoutPriceRowRead.Empty(consumedOcrBudget);
+            return LayoutPriceRowRead.Empty(consumedOcrBudget, true);
         }
 
         if (!TryParseLayoutDecimal(multiplierRaw, out var multiplier))
         {
             RememberLayoutRowCache(row.Index, tradeType, rowRead.Fingerprint, null);
-            return LayoutPriceRowRead.Empty(consumedOcrBudget);
+            return LayoutPriceRowRead.Empty(consumedOcrBudget, true);
         }
 
         var strict = _strictTradeGoodMatcher.Find(itemName);
@@ -1691,7 +1850,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         RememberLayoutRowCache(row.Index, tradeType, rowRead.Fingerprint, parsed);
 
-        return new LayoutPriceRowRead(parsed, consumedOcrBudget);
+        return new LayoutPriceRowRead(parsed, consumedOcrBudget, true);
     }
 
     private async Task<LayoutRowRead> TryReadCombinedLayoutPriceRowAsync(
@@ -1738,7 +1897,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             return new LayoutRowRead(
                 fingerprint,
                 RebaseLayoutRow(cached, row.Index, tradeType),
-                false);
+                false,
+                true);
         }
 
         var imageToRead = bitmap;
@@ -1775,7 +1935,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             if (parsed is not null)
             {
                 RememberLayoutRowCache(row.Index, tradeType, fingerprint, parsed);
-                return new LayoutRowRead(fingerprint, parsed, !read.WasHashHit);
+                return new LayoutRowRead(fingerprint, parsed, !read.WasHashHit, false);
             }
 
             if (settings.OcrBenchmarkLogging)
@@ -1890,23 +2050,27 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private sealed record LayoutRowRead(
         PriceLayoutRowFingerprint? Fingerprint,
         ParsedPriceLine? Parsed,
-        bool ConsumedOcrBudget)
+        bool ConsumedOcrBudget,
+        bool SkippedByFingerprint)
     {
         public static LayoutRowRead Empty(
             PriceLayoutRowFingerprint? fingerprint,
             bool consumedOcrBudget)
         {
-            return new LayoutRowRead(fingerprint, null, consumedOcrBudget);
+            return new LayoutRowRead(fingerprint, null, consumedOcrBudget, false);
         }
     }
 
     private sealed record LayoutPriceRowRead(
         ParsedPriceLine? Parsed,
-        bool ConsumedOcrBudget)
+        bool ConsumedOcrBudget,
+        bool ChangedOrUncached)
     {
-        public static LayoutPriceRowRead Empty(bool consumedOcrBudget)
+        public static LayoutPriceRowRead Empty(
+            bool consumedOcrBudget,
+            bool changedOrUncached)
         {
-            return new LayoutPriceRowRead(null, consumedOcrBudget);
+            return new LayoutPriceRowRead(null, consumedOcrBudget, changedOrUncached);
         }
     }
 

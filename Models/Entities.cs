@@ -213,6 +213,11 @@ public sealed class OcrRuntimeSettings
     // Restarts row scanning from first visible row when Buy/Sell state changes.
     public bool PriceLayoutRowFifoResetOnTradeStateChange { get; set; } = true;
 
+    public bool PriceLayoutRowWatcherEnabled { get; set; } = true;
+    public int PriceLayoutRowWatcherIntervalMs { get; set; } = 500;
+    public int PriceLayoutRowWatcherRowsPerTick { get; set; } = 2;
+    public int PriceLayoutRowWatcherOcrBudgetPerTick { get; set; } = 1;
+
     public bool OcrAllowedCharFilteringEnabled { get; set; } = true;
     public string CoordinateOcrAllowedChars { get; set; } = "0123456789XYxy,:=. \r\n";
     public string PriceNumberOcrAllowedChars { get; set; } = "0123456789,. \r\n";
@@ -254,6 +259,7 @@ public sealed class OcrControlState
     public string LastPriceReadTradeTypeState { get; set; } = "Unknown";
     public int PriceLayoutRowFifoNextIndex { get; set; }
     public bool PriceLayoutRowFifoResetPending { get; set; }
+    public DateTime? LastPriceRowWatcherUtc { get; set; }
     public DateTime? LastNotAtSeaSignalUtc { get; set; }
     public DateTime? SeaCandidateSinceUtc { get; set; }
     public bool ProbablyAtSea { get; set; }

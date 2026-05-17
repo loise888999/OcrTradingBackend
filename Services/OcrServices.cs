@@ -361,6 +361,24 @@ public sealed class OcrRuntimeSettingsValidator : IValidateOptions<OcrRuntimeSet
                 "OcrSettings:PriceLayoutRowsPerCycle must be at least 1.");
         }
 
+        if (settings.PriceLayoutRowWatcherIntervalMs < 25)
+        {
+            failures.Add(
+                "OcrSettings:PriceLayoutRowWatcherIntervalMs must be at least 25.");
+        }
+
+        if (settings.PriceLayoutRowWatcherRowsPerTick < 1)
+        {
+            failures.Add(
+                "OcrSettings:PriceLayoutRowWatcherRowsPerTick must be at least 1.");
+        }
+
+        if (settings.PriceLayoutRowWatcherOcrBudgetPerTick < 1)
+        {
+            failures.Add(
+                "OcrSettings:PriceLayoutRowWatcherOcrBudgetPerTick must be at least 1.");
+        }
+
         if (!settings.UseEnglishModels || settings.FallbackToBundledModel)
         {
             return failures.Count == 0
