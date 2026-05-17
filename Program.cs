@@ -75,6 +75,20 @@ static string? BuildOcrDebugImageUrl(string? debugImagePath)
     return $"/api/ocr-debug-image?path={Uri.EscapeDataString(debugImagePath.Replace('\\', '/'))}";
 }
 
+static string NormalizeTradeTypeLabel(string? value)
+{
+    if (string.Equals(value, "Buy", StringComparison.OrdinalIgnoreCase))
+        return "Buy";
+
+    if (string.Equals(value, "Sell", StringComparison.OrdinalIgnoreCase))
+        return "Sell";
+
+    return "Unknown";
+}
+
+static string DetectTradeTypeFromMenuText(string? rawText)
+    => TradeTypeMenuTextDetector.Detect(rawText);
+
 static string EncodePngDataUrl(Bitmap bitmap)
 {
     using var stream = new MemoryStream();
@@ -181,6 +195,8 @@ builder.Services.AddSingleton<IOcrTextPresenceAnalyzer, OcrTextPresenceAnalyzer>
 builder.Services.AddSingleton<IOcrLayoutService, OcrLayoutService>();
 builder.Services.AddSingleton<ICoordinateOcrSettingsService, CoordinateOcrSettingsService>();
 builder.Services.AddSingleton<ICoordinateTemplateOcrService, CoordinateTemplateOcrService>();
+builder.Services.AddSingleton<IPriceTradeTypeTemplateSettingsService, PriceTradeTypeTemplateSettingsService>();
+builder.Services.AddSingleton<IPriceTradeTypeTemplateOcrService, PriceTradeTypeTemplateOcrService>();
 builder.Services.AddScoped<IOcrCalibrationService, OcrCalibrationService>();
 builder.Services.AddScoped<IWindowRelativeOcrZoneService, WindowRelativeOcrZoneService>();
 builder.Services.AddScoped<ITradingRecommendationService, TradingRecommendationService>();
@@ -313,6 +329,28 @@ app.MapPost("/api/settings/coordinate-ocr", async (
     return Results.Ok(updated);
 });
 
+app.MapGet("/api/settings/price-trade-type-template", (
+    IPriceTradeTypeTemplateSettingsService settings) =>
+    Results.Ok(settings.Get()));
+
+app.MapPost("/api/settings/price-trade-type-template", async (
+    UpdatePriceTradeTypeTemplateSettingsRequest request,
+    IPriceTradeTypeTemplateSettingsService settings,
+    CancellationToken ct) =>
+{
+    if (!string.IsNullOrWhiteSpace(request.PriceTradeTypeReadMode) &&
+        !PriceTradeTypeReadModes.IsValid(request.PriceTradeTypeReadMode))
+    {
+        return Results.BadRequest(new
+        {
+            message = "PriceTradeTypeReadMode must be NormalOcr or FastTemplate."
+        });
+    }
+
+    var updated = await settings.UpdateAsync(request, ct);
+    return Results.Ok(updated);
+});
+
 app.MapGet("/api/settings/coordinate-ocr/status", (
     ICoordinateOcrSettingsService coordinateOcrSettings,
     ICoordinateTemplateOcrService templateOcr) =>
@@ -324,6 +362,208 @@ app.MapGet("/api/settings/coordinate-ocr/status", (
         fastTemplate = templateOcr.GetStatus(),
         profile = templateOcr.GetProfileStatus(settings.CoordinateTemplateAutoProfileEnabled)
     });
+});
+
+app.MapGet("/api/price-trade-type-template/profile/status", (
+    IPriceTradeTypeTemplateSettingsService settings,
+    IPriceTradeTypeTemplateOcrService templateOcr) =>
+{
+    var current = settings.Get();
+    return Results.Ok(new
+    {
+        settings = current,
+        profile = templateOcr.GetProfileStatus(current.PriceTradeTypeTemplateAutoProfileEnabled)
+    });
+});
+
+app.MapPost("/api/price-trade-type-template/profile/auto/start", async (
+    IPriceTradeTypeTemplateSettingsService settings,
+    CancellationToken ct) =>
+{
+    var updated = await settings.UpdateAsync(
+        new UpdatePriceTradeTypeTemplateSettingsRequest(
+            PriceTradeTypeReadMode: null,
+            PriceTradeTypeTemplateFallbackToNormalOcr: true,
+            PriceTradeTypeTemplateAutoProfileEnabled: true,
+            PriceTradeTypeTemplateMaxTemplatesPerType: null,
+            PriceTradeTypeTemplateMaxScore: null,
+            PriceTradeTypeTemplateCountFailedReadsForRecalibration: null,
+            PriceTradeTypeTemplateRecalibrationFailureLimit: null,
+            PriceTradeTypeTemplateProbeIntervalMs: null),
+        ct);
+
+    return Results.Ok(new
+    {
+        message = "Buy/Sell template auto build started. Open Buy and Sell menus so normal OCR can learn both boxes.",
+        settings = updated
+    });
+});
+
+app.MapPost("/api/price-trade-type-template/profile/auto/stop", async (
+    IPriceTradeTypeTemplateSettingsService settings,
+    CancellationToken ct) =>
+{
+    var updated = await settings.UpdateAsync(
+        new UpdatePriceTradeTypeTemplateSettingsRequest(
+            PriceTradeTypeReadMode: null,
+            PriceTradeTypeTemplateFallbackToNormalOcr: null,
+            PriceTradeTypeTemplateAutoProfileEnabled: false,
+            PriceTradeTypeTemplateMaxTemplatesPerType: null,
+            PriceTradeTypeTemplateMaxScore: null,
+            PriceTradeTypeTemplateCountFailedReadsForRecalibration: null,
+            PriceTradeTypeTemplateRecalibrationFailureLimit: null,
+            PriceTradeTypeTemplateProbeIntervalMs: null),
+        ct);
+
+    return Results.Ok(new
+    {
+        message = "Buy/Sell template auto build stopped.",
+        settings = updated
+    });
+});
+
+app.MapDelete("/api/price-trade-type-template/profile", (
+    IPriceTradeTypeTemplateOcrService templateOcr) =>
+{
+    templateOcr.DeleteProfile();
+    return Results.Ok(new
+    {
+        deleted = true,
+        message = "Buy/Sell template profile deleted."
+    });
+});
+
+app.MapPost("/api/price-trade-type-template/test-box", async (
+    PriceTradeTypeTemplateTestBoxRequest request,
+    IOcrLayoutService layoutService,
+    IScreenCaptureService capture,
+    IOcrCachedTextService ocr,
+    IOcrImagePreprocessingService preprocessor,
+    IOcrTextPresenceAnalyzer textPresence,
+    IOcrDebugSnapshotService debug,
+    IPriceTradeTypeTemplateSettingsService templateSettingsService,
+    IPriceTradeTypeTemplateOcrService templateOcr,
+    IOptionsMonitor<OcrRuntimeSettings> runtimeSettings,
+    CancellationToken ct) =>
+{
+    var region = NormalizeTradeTypeLabel(request.Region);
+    if (region == "Unknown")
+    {
+        return Results.BadRequest(new
+        {
+            message = "Region must be Buy or Sell."
+        });
+    }
+
+    var layout = await layoutService.LoadAsync(ct);
+    var box = region == "Buy"
+        ? layout.Price.BuyValidationBox
+        : layout.Price.SellValidationBox;
+
+    if (box is not { IsValid: true })
+    {
+        return Results.BadRequest(new
+        {
+            message = $"{region} validation box is missing. Open OCR calibration and save the {region} box first."
+        });
+    }
+
+    var captureZone = layoutService.TryGetLayoutBoxZone(box, $"{region.ToLowerInvariant()}-validation-test");
+    if (captureZone is null)
+    {
+        return Results.BadRequest(new
+        {
+            message = "Could not resolve validation box to screen coordinates. Make sure the game window is selected/found first."
+        });
+    }
+
+    var settings = runtimeSettings.CurrentValue;
+    var templateSettings = templateSettingsService.Get();
+
+    using var bitmap = capture.Capture(captureZone);
+    var visibility = textPresence.Analyze(bitmap, settings);
+
+    Bitmap? preprocessed = null;
+
+    try
+    {
+        var imageToRead = bitmap;
+        var source = $"{region.ToLowerInvariant()}-validation-setup";
+
+        if (settings.PriceLayoutValidationPreprocess)
+        {
+            preprocessed = preprocessor.TryPreparePriceImage(bitmap, settings);
+
+            if (preprocessed is not null)
+            {
+                imageToRead = preprocessed;
+                source = $"{source}-preprocessed";
+            }
+        }
+
+        var normal = ocr.ReadText(
+            $"price-trade-type-template:{source}",
+            imageToRead,
+            OcrFieldKind.PriceMenu,
+            settings);
+
+        var normalDetected = DetectTradeTypeFromMenuText(normal.Text);
+        var fast = templateOcr.TryRead(imageToRead, region, templateSettings);
+
+        var before = templateOcr.GetProfileStatus(
+            templateSettings.PriceTradeTypeTemplateAutoProfileEnabled);
+
+        var learned = false;
+        if (request.LearnIfNormalOcrMatches &&
+            string.Equals(normalDetected, region, StringComparison.OrdinalIgnoreCase))
+        {
+            var after = templateOcr.AddProfileSampleFromNormalOcr(
+                imageToRead,
+                box,
+                region,
+                templateSettings,
+                normal.Text);
+
+            var beforeCount = region == "Buy"
+                ? before.BuyTemplateCount
+                : before.SellTemplateCount;
+            var afterCount = region == "Buy"
+                ? after.BuyTemplateCount
+                : after.SellTemplateCount;
+
+            learned = afterCount > beforeCount;
+        }
+
+        var debugPath = await debug.SaveAsync(
+            "price-trade-type-template-setup",
+            source,
+            imageToRead,
+            normal.Text,
+            ct);
+
+        return Results.Ok(new
+        {
+            region,
+            box,
+            textVisible = visibility.MayContainText,
+            visibility.Contrast,
+            visibility.EdgePixelsPercent,
+            imageDataUrl = EncodePngDataUrl(imageToRead),
+            normalOcrRawText = normal.Text,
+            normalOcrDetectedTradeType = normalDetected,
+            fastTemplateDetectedTradeType = fast.TradeType ?? "Unknown",
+            fastTemplateSuccess = fast.Success,
+            fastTemplateScore = fast.Score,
+            fastTemplateReason = fast.Reason,
+            learnedTemplate = learned,
+            debugImagePath = debugPath,
+            debugImageUrl = BuildOcrDebugImageUrl(debugPath)
+        });
+    }
+    finally
+    {
+        preprocessed?.Dispose();
+    }
 });
 
 app.MapGet("/api/coordinate-template/profile/status", (

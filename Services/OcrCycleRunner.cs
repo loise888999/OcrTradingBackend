@@ -33,6 +33,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly IOcrLayoutService _layoutService;
     private readonly ICoordinateOcrSettingsService _coordinateOcrSettings;
     private readonly ICoordinateTemplateOcrService _coordinateTemplateOcr;
+    private readonly IPriceTradeTypeTemplateSettingsService _priceTradeTypeTemplateSettings;
+    private readonly IPriceTradeTypeTemplateOcrService _priceTradeTypeTemplateOcr;
     private readonly IPriceOcrBatchService _priceBatch;
     private readonly IPriceLayoutRowCacheService _priceLayoutRowCache;
     private readonly IPriceLayoutRowFingerprintService _priceLayoutRowFingerprint;
@@ -60,6 +62,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         IOcrLayoutService layoutService,
         ICoordinateOcrSettingsService coordinateOcrSettings,
         ICoordinateTemplateOcrService coordinateTemplateOcr,
+        IPriceTradeTypeTemplateSettingsService priceTradeTypeTemplateSettings,
+        IPriceTradeTypeTemplateOcrService priceTradeTypeTemplateOcr,
         IPriceOcrBatchService priceBatch,
         IPriceLayoutRowCacheService priceLayoutRowCache,
         IPriceLayoutRowFingerprintService priceLayoutRowFingerprint,
@@ -86,6 +90,8 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _layoutService = layoutService;
         _coordinateOcrSettings = coordinateOcrSettings;
         _coordinateTemplateOcr = coordinateTemplateOcr;
+        _priceTradeTypeTemplateSettings = priceTradeTypeTemplateSettings;
+        _priceTradeTypeTemplateOcr = priceTradeTypeTemplateOcr;
         _priceBatch = priceBatch;
         _priceLayoutRowCache = priceLayoutRowCache;
         _priceLayoutRowFingerprint = priceLayoutRowFingerprint;
@@ -170,10 +176,18 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             var wasInKnownCityBeforeCoordinate =
                 PriceCaptureMergeService.IsKnownCity(latestCityBeforeCoordinate?.City);
 
-            var priceDue =
+            var priceTradeTypeTemplateSettingsForDue =
+                _priceTradeTypeTemplateSettings.GetEffective(settings);
+
+            var useFastTradeTypeTemplate =
+                IsFastTradeTypeTemplateMode(priceTradeTypeTemplateSettingsForDue);
+
+            var rowPriceDue =
                 !coordinateRecentlyVisible &&
                 wasInKnownCityBeforeCoordinate &&
-                IsPriceOcrDue(settings);
+                IsPriceOcrDue(settings, ignorePriceFastMode: useFastTradeTypeTemplate);
+
+            var tradeTypeStateChangedToKnown = false;
 
             var coordinateOcrSettingsForDue =
                 _coordinateOcrSettings.GetEffective(settings);
@@ -183,10 +197,30 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 IsCoordinateOcrDue(settings, coordinateOcrSettingsForDue);
 
             if (!coordinateRecentlyVisible &&
-                priceDue &&
+                wasInKnownCityBeforeCoordinate &&
                 CanDetectTradeTypeFromLayout(layout))
             {
-                detectedTradeType = await DetectTradeTypeFromLayoutAsync(layout, settings, ct);
+                if (useFastTradeTypeTemplate)
+                {
+                    if (IsTradeTypeTemplateProbeDue(priceTradeTypeTemplateSettingsForDue) || rowPriceDue)
+                    {
+                        var probedTradeType = await ProbeTradeTypeStateAsync(
+                            layout,
+                            settings,
+                            priceTradeTypeTemplateSettingsForDue,
+                            ct);
+
+                        _control.LastTradeTypeProbeUtc = DateTime.UtcNow;
+                        tradeTypeStateChangedToKnown = UpdateCurrentTradeTypeState(probedTradeType);
+                    }
+
+                    detectedTradeType = NormalizeTradeTypeState(_control.CurrentTradeTypeState);
+                }
+                else if (rowPriceDue)
+                {
+                    detectedTradeType = await DetectTradeTypeFromLayoutAsync(layout, settings, ct);
+                    UpdateCurrentTradeTypeState(detectedTradeType);
+                }
 
                 if (PriceCaptureMergeService.IsKnownTradeType(detectedTradeType))
                 {
@@ -299,14 +333,26 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
                 if (PriceCaptureMergeService.IsKnownCity(latestCity?.City))
                 {
-                    if (priceDue)
+                    var tradeTypeForPriceRead = useFastTradeTypeTemplate
+                        ? NormalizeTradeTypeState(_control.CurrentTradeTypeState)
+                        : detectedTradeType;
+
+                    var shouldReadPriceRows = useFastTradeTypeTemplate
+                        ? PriceCaptureMergeService.IsKnownTradeType(tradeTypeForPriceRead) &&
+                          (tradeTypeStateChangedToKnown || rowPriceDue)
+                        : rowPriceDue;
+
+                    if (shouldReadPriceRows)
                     {
                         await TryReadPricesAsync(
                             latestCity!,
                             settings,
                             layout,
-                            detectedTradeType,
+                            tradeTypeForPriceRead,
                             ct);
+
+                        if (PriceCaptureMergeService.IsKnownTradeType(tradeTypeForPriceRead))
+                            _control.LastPriceReadTradeTypeState = tradeTypeForPriceRead!;
                     }
                 }
                 else
@@ -948,11 +994,14 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         }
     }
 
-    private bool IsPriceOcrDue(OcrRuntimeSettings settings)
+    private bool IsPriceOcrDue(
+        OcrRuntimeSettings settings,
+        bool ignorePriceFastMode = false)
     {
         var now = DateTime.UtcNow;
 
         var fastModeActive =
+            !ignorePriceFastMode &&
             _control.PriceFastModeUntilUtc is not null &&
             _control.PriceFastModeUntilUtc.Value > now;
 
@@ -965,6 +1014,55 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
 
         return now - _control.LastPriceAttemptUtc.Value >=
                TimeSpan.FromSeconds(intervalSeconds);
+    }
+
+    private bool IsTradeTypeTemplateProbeDue(
+        PriceTradeTypeTemplateSettingsResponse settings)
+    {
+        if (_control.LastTradeTypeProbeUtc is null)
+            return true;
+
+        var interval = TimeSpan.FromMilliseconds(
+            Math.Clamp(settings.PriceTradeTypeTemplateProbeIntervalMs, 25, 60_000));
+
+        return DateTime.UtcNow - _control.LastTradeTypeProbeUtc.Value >= interval;
+    }
+
+    private bool UpdateCurrentTradeTypeState(string? tradeType)
+    {
+        var previous = NormalizeTradeTypeState(_control.CurrentTradeTypeState);
+        var current = NormalizeTradeTypeState(tradeType);
+
+        _control.CurrentTradeTypeState = current;
+
+        if (string.Equals(previous, current, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        _control.LastTradeTypeStateChangeUtc = DateTime.UtcNow;
+
+        _logger.LogInformation(
+            "Buy/Sell fast state changed. Previous={Previous}; Current={Current}",
+            previous,
+            current);
+
+        return PriceCaptureMergeService.IsKnownTradeType(current);
+    }
+
+    private static bool IsFastTradeTypeTemplateMode(
+        PriceTradeTypeTemplateSettingsResponse settings)
+        => PriceTradeTypeReadModes
+            .Normalize(settings.PriceTradeTypeReadMode)
+            .Equals(PriceTradeTypeReadModes.FastTemplate, StringComparison.OrdinalIgnoreCase);
+
+    private static string NormalizeTradeTypeState(string? tradeType)
+    {
+        if (string.Equals(tradeType, "Buy", StringComparison.OrdinalIgnoreCase))
+            return "Buy";
+
+        if (string.Equals(tradeType, "Sell", StringComparison.OrdinalIgnoreCase))
+            return "Sell";
+
+        return "Unknown";
     }
 
     private bool IsCoordinateOcrDue(
@@ -1174,9 +1272,61 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
+        var templateSettings = _priceTradeTypeTemplateSettings.GetEffective(settings);
+
+        if (IsFastTradeTypeTemplateMode(templateSettings))
+        {
+            return await ProbeTradeTypeStateAsync(
+                layout,
+                settings,
+                templateSettings,
+                ct);
+        }
+
+        return await DetectTradeTypeFromLayoutOcrAsync(
+            layout,
+            settings,
+            templateSettings,
+            learnTemplates: templateSettings.PriceTradeTypeTemplateAutoProfileEnabled,
+            ct);
+    }
+
+    private async Task<string> ProbeTradeTypeStateAsync(
+        OcrLayoutSettings layout,
+        OcrRuntimeSettings settings,
+        PriceTradeTypeTemplateSettingsResponse templateSettings,
+        CancellationToken ct)
+    {
+        var detection = await TryDetectTradeTypeFromTemplateAsync(
+            layout,
+            settings,
+            templateSettings,
+            ct);
+
+        if (PriceCaptureMergeService.IsKnownTradeType(detection.TradeType))
+            return detection.TradeType;
+
+        if (detection.ShouldCountFailure)
+        {
+            _priceTradeTypeTemplateOcr.MaybeCountFailedFastRead(
+                templateSettings,
+                detection.FailureReason);
+        }
+
+        return "Unknown";
+    }
+
+    private async Task<string> DetectTradeTypeFromLayoutOcrAsync(
+        OcrLayoutSettings layout,
+        OcrRuntimeSettings settings,
+        PriceTradeTypeTemplateSettingsResponse templateSettings,
+        bool learnTemplates,
+        CancellationToken ct)
+    {
         if (layout.Price.BuyValidationBox is { IsValid: true } buyBox)
         {
-            var buyText = await ReadLayoutBoxTextAsync(
+            var buyRead = await ReadTradeTypeValidationBoxWithOcrAsync(
+                region: "Buy",
                 kind: "price-layout-validation",
                 source: "buy-validation",
                 box: buyBox,
@@ -1184,13 +1334,42 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 settings: settings,
                 ct: ct);
 
-            if (LooksLikeBuyText(buyText))
+            var matched = LooksLikeBuyText(buyRead.RawText);
+            var learned = false;
+
+            if (matched && learnTemplates)
+            {
+                learned = LearnTradeTypeTemplateFromBox(
+                    buyBox,
+                    "buy-validation",
+                    "Buy",
+                    buyRead.RawText,
+                    settings,
+                    templateSettings,
+                    ct);
+            }
+
+            RecordTradeTypeValidationAttempt(
+                region: "Buy",
+                source: buyRead.Source,
+                success: matched,
+                detectedTradeType: matched ? "Buy" : null,
+                score: null,
+                threshold: templateSettings.PriceTradeTypeTemplateMaxScore,
+                rawText: buyRead.RawText,
+                usedNormalOcr: true,
+                learnedTemplate: learned,
+                reason: matched ? "Normal OCR matched Buy." : buyRead.Reason,
+                debugImagePath: buyRead.DebugImagePath);
+
+            if (matched)
                 return "Buy";
         }
 
         if (layout.Price.SellValidationBox is { IsValid: true } sellBox)
         {
-            var sellText = await ReadLayoutBoxTextAsync(
+            var sellRead = await ReadTradeTypeValidationBoxWithOcrAsync(
+                region: "Sell",
                 kind: "price-layout-validation",
                 source: "sell-validation",
                 box: sellBox,
@@ -1198,11 +1377,95 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                 settings: settings,
                 ct: ct);
 
-            if (LooksLikeSellText(sellText))
+            var matched = LooksLikeSellText(sellRead.RawText);
+            var learned = false;
+
+            if (matched && learnTemplates)
+            {
+                learned = LearnTradeTypeTemplateFromBox(
+                    sellBox,
+                    "sell-validation",
+                    "Sell",
+                    sellRead.RawText,
+                    settings,
+                    templateSettings,
+                    ct);
+            }
+
+            RecordTradeTypeValidationAttempt(
+                region: "Sell",
+                source: sellRead.Source,
+                success: matched,
+                detectedTradeType: matched ? "Sell" : null,
+                score: null,
+                threshold: templateSettings.PriceTradeTypeTemplateMaxScore,
+                rawText: sellRead.RawText,
+                usedNormalOcr: true,
+                learnedTemplate: learned,
+                reason: matched ? "Normal OCR matched Sell." : sellRead.Reason,
+                debugImagePath: sellRead.DebugImagePath);
+
+            if (matched)
                 return "Sell";
         }
 
         return "Unknown";
+    }
+
+    private async Task<TradeTypeTemplateDetection> TryDetectTradeTypeFromTemplateAsync(
+        OcrLayoutSettings layout,
+        OcrRuntimeSettings settings,
+        PriceTradeTypeTemplateSettingsResponse templateSettings,
+        CancellationToken ct)
+    {
+        var shouldCountFailure = false;
+        var failureReasons = new List<string>();
+        var profile = _priceTradeTypeTemplateOcr.GetProfileStatus(
+            templateSettings.PriceTradeTypeTemplateAutoProfileEnabled);
+
+        if (layout.Price.BuyValidationBox is { IsValid: true } buyBox)
+        {
+            var buy = await TryReadTradeTypeTemplateBoxAsync(
+                region: "Buy",
+                source: "buy-validation-fast-template",
+                box: buyBox,
+                settings: settings,
+                templateSettings: templateSettings,
+                ct: ct);
+
+            if (buy.Attempt.Success && buy.Attempt.TradeType is not null)
+                return new TradeTypeTemplateDetection(buy.Attempt.TradeType, false, buy.Attempt.Reason);
+
+            if (buy.TextVisible && profile.ProfileReady)
+                shouldCountFailure = true;
+
+            failureReasons.Add($"Buy: {buy.Attempt.Reason}");
+        }
+
+        if (layout.Price.SellValidationBox is { IsValid: true } sellBox)
+        {
+            var sell = await TryReadTradeTypeTemplateBoxAsync(
+                region: "Sell",
+                source: "sell-validation-fast-template",
+                box: sellBox,
+                settings: settings,
+                templateSettings: templateSettings,
+                ct: ct);
+
+            if (sell.Attempt.Success && sell.Attempt.TradeType is not null)
+                return new TradeTypeTemplateDetection(sell.Attempt.TradeType, false, sell.Attempt.Reason);
+
+            if (sell.TextVisible && profile.ProfileReady)
+                shouldCountFailure = true;
+
+            failureReasons.Add($"Sell: {sell.Attempt.Reason}");
+        }
+
+        var reason = failureReasons.Count == 0
+            ? "No valid Buy/Sell validation box is configured."
+            : $"Fast Buy/Sell template failed. {string.Join(" ", failureReasons)}";
+
+        return new TradeTypeTemplateDetection("Unknown", shouldCountFailure, reason);
     }
 
     private async Task<ParsedPriceLine?> TryReadLayoutPriceRowAsync(
@@ -1566,48 +1829,316 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         return read.Text;
     }
 
-    private static bool LooksLikeBuyText(string raw)
+    private async Task<TradeTypeValidationOcrRead> ReadTradeTypeValidationBoxWithOcrAsync(
+        string region,
+        string kind,
+        string source,
+        OcrLayoutBox box,
+        bool preprocess,
+        OcrRuntimeSettings settings,
+        CancellationToken ct)
     {
-        var normalized = NormalizeOcrMenuText(raw);
+        var captureZone = _layoutService.TryGetLayoutBoxZone(box, source);
 
-        return ContainsNormalizedWord(normalized, "buy") ||
-               normalized.Contains("for sale", StringComparison.Ordinal) ||
-               normalized.Contains("items for sale", StringComparison.Ordinal);
-    }
-
-    private static bool LooksLikeSellText(string raw)
-    {
-        var normalized = NormalizeOcrMenuText(raw);
-
-        return ContainsNormalizedWord(normalized, "sell") ||
-               ContainsNormalizedWord(normalized, "inventory") ||
-               ContainsNormalizedWord(normalized, "nventory");
-    }
-
-    private static string NormalizeOcrMenuText(string? value)
-    {
-        // Same idea as item-name normalization:
-        // remove newlines, tabs, punctuation, and random OCR symbols;
-        // keep only letters, numbers, and spaces;
-        // compare in lowercase.
-        return NormalizeOcrItemName(value);
-    }
-
-    private static bool ContainsNormalizedWord(string normalized, string word)
-    {
-        if (string.IsNullOrWhiteSpace(normalized) ||
-            string.IsNullOrWhiteSpace(word))
+        if (captureZone is null)
         {
-            return false;
+            _logger.LogWarning(
+                "Skipped {Region} trade-type OCR box because the game window could not be resolved.",
+                region);
+
+            return new TradeTypeValidationOcrRead(
+                region,
+                source,
+                string.Empty,
+                null,
+                "Game window could not be resolved.");
         }
 
-        var escaped = Regex.Escape(word.ToLowerInvariant());
+        using var bitmap = _capture.Capture(captureZone);
 
-        return Regex.IsMatch(
-            normalized,
-            $@"(^|\s){escaped}($|\s)",
-            RegexOptions.CultureInvariant);
+        if (ShouldSkipOcrByTextPresence(kind, source, "before-preprocess", bitmap, settings))
+        {
+            return new TradeTypeValidationOcrRead(
+                region,
+                source,
+                string.Empty,
+                null,
+                "No visible text in validation box before preprocessing.");
+        }
+
+        Bitmap? preprocessed = null;
+
+        try
+        {
+            var imageToRead = bitmap;
+            var readSource = source;
+
+            if (preprocess)
+            {
+                preprocessed = _preprocessor.TryPreparePriceImage(bitmap, settings);
+
+                if (preprocessed is not null)
+                {
+                    imageToRead = preprocessed;
+                    readSource = $"{source}-preprocessed";
+                }
+            }
+
+            var read = TryReadOcrText(kind, readSource, imageToRead, settings);
+            if (read is null)
+            {
+                return new TradeTypeValidationOcrRead(
+                    region,
+                    readSource,
+                    string.Empty,
+                    null,
+                    "No visible text in validation box after preprocessing.");
+            }
+
+            var debugPath = await _debug.SaveAsync(
+                kind,
+                readSource,
+                imageToRead,
+                read.Text,
+                ct);
+
+            var reason = string.IsNullOrWhiteSpace(read.Text)
+                ? "Normal OCR returned empty text."
+                : "Normal OCR text did not match this validation box.";
+
+            return new TradeTypeValidationOcrRead(
+                region,
+                readSource,
+                read.Text,
+                debugPath,
+                reason);
+        }
+        finally
+        {
+            preprocessed?.Dispose();
+        }
     }
+
+    private async Task<TradeTypeTemplateBoxRead> TryReadTradeTypeTemplateBoxAsync(
+        string region,
+        string source,
+        OcrLayoutBox box,
+        OcrRuntimeSettings settings,
+        PriceTradeTypeTemplateSettingsResponse templateSettings,
+        CancellationToken ct)
+    {
+        var captureZone = _layoutService.TryGetLayoutBoxZone(box, source);
+
+        if (captureZone is null)
+        {
+            var missingWindow = new PriceTradeTypeTemplateReadAttempt(
+                false,
+                null,
+                null,
+                "Game window could not be resolved.",
+                false);
+
+            RecordTradeTypeValidationAttempt(
+                region,
+                source,
+                success: false,
+                detectedTradeType: null,
+                score: null,
+                threshold: templateSettings.PriceTradeTypeTemplateMaxScore,
+                rawText: null,
+                usedNormalOcr: false,
+                learnedTemplate: false,
+                reason: missingWindow.Reason,
+                debugImagePath: null);
+
+            return new TradeTypeTemplateBoxRead(missingWindow, TextVisible: false);
+        }
+
+        using var bitmap = _capture.Capture(captureZone);
+        var visibility = _textPresenceAnalyzer.Analyze(bitmap, settings);
+
+        if (!visibility.MayContainText)
+        {
+            var notVisible = new PriceTradeTypeTemplateReadAttempt(
+                false,
+                null,
+                null,
+                $"No visible text. Contrast={visibility.Contrast}; EdgePixelsPercent={visibility.EdgePixelsPercent:0.###}.",
+                false);
+
+            RecordTradeTypeValidationAttempt(
+                region,
+                source,
+                success: false,
+                detectedTradeType: null,
+                score: null,
+                threshold: templateSettings.PriceTradeTypeTemplateMaxScore,
+                rawText: null,
+                usedNormalOcr: false,
+                learnedTemplate: false,
+                reason: notVisible.Reason,
+                debugImagePath: null);
+
+            return new TradeTypeTemplateBoxRead(notVisible, TextVisible: false);
+        }
+
+        Bitmap? preprocessed = null;
+
+        try
+        {
+            var imageToRead = bitmap;
+            var readSource = source;
+
+            if (settings.PriceLayoutValidationPreprocess)
+            {
+                preprocessed = _preprocessor.TryPreparePriceImage(bitmap, settings);
+
+                if (preprocessed is not null)
+                {
+                    imageToRead = preprocessed;
+                    readSource = $"{source}-preprocessed";
+                }
+            }
+
+            var attempt = _priceTradeTypeTemplateOcr.TryRead(
+                imageToRead,
+                region,
+                templateSettings);
+
+            var debugPath = await _debug.SaveAsync(
+                "price-trade-type-template",
+                readSource,
+                imageToRead,
+                attempt.Reason,
+                ct);
+
+            RecordTradeTypeValidationAttempt(
+                region,
+                readSource,
+                success: attempt.Success,
+                detectedTradeType: attempt.TradeType,
+                score: attempt.Score,
+                threshold: templateSettings.PriceTradeTypeTemplateMaxScore,
+                rawText: null,
+                usedNormalOcr: false,
+                learnedTemplate: false,
+                reason: attempt.Reason,
+                debugImagePath: debugPath);
+
+            return new TradeTypeTemplateBoxRead(attempt, TextVisible: true);
+        }
+        finally
+        {
+            preprocessed?.Dispose();
+        }
+    }
+
+    private bool LearnTradeTypeTemplateFromBox(
+        OcrLayoutBox box,
+        string source,
+        string tradeType,
+        string rawText,
+        OcrRuntimeSettings settings,
+        PriceTradeTypeTemplateSettingsResponse templateSettings,
+        CancellationToken ct)
+    {
+        var before = _priceTradeTypeTemplateOcr.GetProfileStatus(
+            templateSettings.PriceTradeTypeTemplateAutoProfileEnabled);
+
+        var captureZone = _layoutService.TryGetLayoutBoxZone(box, $"{source}-template-learn");
+        if (captureZone is null)
+            return false;
+
+        using var bitmap = _capture.Capture(captureZone);
+        var visibility = _textPresenceAnalyzer.Analyze(bitmap, settings);
+        if (!visibility.MayContainText)
+            return false;
+
+        Bitmap? preprocessed = null;
+
+        try
+        {
+            var imageToLearn = bitmap;
+
+            if (settings.PriceLayoutValidationPreprocess)
+            {
+                preprocessed = _preprocessor.TryPreparePriceImage(bitmap, settings);
+
+                if (preprocessed is not null)
+                    imageToLearn = preprocessed;
+            }
+
+            var after = _priceTradeTypeTemplateOcr.AddProfileSampleFromNormalOcr(
+                imageToLearn,
+                box,
+                tradeType,
+                templateSettings,
+                rawText);
+
+            var beforeCount = tradeType.Equals("Buy", StringComparison.OrdinalIgnoreCase)
+                ? before.BuyTemplateCount
+                : before.SellTemplateCount;
+            var afterCount = tradeType.Equals("Buy", StringComparison.OrdinalIgnoreCase)
+                ? after.BuyTemplateCount
+                : after.SellTemplateCount;
+
+            return afterCount > beforeCount;
+        }
+        finally
+        {
+            preprocessed?.Dispose();
+        }
+    }
+
+    private void RecordTradeTypeValidationAttempt(
+        string region,
+        string source,
+        bool success,
+        string? detectedTradeType,
+        double? score,
+        double threshold,
+        string? rawText,
+        bool usedNormalOcr,
+        bool learnedTemplate,
+        string reason,
+        string? debugImagePath)
+    {
+        _priceTradeTypeTemplateOcr.RecordAttempt(new PriceTradeTypeTemplateAttemptLog(
+            CapturedAtUtc: DateTime.UtcNow,
+            Region: region,
+            Source: source,
+            Success: success,
+            DetectedTradeType: detectedTradeType,
+            Score: score,
+            Threshold: threshold,
+            RawText: rawText,
+            UsedNormalOcr: usedNormalOcr,
+            LearnedTemplate: learnedTemplate,
+            Reason: reason,
+            DebugImagePath: debugImagePath));
+    }
+
+    private sealed record TradeTypeTemplateDetection(
+        string TradeType,
+        bool ShouldCountFailure,
+        string FailureReason);
+
+    private sealed record TradeTypeTemplateBoxRead(
+        PriceTradeTypeTemplateReadAttempt Attempt,
+        bool TextVisible);
+
+    private sealed record TradeTypeValidationOcrRead(
+        string Region,
+        string Source,
+        string RawText,
+        string? DebugImagePath,
+        string Reason);
+
+    private static bool LooksLikeBuyText(string raw)
+        => TradeTypeMenuTextDetector.LooksLikeBuy(raw);
+
+    private static bool LooksLikeSellText(string raw)
+        => TradeTypeMenuTextDetector.LooksLikeSell(raw);
 
     private static string CleanLayoutFieldText(string raw)
     {

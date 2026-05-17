@@ -182,6 +182,15 @@ public sealed class OcrRuntimeSettings
     // Preprocesses Buy/Sell validation layout boxes before OCR.
     public bool PriceLayoutValidationPreprocess { get; set; } = true;
 
+    public string PriceTradeTypeReadMode { get; set; } = "NormalOcr";
+    public bool PriceTradeTypeTemplateFallbackToNormalOcr { get; set; } = true;
+    public bool PriceTradeTypeTemplateAutoProfileEnabled { get; set; } = true;
+    public int PriceTradeTypeTemplateMaxTemplatesPerType { get; set; } = 5;
+    public double PriceTradeTypeTemplateMaxScore { get; set; } = 0.18;
+    public bool PriceTradeTypeTemplateCountFailedReadsForRecalibration { get; set; } = true;
+    public int PriceTradeTypeTemplateRecalibrationFailureLimit { get; set; } = 5;
+    public int PriceTradeTypeTemplateProbeIntervalMs { get; set; } = 250;
+
     // Preprocesses row OCR crops before OCR.
     public bool PriceLayoutFieldPreprocess { get; set; } = true;
 
@@ -226,6 +235,10 @@ public sealed class OcrControlState
     public DateTime? LastPriceAttemptUtc { get; set; }
     public DateTime? LastPriceStateChangeUtc { get; set; }
     public DateTime? PriceFastModeUntilUtc { get; set; }
+    public string CurrentTradeTypeState { get; set; } = "Unknown";
+    public DateTime? LastTradeTypeProbeUtc { get; set; }
+    public DateTime? LastTradeTypeStateChangeUtc { get; set; }
+    public string LastPriceReadTradeTypeState { get; set; } = "Unknown";
     public DateTime? LastNotAtSeaSignalUtc { get; set; }
     public DateTime? SeaCandidateSinceUtc { get; set; }
     public bool ProbablyAtSea { get; set; }

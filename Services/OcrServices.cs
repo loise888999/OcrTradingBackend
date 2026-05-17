@@ -283,6 +283,12 @@ public sealed class OcrRuntimeSettingsValidator : IValidateOptions<OcrRuntimeSet
                 "OcrSettings:CoordinateReadMode must be one of: NormalOcr, FastTemplate.");
         }
 
+        if (!PriceTradeTypeReadModes.IsValid(settings.PriceTradeTypeReadMode))
+        {
+            failures.Add(
+                "OcrSettings:PriceTradeTypeReadMode must be one of: NormalOcr, FastTemplate.");
+        }
+
         if (settings.CoordinateTemplateRecalibrationFailureLimit < 1)
         {
             failures.Add(
@@ -305,6 +311,30 @@ public sealed class OcrRuntimeSettingsValidator : IValidateOptions<OcrRuntimeSet
         {
             failures.Add(
                 "OcrSettings:CoordinateTemplateMaxTemplatesPerDigit must be at least 1.");
+        }
+
+        if (settings.PriceTradeTypeTemplateMaxTemplatesPerType < 1)
+        {
+            failures.Add(
+                "OcrSettings:PriceTradeTypeTemplateMaxTemplatesPerType must be at least 1.");
+        }
+
+        if (settings.PriceTradeTypeTemplateMaxScore is < 0 or > 1)
+        {
+            failures.Add(
+                "OcrSettings:PriceTradeTypeTemplateMaxScore must be between 0 and 1.");
+        }
+
+        if (settings.PriceTradeTypeTemplateRecalibrationFailureLimit < 1)
+        {
+            failures.Add(
+                "OcrSettings:PriceTradeTypeTemplateRecalibrationFailureLimit must be at least 1.");
+        }
+
+        if (settings.PriceTradeTypeTemplateProbeIntervalMs < 25)
+        {
+            failures.Add(
+                "OcrSettings:PriceTradeTypeTemplateProbeIntervalMs must be at least 25.");
         }
 
         if (!settings.UseEnglishModels || settings.FallbackToBundledModel)
