@@ -1423,42 +1423,23 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         var profile = _priceTradeTypeTemplateOcr.GetProfileStatus(
             templateSettings.PriceTradeTypeTemplateAutoProfileEnabled);
 
-        if (layout.Price.BuyValidationBox is { IsValid: true } buyBox)
+        foreach (var candidate in BuildTradeTypeProbeOrder(layout))
         {
-            var buy = await TryReadTradeTypeTemplateBoxAsync(
-                region: "Buy",
-                source: "buy-validation-fast-template",
-                box: buyBox,
+            var read = await TryReadTradeTypeTemplateBoxAsync(
+                region: candidate.Region,
+                source: candidate.Source,
+                box: candidate.Box,
                 settings: settings,
                 templateSettings: templateSettings,
                 ct: ct);
 
-            if (buy.Attempt.Success && buy.Attempt.TradeType is not null)
-                return new TradeTypeTemplateDetection(buy.Attempt.TradeType, false, buy.Attempt.Reason);
+            if (read.Attempt.Success && read.Attempt.TradeType is not null)
+                return new TradeTypeTemplateDetection(read.Attempt.TradeType, false, read.Attempt.Reason);
 
-            if (buy.TextVisible && profile.ProfileReady)
+            if (read.TextVisible && profile.ProfileReady)
                 shouldCountFailure = true;
 
-            failureReasons.Add($"Buy: {buy.Attempt.Reason}");
-        }
-
-        if (layout.Price.SellValidationBox is { IsValid: true } sellBox)
-        {
-            var sell = await TryReadTradeTypeTemplateBoxAsync(
-                region: "Sell",
-                source: "sell-validation-fast-template",
-                box: sellBox,
-                settings: settings,
-                templateSettings: templateSettings,
-                ct: ct);
-
-            if (sell.Attempt.Success && sell.Attempt.TradeType is not null)
-                return new TradeTypeTemplateDetection(sell.Attempt.TradeType, false, sell.Attempt.Reason);
-
-            if (sell.TextVisible && profile.ProfileReady)
-                shouldCountFailure = true;
-
-            failureReasons.Add($"Sell: {sell.Attempt.Reason}");
+            failureReasons.Add($"{candidate.Region}: {read.Attempt.Reason}");
         }
 
         var reason = failureReasons.Count == 0
@@ -1466,6 +1447,52 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
             : $"Fast Buy/Sell template failed. {string.Join(" ", failureReasons)}";
 
         return new TradeTypeTemplateDetection("Unknown", shouldCountFailure, reason);
+    }
+
+    private IReadOnlyList<TradeTypeProbeCandidate> BuildTradeTypeProbeOrder(
+        OcrLayoutSettings layout)
+    {
+        var candidates = new List<TradeTypeProbeCandidate>(2);
+        var current = NormalizeTradeTypeState(_control.CurrentTradeTypeState);
+
+        if (current == "Sell")
+        {
+            AddSellProbeCandidate(layout, candidates);
+            AddBuyProbeCandidate(layout, candidates);
+        }
+        else
+        {
+            AddBuyProbeCandidate(layout, candidates);
+            AddSellProbeCandidate(layout, candidates);
+        }
+
+        return candidates;
+    }
+
+    private static void AddBuyProbeCandidate(
+        OcrLayoutSettings layout,
+        List<TradeTypeProbeCandidate> candidates)
+    {
+        if (layout.Price.BuyValidationBox is { IsValid: true } buyBox)
+        {
+            candidates.Add(new TradeTypeProbeCandidate(
+                "Buy",
+                "buy-validation-fast-template",
+                buyBox));
+        }
+    }
+
+    private static void AddSellProbeCandidate(
+        OcrLayoutSettings layout,
+        List<TradeTypeProbeCandidate> candidates)
+    {
+        if (layout.Price.SellValidationBox is { IsValid: true } sellBox)
+        {
+            candidates.Add(new TradeTypeProbeCandidate(
+                "Sell",
+                "sell-validation-fast-template",
+                sellBox));
+        }
     }
 
     private async Task<ParsedPriceLine?> TryReadLayoutPriceRowAsync(
@@ -2122,6 +2149,11 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         string TradeType,
         bool ShouldCountFailure,
         string FailureReason);
+
+    private sealed record TradeTypeProbeCandidate(
+        string Region,
+        string Source,
+        OcrLayoutBox Box);
 
     private sealed record TradeTypeTemplateBoxRead(
         PriceTradeTypeTemplateReadAttempt Attempt,

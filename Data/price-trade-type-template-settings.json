@@ -1,0 +1,10 @@
+{
+  "PriceTradeTypeReadMode": "FastTemplate",
+  "PriceTradeTypeTemplateFallbackToNormalOcr": true,
+  "PriceTradeTypeTemplateAutoProfileEnabled": false,
+  "PriceTradeTypeTemplateMaxTemplatesPerType": 5,
+  "PriceTradeTypeTemplateMaxScore": 0.18,
+  "PriceTradeTypeTemplateCountFailedReadsForRecalibration": true,
+  "PriceTradeTypeTemplateRecalibrationFailureLimit": 5,
+  "PriceTradeTypeTemplateProbeIntervalMs": 25
+}

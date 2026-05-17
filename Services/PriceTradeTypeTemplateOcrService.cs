@@ -2,6 +2,7 @@ using OcrTradingBackend.Models;
 using Microsoft.Extensions.Options;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 
 namespace OcrTradingBackend.Services;
@@ -162,6 +163,9 @@ public sealed class PriceTradeTypeTemplateOcrService : IPriceTradeTypeTemplateOc
     private readonly object _gate = new();
     private readonly string _profilePath;
     private readonly List<PriceTradeTypeTemplateAttemptLog> _attempts = new();
+    private PriceTradeTypeTemplateProfile? _cachedProfile;
+    private DateTime? _cachedProfileWriteUtc;
+    private bool _profileCacheLoaded;
 
     public PriceTradeTypeTemplateOcrService()
         : this(Path.Combine(AppContext.BaseDirectory, "Data", "price-trade-type-template-profile.json"))
@@ -225,10 +229,17 @@ public sealed class PriceTradeTypeTemplateOcrService : IPriceTradeTypeTemplateOc
             }
 
             double? bestScore = null;
+            var candidatePixelsBySize = new Dictionary<(int Width, int Height), string[]>();
 
             foreach (var template in templates)
             {
-                var pixels = BuildBinaryPixels(bitmap, template.Width, template.Height);
+                var key = (template.Width, template.Height);
+                if (!candidatePixelsBySize.TryGetValue(key, out var pixels))
+                {
+                    pixels = BuildBinaryPixels(bitmap, template.Width, template.Height);
+                    candidatePixelsBySize[key] = pixels;
+                }
+
                 var score = ComparePixelsWithNeighborTolerance(pixels, template.Pixels);
 
                 if (bestScore is null || score < bestScore)
@@ -238,11 +249,15 @@ public sealed class PriceTradeTypeTemplateOcrService : IPriceTradeTypeTemplateOc
             var threshold = Math.Clamp(settings.PriceTradeTypeTemplateMaxScore, 0, 1);
             if (bestScore <= threshold)
             {
-                profile.FailedReadCount = 0;
-                profile.NeedsRecalibration = false;
                 profile.LastMessage = $"{normalizedTradeType} fast template matched. Score={bestScore:0.000}.";
                 profile.UpdatedAtUtc = DateTime.UtcNow;
-                SaveProfileLocked(profile);
+
+                if (profile.FailedReadCount != 0 || profile.NeedsRecalibration)
+                {
+                    profile.FailedReadCount = 0;
+                    profile.NeedsRecalibration = false;
+                    SaveProfileLocked(profile);
+                }
 
                 return new PriceTradeTypeTemplateReadAttempt(
                     true,
@@ -372,6 +387,9 @@ public sealed class PriceTradeTypeTemplateOcrService : IPriceTradeTypeTemplateOc
                 File.Delete(_profilePath);
 
             _attempts.Clear();
+            _cachedProfile = null;
+            _cachedProfileWriteUtc = null;
+            _profileCacheLoaded = true;
         }
     }
 
@@ -419,7 +437,19 @@ public sealed class PriceTradeTypeTemplateOcrService : IPriceTradeTypeTemplateOc
         try
         {
             if (!File.Exists(_profilePath))
+            {
+                _cachedProfile = null;
+                _cachedProfileWriteUtc = null;
+                _profileCacheLoaded = true;
                 return null;
+            }
+
+            var writeUtc = File.GetLastWriteTimeUtc(_profilePath);
+            if (_profileCacheLoaded &&
+                _cachedProfileWriteUtc == writeUtc)
+            {
+                return _cachedProfile;
+            }
 
             var profile = JsonSerializer.Deserialize<PriceTradeTypeTemplateProfile>(
                 File.ReadAllText(_profilePath),
@@ -429,11 +459,14 @@ public sealed class PriceTradeTypeTemplateOcrService : IPriceTradeTypeTemplateOc
                 return null;
 
             profile.MissingTemplates = BuildMissingTemplates(profile);
+            _cachedProfile = profile;
+            _cachedProfileWriteUtc = writeUtc;
+            _profileCacheLoaded = true;
             return profile;
         }
         catch
         {
-            return null;
+            return _profileCacheLoaded ? _cachedProfile : null;
         }
     }
 
@@ -449,6 +482,10 @@ public sealed class PriceTradeTypeTemplateOcrService : IPriceTradeTypeTemplateOc
         var json = JsonSerializer.Serialize(profile, JsonOptions);
         File.WriteAllText(tempPath, json);
         File.Move(tempPath, _profilePath, overwrite: true);
+
+        _cachedProfile = profile;
+        _cachedProfileWriteUtc = File.GetLastWriteTimeUtc(_profilePath);
+        _profileCacheLoaded = true;
     }
 
     private static PriceTradeTypeTemplateProfile CreateProfile()
@@ -499,35 +536,62 @@ public sealed class PriceTradeTypeTemplateOcrService : IPriceTradeTypeTemplateOc
     private static string[] BuildBinaryPixels(Bitmap source, int targetWidth, int targetHeight)
     {
         using var normalized = ResizeIfNeeded(source, targetWidth, targetHeight);
-        var grayValues = new int[normalized.Width * normalized.Height];
+        var width = normalized.Width;
+        var height = normalized.Height;
+        var grayValues = new int[width * height];
         var dark = 0;
         var light = 0;
 
-        for (var y = 0; y < normalized.Height; y++)
-        {
-            for (var x = 0; x < normalized.Width; x++)
-            {
-                var color = normalized.GetPixel(x, y);
-                var gray = (int)((color.R * 0.299) + (color.G * 0.587) + (color.B * 0.114));
-                grayValues[(y * normalized.Width) + x] = gray;
+        var rect = new Rectangle(0, 0, width, height);
+        var data = normalized.LockBits(
+            rect,
+            ImageLockMode.ReadOnly,
+            PixelFormat.Format32bppArgb);
 
-                if (gray < 128)
-                    dark++;
-                else
-                    light++;
+        try
+        {
+            var stride = data.Stride;
+            var absoluteStride = Math.Abs(stride);
+            var bytes = new byte[absoluteStride * height];
+            Marshal.Copy(data.Scan0, bytes, 0, bytes.Length);
+
+            for (var y = 0; y < height; y++)
+            {
+                var rowOffset = stride >= 0
+                    ? y * stride
+                    : (height - 1 - y) * absoluteStride;
+
+                for (var x = 0; x < width; x++)
+                {
+                    var offset = rowOffset + (x * 4);
+                    var blue = bytes[offset];
+                    var green = bytes[offset + 1];
+                    var red = bytes[offset + 2];
+                    var gray = (int)((red * 0.299) + (green * 0.587) + (blue * 0.114));
+                    grayValues[(y * width) + x] = gray;
+
+                    if (gray < 128)
+                        dark++;
+                    else
+                        light++;
+                }
             }
+        }
+        finally
+        {
+            normalized.UnlockBits(data);
         }
 
         var inkIsDark = dark <= light;
-        var rows = new string[normalized.Height];
+        var rows = new string[height];
 
-        for (var y = 0; y < normalized.Height; y++)
+        for (var y = 0; y < height; y++)
         {
-            var chars = new char[normalized.Width];
+            var chars = new char[width];
 
-            for (var x = 0; x < normalized.Width; x++)
+            for (var x = 0; x < width; x++)
             {
-                var gray = grayValues[(y * normalized.Width) + x];
+                var gray = grayValues[(y * width) + x];
                 var isInk = inkIsDark ? gray < 128 : gray >= 128;
                 chars[x] = isInk ? InkPixel : BackgroundPixel;
             }

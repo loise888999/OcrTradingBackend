@@ -34,13 +34,23 @@ public interface IOcrImageTextCache
 
 public sealed class OcrImageTextCache : IOcrImageTextCache
 {
+    private static readonly TimeSpan DefaultPruneInterval = TimeSpan.FromSeconds(10);
+
     private readonly IOcrImageHasher _hasher;
+    private readonly Func<DateTime> _utcNow;
+    private readonly TimeSpan _pruneInterval;
     private readonly ConcurrentDictionary<string, CachedOcrReadState> _states = new();
     private readonly object _evictionSync = new();
+    private DateTime _lastPruneUtc = DateTime.MinValue;
 
-    public OcrImageTextCache(IOcrImageHasher hasher)
+    public OcrImageTextCache(
+        IOcrImageHasher hasher,
+        Func<DateTime>? utcNow = null,
+        TimeSpan? pruneInterval = null)
     {
         _hasher = hasher;
+        _utcNow = utcNow ?? (() => DateTime.UtcNow);
+        _pruneInterval = pruneInterval ?? DefaultPruneInterval;
     }
 
     public OcrCachedTextRead ReadText(
@@ -68,7 +78,7 @@ public sealed class OcrImageTextCache : IOcrImageTextCache
                 OcrElapsed: disabledOcrStopwatch.Elapsed);
         }
 
-        var now = DateTime.UtcNow;
+        var now = _utcNow();
 
         using var hashReader = _hasher.CreateReader(bitmap);
         var fullStopwatch = Stopwatch.StartNew();
@@ -78,7 +88,7 @@ public sealed class OcrImageTextCache : IOcrImageTextCache
         var ttl = TimeSpan.FromMinutes(Math.Max(0.1, options.TtlMinutes));
         var maxEntries = Math.Max(1, options.MaxEntries);
         var entryKey = BuildEntryKey(options.SettingsSignature, fullHash);
-        var evictedBeforeLookup = PruneExpiredAndOversize(now, ttl, maxEntries);
+        var evictedBeforeLookup = MaybePruneExpiredAndOversize(now, ttl, maxEntries);
 
         if (_states.TryGetValue(entryKey, out var state))
         {
@@ -119,7 +129,9 @@ public sealed class OcrImageTextCache : IOcrImageTextCache
             addedState.LastOcrReadAtUtc = now;
         }
 
-        var evictedAfterAdd = PruneExpiredAndOversize(DateTime.UtcNow, ttl, maxEntries);
+        var evictedAfterAdd = _states.Count > maxEntries
+            ? MaybePruneExpiredAndOversize(_utcNow(), ttl, maxEntries, force: true)
+            : 0;
 
         return new OcrCachedTextRead(
             Text: rawText,
@@ -134,10 +146,38 @@ public sealed class OcrImageTextCache : IOcrImageTextCache
             EvictedCount: evictedBeforeLookup + evictedAfterAdd);
     }
 
-    private int PruneExpiredAndOversize(DateTime now, TimeSpan ttl, int maxEntries)
+    private int MaybePruneExpiredAndOversize(
+        DateTime now,
+        TimeSpan ttl,
+        int maxEntries,
+        bool force = false)
+    {
+        if (!force &&
+            _states.Count <= maxEntries &&
+            now - _lastPruneUtc < _pruneInterval)
+        {
+            return 0;
+        }
+
+        return PruneExpiredAndOversize(now, ttl, maxEntries, force);
+    }
+
+    private int PruneExpiredAndOversize(
+        DateTime now,
+        TimeSpan ttl,
+        int maxEntries,
+        bool force)
     {
         lock (_evictionSync)
         {
+            if (!force &&
+                _states.Count <= maxEntries &&
+                now - _lastPruneUtc < _pruneInterval)
+            {
+                return 0;
+            }
+
+            _lastPruneUtc = now;
             var evicted = 0;
 
             foreach (var pair in _states.ToArray())
