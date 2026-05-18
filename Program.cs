@@ -95,6 +95,10 @@ static string EncodePngDataUrl(Bitmap bitmap)
     bitmap.Save(stream, ImageFormat.Png);
     return $"data:image/png;base64,{Convert.ToBase64String(stream.ToArray())}";
 }
+
+static string? FormatCoordinate(ParsedCoordinate? coordinate)
+    => coordinate is null ? null : $"{coordinate.X},{coordinate.Y}";
+
 static async Task WriteSseCoordinateEventAsync(
     HttpResponse response,
     object coordinate,
@@ -515,8 +519,8 @@ app.MapPost("/api/price-trade-type-template/test-box", async (
             templateSettings.PriceTradeTypeTemplateAutoProfileEnabled);
 
         var learned = false;
-        if (request.LearnIfNormalOcrMatches &&
-            string.Equals(normalDetected, region, StringComparison.OrdinalIgnoreCase))
+        var normalMatches = string.Equals(normalDetected, region, StringComparison.OrdinalIgnoreCase);
+        if (request.LearnIfNormalOcrMatches && normalMatches)
         {
             var after = templateOcr.AddProfileSampleFromNormalOcr(
                 imageToRead,
@@ -533,6 +537,29 @@ app.MapPost("/api/price-trade-type-template/test-box", async (
                 : after.SellTemplateCount;
 
             learned = afterCount > beforeCount;
+            fast = templateOcr.TryRead(imageToRead, region, templateSettings);
+        }
+
+        if (normalMatches)
+        {
+            templateOcr.RecordSuccessfulSetupProof(
+                imageToRead,
+                new PriceTradeTypeTemplateSetupProof
+                {
+                    CapturedAtUtc = DateTime.UtcNow,
+                    Region = region,
+                    TextVisible = visibility.MayContainText,
+                    Contrast = visibility.Contrast,
+                    EdgePixelsPercent = visibility.EdgePixelsPercent,
+                    NormalOcrRawText = normal.Text,
+                    NormalOcrDetectedTradeType = normalDetected,
+                    FastTemplateDetectedTradeType = fast.TradeType ?? "Unknown",
+                    FastTemplateSuccess = fast.Success,
+                    FastTemplateScore = fast.Score,
+                    FastTemplateReason = fast.Reason,
+                    LearnedTemplate = learned
+                },
+                templateSettings.PriceTradeTypeTemplateAutoProfileEnabled);
         }
 
         var debugPath = await debug.SaveAsync(
@@ -704,10 +731,13 @@ app.MapPost("/api/coordinate-template/profile/use-fast", async (
 });
 
 app.MapPost("/api/coordinate-template/test-current", async (
-    IOcrLayoutService layoutService,
-    IScreenCaptureService capture,
-    ICoordinateOcrSettingsService coordinateOcrSettings,
-    ICoordinateTemplateOcrService templateOcr,
+    [FromServices] IOcrLayoutService layoutService,
+    [FromServices] IScreenCaptureService capture,
+    [FromServices] IOcrCachedTextService ocr,
+    [FromServices] ICoordinateParser coordinateParser,
+    [FromServices] ICoordinateOcrSettingsService coordinateOcrSettings,
+    [FromServices] ICoordinateTemplateOcrService templateOcr,
+    [FromServices] IOptionsMonitor<OcrRuntimeSettings> runtimeSettings,
     CancellationToken ct) =>
 {
     var layout = await layoutService.LoadAsync(ct);
@@ -741,15 +771,47 @@ app.MapPost("/api/coordinate-template/test-current", async (
     }
 
     var settings = coordinateOcrSettings.Get();
+    var runtime = runtimeSettings.CurrentValue;
 
     using var bitmap = capture.Capture(zone);
+    var normal = ocr.ReadText(
+        "coordinate-template:test-current",
+        bitmap,
+        OcrFieldKind.Coordinate,
+        runtime);
+    var normalParsed = coordinateParser.TryParse(
+        normal.Text,
+        runtime.WorldWidth,
+        runtime.WorldHeight);
     var attempt = templateOcr.TryRead(bitmap, settings);
     var profile = templateOcr.GetProfileStatus(settings.CoordinateTemplateAutoProfileEnabled);
+
+    if (attempt.Success)
+    {
+        profile = templateOcr.RecordSuccessfulSetupProof(
+            bitmap,
+            new CoordinateTemplateSetupProof
+            {
+                CapturedAtUtc = DateTime.UtcNow,
+                Source = "coordinate-template-test-current",
+                NormalOcrRawText = normal.Text,
+                NormalOcrParsedCoordinate = FormatCoordinate(normalParsed),
+                FastTemplateRawText = attempt.RawText,
+                FastTemplateParsedCoordinate = FormatCoordinate(attempt.Parsed),
+                FastTemplateSuccess = attempt.Success,
+                FastTemplateReason = attempt.Reason
+            },
+            settings.CoordinateTemplateAutoProfileEnabled);
+    }
 
     return Results.Ok(new
     {
         success = attempt.Success,
-        rawText = attempt.RawText,
+        imageDataUrl = EncodePngDataUrl(bitmap),
+        normalOcrRawText = normal.Text,
+        normalOcrParsedCoordinate = FormatCoordinate(normalParsed),
+        fastTemplateRawText = attempt.RawText,
+        fastTemplateParsedCoordinate = FormatCoordinate(attempt.Parsed),
         parsed = attempt.Parsed is null
             ? null
             : new
@@ -758,6 +820,7 @@ app.MapPost("/api/coordinate-template/test-current", async (
                 y = attempt.Parsed.Y,
                 rawText = attempt.Parsed.RawText
             },
+        rawText = attempt.RawText,
         reason = attempt.Reason,
         needsRecalibration = attempt.NeedsRecalibration,
         settings,
@@ -769,10 +832,13 @@ app.MapPost("/api/coordinate-template/test-current", async (
 
 app.MapPost("/api/coordinate-template/profile", async (
     CreateCoordinateTemplateProfileRequest request,
-    IOcrLayoutService layoutService,
-    IScreenCaptureService capture,
-    ICoordinateTemplateOcrService templateOcr,
-    IOptionsMonitor<OcrRuntimeSettings> settings,
+    [FromServices] IOcrLayoutService layoutService,
+    [FromServices] IScreenCaptureService capture,
+    [FromServices] IOcrCachedTextService ocr,
+    [FromServices] ICoordinateParser coordinateParser,
+    [FromServices] ICoordinateOcrSettingsService coordinateOcrSettings,
+    [FromServices] ICoordinateTemplateOcrService templateOcr,
+    [FromServices] IOptionsMonitor<OcrRuntimeSettings> settings,
     CancellationToken ct) =>
 {
     try
@@ -798,12 +864,42 @@ app.MapPost("/api/coordinate-template/profile", async (
         }
 
         using var bitmap = capture.Capture(zone);
+        var runtime = settings.CurrentValue;
+        var normal = ocr.ReadText(
+            "coordinate-template:profile-setup",
+            bitmap,
+            OcrFieldKind.Coordinate,
+            runtime);
+        var normalParsed = coordinateParser.TryParse(
+            normal.Text,
+            runtime.WorldWidth,
+            runtime.WorldHeight);
+
         var profile = await templateOcr.CreateProfileAsync(
             bitmap,
             coordinateBox,
             request,
-            settings.CurrentValue,
+            runtime,
             ct);
+
+        var coordinateSettings = coordinateOcrSettings.Get();
+        var attempt = templateOcr.TryRead(bitmap, coordinateSettings);
+
+        profile = templateOcr.RecordSuccessfulSetupProof(
+            bitmap,
+            new CoordinateTemplateSetupProof
+            {
+                CapturedAtUtc = DateTime.UtcNow,
+                Source = "coordinate-template-profile-setup",
+                VisibleCoordinate = request.VisibleCoordinate,
+                NormalOcrRawText = normal.Text,
+                NormalOcrParsedCoordinate = FormatCoordinate(normalParsed),
+                FastTemplateRawText = attempt.RawText,
+                FastTemplateParsedCoordinate = FormatCoordinate(attempt.Parsed),
+                FastTemplateSuccess = attempt.Success,
+                FastTemplateReason = attempt.Reason
+            },
+            coordinateSettings.CoordinateTemplateAutoProfileEnabled);
 
         return Results.Ok(profile);
     }

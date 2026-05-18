@@ -62,7 +62,25 @@ public sealed record PriceTradeTypeTemplateProfileStatus(
     bool AutoProfileEnabled,
     DateTime? CreatedAtUtc,
     DateTime? UpdatedAtUtc,
+    PriceTradeTypeTemplateSetupProofStatus? LastSuccessfulBuySetupProof,
+    PriceTradeTypeTemplateSetupProofStatus? LastSuccessfulSellSetupProof,
     IReadOnlyList<PriceTradeTypeTemplateAttemptLog> LastAttempts);
+
+public sealed record PriceTradeTypeTemplateSetupProofStatus(
+    DateTime CapturedAtUtc,
+    string Region,
+    string? ImageDataUrl,
+    string? ImagePath,
+    bool TextVisible,
+    double Contrast,
+    double EdgePixelsPercent,
+    string? NormalOcrRawText,
+    string? NormalOcrDetectedTradeType,
+    string? FastTemplateDetectedTradeType,
+    bool FastTemplateSuccess,
+    double? FastTemplateScore,
+    string? FastTemplateReason,
+    bool LearnedTemplate);
 
 public sealed class PriceTradeTypeTemplateProfile
 {
@@ -75,8 +93,27 @@ public sealed class PriceTradeTypeTemplateProfile
     public int FailedReadCount { get; set; }
     public bool NeedsRecalibration { get; set; }
     public string? LastMessage { get; set; }
+    public PriceTradeTypeTemplateSetupProof? LastSuccessfulBuySetupProof { get; set; }
+    public PriceTradeTypeTemplateSetupProof? LastSuccessfulSellSetupProof { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+}
+
+public sealed class PriceTradeTypeTemplateSetupProof
+{
+    public DateTime CapturedAtUtc { get; set; } = DateTime.UtcNow;
+    public string Region { get; set; } = "";
+    public string? ImagePath { get; set; }
+    public bool TextVisible { get; set; }
+    public double Contrast { get; set; }
+    public double EdgePixelsPercent { get; set; }
+    public string? NormalOcrRawText { get; set; }
+    public string? NormalOcrDetectedTradeType { get; set; }
+    public string? FastTemplateDetectedTradeType { get; set; }
+    public bool FastTemplateSuccess { get; set; }
+    public double? FastTemplateScore { get; set; }
+    public string? FastTemplateReason { get; set; }
+    public bool LearnedTemplate { get; set; }
 }
 
 public sealed class PriceTradeTypeBoxTemplate

@@ -31,6 +31,11 @@ public interface ICoordinateTemplateOcrService
         Bitmap bitmap,
         CoordinateOcrSettingsResponse settings);
 
+    CoordinateTemplateProfileStatus RecordSuccessfulSetupProof(
+        Bitmap bitmap,
+        CoordinateTemplateSetupProof proof,
+        bool autoProfileEnabled = false);
+
     void ResetFailures();
 
     void DeleteProfile();
@@ -466,6 +471,22 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
                 normalized,
                 coordinateOcrSettings.CoordinateTemplateAutoProfileValidationMaxDigitScore);
 
+            SetSuccessfulSetupProofLocked(
+                profile,
+                bitmap,
+                new CoordinateTemplateSetupProof
+                {
+                    CapturedAtUtc = now,
+                    Source = "auto-profile-normal-ocr",
+                    VisibleCoordinate = normalized,
+                    NormalOcrRawText = parsedCoordinate.RawText,
+                    NormalOcrParsedCoordinate = normalized,
+                    FastTemplateRawText = profile.LastOcrComparisonText,
+                    FastTemplateParsedCoordinate = profile.LastOcrComparisonMatched ? normalized : null,
+                    FastTemplateSuccess = profile.LastOcrComparisonMatched,
+                    FastTemplateReason = profile.LastOcrComparisonMessage
+                });
+
             profile.UpdatedAtUtc = now;
 
             SaveProfileLocked(profile);
@@ -556,6 +577,25 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             Parsed: null,
             Reason: status.LastFailureReason ?? "fast template OCR failed",
             NeedsRecalibration: status.NeedsRecalibration);
+    }
+
+    public CoordinateTemplateProfileStatus RecordSuccessfulSetupProof(
+        Bitmap bitmap,
+        CoordinateTemplateSetupProof proof,
+        bool autoProfileEnabled = false)
+    {
+        lock (_gate)
+        {
+            var profile = LoadProfileLocked();
+            if (profile is null)
+                return BuildProfileStatusLocked(autoProfileEnabled);
+
+            SetSuccessfulSetupProofLocked(profile, bitmap, proof);
+            profile.UpdatedAtUtc = DateTime.UtcNow;
+            SaveProfileLocked(profile);
+
+            return BuildProfileStatusLocked(profile, autoProfileEnabled);
+        }
     }
 
     public void DeleteProfile()
@@ -655,9 +695,94 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             LastDigitOcrRejectedDigits: profile?.LastDigitOcrRejectedDigits.ToArray() ?? Array.Empty<string>(),
             LastDigitOcrValidationMessage: profile?.LastDigitOcrValidationMessage,
             LastCalibrationMessage: profile?.LastCalibrationMessage,
+            LastSuccessfulSetupProof: BuildSetupProofStatus(profile?.LastSuccessfulSetupProof),
+            DigitTemplatePreviews: BuildDigitTemplatePreviews(profile),
             CreatedAtUtc: profile?.CreatedAtUtc,
             UpdatedAtUtc: profile?.UpdatedAtUtc,
             Runtime: BuildStatusLocked());
+    }
+
+    private void SetSuccessfulSetupProofLocked(
+        CoordinateTemplateProfile profile,
+        Bitmap bitmap,
+        CoordinateTemplateSetupProof proof)
+    {
+        proof.ImagePath = SaveProfileBitmapImageLocked(profile, bitmap, "last-coordinate-proof.png");
+        profile.LastSuccessfulSetupProof = proof;
+    }
+
+    private string SaveProfileBitmapImageLocked(
+        CoordinateTemplateProfile profile,
+        Bitmap bitmap,
+        string fileName)
+    {
+        var root = GetProfileImageRoot(profile);
+        Directory.CreateDirectory(root);
+
+        var absolutePath = Path.Combine(root, fileName);
+        bitmap.Save(absolutePath, ImageFormat.Png);
+
+        return ToProfileRelativePath(absolutePath);
+    }
+
+    private CoordinateTemplateSetupProofStatus? BuildSetupProofStatus(CoordinateTemplateSetupProof? proof)
+    {
+        if (proof is null)
+            return null;
+
+        return new CoordinateTemplateSetupProofStatus(
+            CapturedAtUtc: proof.CapturedAtUtc,
+            Source: proof.Source,
+            ImageDataUrl: BuildProfileImageDataUrl(proof.ImagePath),
+            ImagePath: proof.ImagePath,
+            VisibleCoordinate: proof.VisibleCoordinate,
+            NormalOcrRawText: proof.NormalOcrRawText,
+            NormalOcrParsedCoordinate: proof.NormalOcrParsedCoordinate,
+            FastTemplateRawText: proof.FastTemplateRawText,
+            FastTemplateParsedCoordinate: proof.FastTemplateParsedCoordinate,
+            FastTemplateSuccess: proof.FastTemplateSuccess,
+            FastTemplateReason: proof.FastTemplateReason);
+    }
+
+    private IReadOnlyList<CoordinateDigitTemplatePreview> BuildDigitTemplatePreviews(
+        CoordinateTemplateProfile? profile)
+    {
+        return "0123456789"
+            .Select(digit =>
+            {
+                var text = digit.ToString();
+                var template = profile?.DigitTemplates.TryGetValue(text, out var templates) == true
+                    ? templates
+                        .OrderByDescending(item => item.QualityScore)
+                        .FirstOrDefault()
+                    : null;
+
+                return new CoordinateDigitTemplatePreview(
+                    Digit: text,
+                    Ready: template is not null,
+                    ImageDataUrl: BuildProfileImageDataUrl(template?.ImagePath),
+                    ImagePath: template?.ImagePath,
+                    Width: template?.Width ?? 0,
+                    Height: template?.Height ?? 0,
+                    Side: template?.Side,
+                    DistanceFromSeparator: template?.DistanceFromSeparator ?? 0,
+                    TouchesCropEdge: template?.TouchesCropEdge ?? false,
+                    QualityScore: template?.QualityScore ?? 0);
+            })
+            .ToArray();
+    }
+
+    private string? BuildProfileImageDataUrl(string? imagePath)
+    {
+        if (string.IsNullOrWhiteSpace(imagePath))
+            return null;
+
+        var absolutePath = GetAbsoluteTemplateImagePath(imagePath);
+
+        if (!File.Exists(absolutePath))
+            return null;
+
+        return $"data:image/png;base64,{Convert.ToBase64String(File.ReadAllBytes(absolutePath))}";
     }
 
     private CoordinateTemplateProfile? LoadProfile()

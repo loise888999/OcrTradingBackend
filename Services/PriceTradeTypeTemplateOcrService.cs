@@ -35,6 +35,10 @@ public interface IPriceTradeTypeTemplateOcrService
     void ResetFailures();
     void DeleteProfile();
     void RecordAttempt(PriceTradeTypeTemplateAttemptLog entry);
+    PriceTradeTypeTemplateProfileStatus RecordSuccessfulSetupProof(
+        Bitmap bitmap,
+        PriceTradeTypeTemplateSetupProof proof,
+        bool autoProfileEnabled = false);
 }
 
 public sealed class PriceTradeTypeTemplateSettingsService : IPriceTradeTypeTemplateSettingsService
@@ -328,6 +332,20 @@ public sealed class PriceTradeTypeTemplateOcrService : IPriceTradeTypeTemplateOc
             profile.LastMessage = string.IsNullOrWhiteSpace(rawText)
                 ? $"{normalizedTradeType} template learned from normal OCR."
                 : $"{normalizedTradeType} template learned from normal OCR text '{rawText.Trim()}'.";
+            SetSuccessfulSetupProofLocked(
+                profile,
+                bitmap,
+                new PriceTradeTypeTemplateSetupProof
+                {
+                    CapturedAtUtc = DateTime.UtcNow,
+                    Region = normalizedTradeType,
+                    NormalOcrRawText = rawText,
+                    NormalOcrDetectedTradeType = normalizedTradeType,
+                    FastTemplateDetectedTradeType = "Unknown",
+                    FastTemplateSuccess = false,
+                    FastTemplateReason = "Template learned from normal OCR.",
+                    LearnedTemplate = true
+                });
             profile.UpdatedAtUtc = DateTime.UtcNow;
             SaveProfileLocked(profile);
 
@@ -386,6 +404,10 @@ public sealed class PriceTradeTypeTemplateOcrService : IPriceTradeTypeTemplateOc
             if (File.Exists(_profilePath))
                 File.Delete(_profilePath);
 
+            var imageRoot = GetProfileImageRootBase();
+            if (Directory.Exists(imageRoot))
+                Directory.Delete(imageRoot, recursive: true);
+
             _attempts.Clear();
             _cachedProfile = null;
             _cachedProfileWriteUtc = null;
@@ -401,6 +423,22 @@ public sealed class PriceTradeTypeTemplateOcrService : IPriceTradeTypeTemplateOc
 
             if (_attempts.Count > MaxAttemptLogEntries)
                 _attempts.RemoveRange(MaxAttemptLogEntries, _attempts.Count - MaxAttemptLogEntries);
+        }
+    }
+
+    public PriceTradeTypeTemplateProfileStatus RecordSuccessfulSetupProof(
+        Bitmap bitmap,
+        PriceTradeTypeTemplateSetupProof proof,
+        bool autoProfileEnabled = false)
+    {
+        lock (_gate)
+        {
+            var profile = LoadProfileLocked() ?? CreateProfile();
+            SetSuccessfulSetupProofLocked(profile, bitmap, proof);
+            profile.UpdatedAtUtc = DateTime.UtcNow;
+            SaveProfileLocked(profile);
+
+            return BuildStatusLocked(autoProfileEnabled);
         }
     }
 
@@ -429,7 +467,80 @@ public sealed class PriceTradeTypeTemplateOcrService : IPriceTradeTypeTemplateOc
             AutoProfileEnabled: autoProfileEnabled,
             CreatedAtUtc: profile?.CreatedAtUtc,
             UpdatedAtUtc: profile?.UpdatedAtUtc,
+            LastSuccessfulBuySetupProof: BuildSetupProofStatus(profile?.LastSuccessfulBuySetupProof),
+            LastSuccessfulSellSetupProof: BuildSetupProofStatus(profile?.LastSuccessfulSellSetupProof),
             LastAttempts: _attempts.ToArray());
+    }
+
+    private void SetSuccessfulSetupProofLocked(
+        PriceTradeTypeTemplateProfile profile,
+        Bitmap bitmap,
+        PriceTradeTypeTemplateSetupProof proof)
+    {
+        var region = NormalizeTradeType(proof.Region);
+        if (region is null)
+            return;
+
+        proof.Region = region;
+        proof.ImagePath = SaveProfileBitmapImageLocked(
+            profile,
+            bitmap,
+            $"last-{region.ToLowerInvariant()}-proof.png");
+
+        if (region == "Buy")
+            profile.LastSuccessfulBuySetupProof = proof;
+        else
+            profile.LastSuccessfulSellSetupProof = proof;
+    }
+
+    private string SaveProfileBitmapImageLocked(
+        PriceTradeTypeTemplateProfile profile,
+        Bitmap bitmap,
+        string fileName)
+    {
+        var root = GetProfileImageRoot(profile);
+        Directory.CreateDirectory(root);
+
+        var absolutePath = Path.Combine(root, fileName);
+        bitmap.Save(absolutePath, ImageFormat.Png);
+
+        return ToProfileRelativePath(absolutePath);
+    }
+
+    private PriceTradeTypeTemplateSetupProofStatus? BuildSetupProofStatus(
+        PriceTradeTypeTemplateSetupProof? proof)
+    {
+        if (proof is null)
+            return null;
+
+        return new PriceTradeTypeTemplateSetupProofStatus(
+            CapturedAtUtc: proof.CapturedAtUtc,
+            Region: proof.Region,
+            ImageDataUrl: BuildProfileImageDataUrl(proof.ImagePath),
+            ImagePath: proof.ImagePath,
+            TextVisible: proof.TextVisible,
+            Contrast: proof.Contrast,
+            EdgePixelsPercent: proof.EdgePixelsPercent,
+            NormalOcrRawText: proof.NormalOcrRawText,
+            NormalOcrDetectedTradeType: proof.NormalOcrDetectedTradeType,
+            FastTemplateDetectedTradeType: proof.FastTemplateDetectedTradeType,
+            FastTemplateSuccess: proof.FastTemplateSuccess,
+            FastTemplateScore: proof.FastTemplateScore,
+            FastTemplateReason: proof.FastTemplateReason,
+            LearnedTemplate: proof.LearnedTemplate);
+    }
+
+    private string? BuildProfileImageDataUrl(string? imagePath)
+    {
+        if (string.IsNullOrWhiteSpace(imagePath))
+            return null;
+
+        var absolutePath = GetAbsoluteProfileImagePath(imagePath);
+
+        if (!File.Exists(absolutePath))
+            return null;
+
+        return $"data:image/png;base64,{Convert.ToBase64String(File.ReadAllBytes(absolutePath))}";
     }
 
     private PriceTradeTypeTemplateProfile? LoadProfileLocked()
@@ -500,6 +611,57 @@ public sealed class PriceTradeTypeTemplateOcrService : IPriceTradeTypeTemplateOc
             CreatedAtUtc = DateTime.UtcNow,
             UpdatedAtUtc = DateTime.UtcNow
         };
+    }
+
+    private string GetProfileImageRootBase()
+    {
+        var folder = Path.GetDirectoryName(_profilePath);
+
+        if (string.IsNullOrWhiteSpace(folder))
+            folder = AppContext.BaseDirectory;
+
+        var profileFileName = Path.GetFileNameWithoutExtension(_profilePath);
+
+        if (string.IsNullOrWhiteSpace(profileFileName))
+            profileFileName = "price-trade-type-template-profile";
+
+        return Path.Combine(folder, $"{profileFileName}-images");
+    }
+
+    private string GetProfileImageRoot(PriceTradeTypeTemplateProfile profile)
+    {
+        var profileId = string.IsNullOrWhiteSpace(profile.ProfileId)
+            ? "default"
+            : profile.ProfileId;
+
+        return Path.Combine(GetProfileImageRootBase(), profileId);
+    }
+
+    private string ToProfileRelativePath(string absolutePath)
+    {
+        var folder = Path.GetDirectoryName(_profilePath);
+
+        if (string.IsNullOrWhiteSpace(folder))
+            folder = AppContext.BaseDirectory;
+
+        return Path.GetRelativePath(folder, absolutePath)
+            .Replace('\\', '/');
+    }
+
+    private string GetAbsoluteProfileImagePath(string imagePath)
+    {
+        if (Path.IsPathRooted(imagePath))
+            return Path.GetFullPath(imagePath);
+
+        var folder = Path.GetDirectoryName(_profilePath);
+
+        if (string.IsNullOrWhiteSpace(folder))
+            folder = AppContext.BaseDirectory;
+
+        return Path.GetFullPath(
+            Path.Combine(
+                folder,
+                imagePath.Replace('/', Path.DirectorySeparatorChar)));
     }
 
     private static List<PriceTradeTypeBoxTemplate> TemplatesFor(
