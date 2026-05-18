@@ -875,14 +875,15 @@ app.MapPost("/api/coordinate-template/profile", async (
             runtime.WorldWidth,
             runtime.WorldHeight);
 
+        var coordinateSettings = coordinateOcrSettings.Get();
         var profile = await templateOcr.CreateProfileAsync(
             bitmap,
             coordinateBox,
             request,
+            coordinateSettings,
             runtime,
             ct);
 
-        var coordinateSettings = coordinateOcrSettings.Get();
         var attempt = templateOcr.TryRead(bitmap, coordinateSettings);
 
         profile = templateOcr.RecordSuccessfulSetupProof(

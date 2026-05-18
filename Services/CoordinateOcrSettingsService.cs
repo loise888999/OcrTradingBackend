@@ -63,7 +63,8 @@ public sealed class CoordinateOcrSettingsService : ICoordinateOcrSettingsService
             CoordinateTemplateNormalizeDigitPaddingEnabled: saved?.CoordinateTemplateNormalizeDigitPaddingEnabled ?? defaults.CoordinateTemplateNormalizeDigitPaddingEnabled,
             CoordinateTemplateDigitHorizontalPaddingPixels: saved?.CoordinateTemplateDigitHorizontalPaddingPixels ?? defaults.CoordinateTemplateDigitHorizontalPaddingPixels,
             CoordinateTemplateDigitVerticalPaddingPixels: saved?.CoordinateTemplateDigitVerticalPaddingPixels ?? defaults.CoordinateTemplateDigitVerticalPaddingPixels,
-            CoordinateTemplateFastModeSpeedMultiplier: saved?.CoordinateTemplateFastModeSpeedMultiplier ?? defaults.CoordinateTemplateFastModeSpeedMultiplier));
+            CoordinateTemplateFastModeSpeedMultiplier: saved?.CoordinateTemplateFastModeSpeedMultiplier ?? defaults.CoordinateTemplateFastModeSpeedMultiplier,
+            CoordinateTemplateBrightnessThreshold: saved?.CoordinateTemplateBrightnessThreshold ?? defaults.CoordinateTemplateBrightnessThreshold));
     }
 
     public async Task<CoordinateOcrSettingsResponse> UpdateAsync(
@@ -90,7 +91,8 @@ public sealed class CoordinateOcrSettingsService : ICoordinateOcrSettingsService
             CoordinateTemplateNormalizeDigitPaddingEnabled: request.CoordinateTemplateNormalizeDigitPaddingEnabled ?? current.CoordinateTemplateNormalizeDigitPaddingEnabled,
             CoordinateTemplateDigitHorizontalPaddingPixels: request.CoordinateTemplateDigitHorizontalPaddingPixels ?? current.CoordinateTemplateDigitHorizontalPaddingPixels,
             CoordinateTemplateDigitVerticalPaddingPixels: request.CoordinateTemplateDigitVerticalPaddingPixels ?? current.CoordinateTemplateDigitVerticalPaddingPixels,
-            CoordinateTemplateFastModeSpeedMultiplier: request.CoordinateTemplateFastModeSpeedMultiplier ?? current.CoordinateTemplateFastModeSpeedMultiplier));
+            CoordinateTemplateFastModeSpeedMultiplier: request.CoordinateTemplateFastModeSpeedMultiplier ?? current.CoordinateTemplateFastModeSpeedMultiplier,
+            CoordinateTemplateBrightnessThreshold: request.CoordinateTemplateBrightnessThreshold ?? current.CoordinateTemplateBrightnessThreshold));
 
         var folder = Path.GetDirectoryName(_path);
         if (!string.IsNullOrWhiteSpace(folder))
@@ -113,16 +115,42 @@ public sealed class CoordinateOcrSettingsService : ICoordinateOcrSettingsService
                 if (!File.Exists(_path))
                     return null;
 
+                var json = File.ReadAllText(_path);
                 var saved = JsonSerializer.Deserialize<CoordinateOcrSettingsResponse>(
-                    File.ReadAllText(_path),
+                    json,
                     JsonOptions);
 
-                return saved is null ? null : Normalize(saved);
+                if (saved is null)
+                    return null;
+
+                if (!HasProperty(json, nameof(CoordinateOcrSettingsResponse.CoordinateTemplateBrightnessThreshold)))
+                {
+                    saved = saved with
+                    {
+                        CoordinateTemplateBrightnessThreshold = _defaults.CurrentValue.CoordinateTemplateBrightnessThreshold
+                    };
+                }
+
+                return Normalize(saved);
             }
             catch
             {
                 return null;
             }
+        }
+    }
+
+    private static bool HasProperty(string json, string propertyName)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            return document.RootElement.EnumerateObject()
+                .Any(property => property.Name.Equals(propertyName, StringComparison.OrdinalIgnoreCase));
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -137,6 +165,7 @@ public sealed class CoordinateOcrSettingsService : ICoordinateOcrSettingsService
             CoordinateTemplateAutoProfileValidationMaxDigitScore = Math.Clamp(settings.CoordinateTemplateAutoProfileValidationMaxDigitScore, 0, 1),
             CoordinateTemplateMaxTemplatesPerDigit = Math.Clamp(settings.CoordinateTemplateMaxTemplatesPerDigit, 1, 100),
             CoordinateTemplateFastModeSpeedMultiplier = Math.Clamp(settings.CoordinateTemplateFastModeSpeedMultiplier, 1, 50),
+            CoordinateTemplateBrightnessThreshold = Math.Clamp(settings.CoordinateTemplateBrightnessThreshold, 0, 255),
             CoordinateTemplateDigitHorizontalPaddingPixels = Math.Clamp(settings.CoordinateTemplateDigitHorizontalPaddingPixels, 0, 3),
             CoordinateTemplateDigitVerticalPaddingPixels = Math.Clamp(settings.CoordinateTemplateDigitVerticalPaddingPixels, 0, 3)
         };

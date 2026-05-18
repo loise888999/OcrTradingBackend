@@ -108,6 +108,7 @@ public sealed class CoordinateTemplateOcrServiceTests
                 bitmap,
                 new OcrLayoutBox { Name = "Coordinate", X = 1, Y = 2, Width = 20, Height = 8 },
                 new CreateCoordinateTemplateProfileRequest("99999,9999"),
+                BuildSettings(countFailures: true, limit: 2),
                 new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 },
                 CancellationToken.None));
     }
@@ -123,6 +124,7 @@ public sealed class CoordinateTemplateOcrServiceTests
             bitmap,
             new OcrLayoutBox { Name = "Coordinate", X = 1, Y = 2, Width = bitmap.Width, Height = bitmap.Height },
             new CreateCoordinateTemplateProfileRequest("12345,6789"),
+            BuildSettings(countFailures: true, limit: 2),
             new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 },
             CancellationToken.None);
 

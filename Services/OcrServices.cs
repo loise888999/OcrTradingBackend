@@ -313,6 +313,12 @@ public sealed class OcrRuntimeSettingsValidator : IValidateOptions<OcrRuntimeSet
                 "OcrSettings:CoordinateTemplateMaxTemplatesPerDigit must be at least 1.");
         }
 
+        if (settings.CoordinateTemplateBrightnessThreshold is < 0 or > 255)
+        {
+            failures.Add(
+                "OcrSettings:CoordinateTemplateBrightnessThreshold must be between 0 and 255.");
+        }
+
         if (settings.CoordinateSpeedResetAfterMilliseconds < 1)
         {
             failures.Add(

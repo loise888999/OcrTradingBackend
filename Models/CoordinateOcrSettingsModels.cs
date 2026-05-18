@@ -34,7 +34,8 @@ public sealed record CoordinateOcrSettingsResponse(
     bool CoordinateTemplateNormalizeDigitPaddingEnabled = true,
     int CoordinateTemplateDigitHorizontalPaddingPixels = 1,
     int CoordinateTemplateDigitVerticalPaddingPixels = 1,
-    int CoordinateTemplateFastModeSpeedMultiplier = 8);
+    int CoordinateTemplateFastModeSpeedMultiplier = 8,
+    int CoordinateTemplateBrightnessThreshold = 180);
 
 public sealed record UpdateCoordinateOcrSettingsRequest(
     string? CoordinateReadMode,
@@ -54,7 +55,8 @@ public sealed record UpdateCoordinateOcrSettingsRequest(
     bool? CoordinateTemplateNormalizeDigitPaddingEnabled = null,
     int? CoordinateTemplateDigitHorizontalPaddingPixels = null,
     int? CoordinateTemplateDigitVerticalPaddingPixels = null,
-    int? CoordinateTemplateFastModeSpeedMultiplier = null);
+    int? CoordinateTemplateFastModeSpeedMultiplier = null,
+    int? CoordinateTemplateBrightnessThreshold = null);
 
 public sealed record CoordinateTemplateOcrStatus(
     int FailedReadCount,
@@ -68,6 +70,7 @@ public sealed record CreateCoordinateTemplateProfileRequest(
 public sealed record CoordinateTemplateProfileStatus(
     bool ProfileReady,
     string? ProfileId,
+    int BrightnessWhiteThreshold,
     IReadOnlyList<string> LearnedDigits,
     IReadOnlyList<string> MissingDigitTemplates,
     int TemplateCount,

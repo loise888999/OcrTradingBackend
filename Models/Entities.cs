@@ -94,6 +94,7 @@ public sealed class OcrRuntimeSettings
     public int CoordinateTemplateDigitHorizontalPaddingPixels { get; set; } = 1;
     public int CoordinateTemplateDigitVerticalPaddingPixels { get; set; } = 1;
     public bool CoordinateTemplateDebugPrintDigitBitmaps { get; set; }
+    public int CoordinateTemplateBrightnessThreshold { get; set; } = 180;
     // When CoordinateReadMode is FastTemplate, divide CoordinateIntervalMilliseconds by this value.
     // Example: 1500ms / 8 = about 188ms.
     public int CoordinateTemplateFastModeSpeedMultiplier { get; set; } = 8;
