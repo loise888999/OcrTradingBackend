@@ -180,6 +180,7 @@ builder.Services.AddSingleton<ITradeGoodCatalog, TradeGoodCatalog>();
 builder.Services.AddSingleton<ISpecialCraftBonusItemCatalog, SpecialCraftBonusItemCatalog>();
 builder.Services.AddSingleton<INpcNormalCraftingCatalog, NpcNormalCraftingCatalog>();
 builder.Services.AddSingleton<IFlorenceCraftsmanContributionCatalog, FlorenceCraftsmanContributionCatalog>();
+builder.Services.AddSingleton<INanbanMarketRateCatalog, NanbanMarketRateCatalog>();
 builder.Services.AddSingleton<IStrictTradeGoodMatcher, StrictTradeGoodMatcher>();
 builder.Services.AddSingleton<IPendingTradeGoodService, PendingTradeGoodService>();
 builder.Services.AddSingleton<IPriceParser, PriceParser>();
@@ -1424,6 +1425,18 @@ app.MapGet("/api/trading/florence-craftsman-contribution", (
     string? source,
     int take = 500) =>
     Results.Ok(catalog.Search(good, type, skill, confidence, source, take)));
+
+app.MapGet("/api/trading/nanban-market-rates", (
+    INanbanMarketRateCatalog catalog,
+    string? sourceMarket,
+    string? tradeGood,
+    string? category,
+    string? sellArea,
+    string? marketSignal,
+    int? minPrice,
+    int? maxPrice,
+    int take = 1000) =>
+    Results.Ok(catalog.Search(sourceMarket, tradeGood, category, sellArea, marketSignal, minPrice, maxPrice, take)));
 
 app.MapGet("/api/ocr-layout", async (
     IOcrLayoutService layoutService,
