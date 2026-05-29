@@ -199,6 +199,8 @@ builder.Services.AddSingleton<IOcrDebugSnapshotService, OcrDebugSnapshotService>
 builder.Services.AddSingleton<IOcrImagePreprocessingService, OcrImagePreprocessingService>();
 builder.Services.AddSingleton<IOcrTextPresenceAnalyzer, OcrTextPresenceAnalyzer>();
 builder.Services.AddSingleton<IOcrLayoutService, OcrLayoutService>();
+builder.Services.AddSingleton<IGameWindowChangeTracker, GameWindowChangeTracker>();
+builder.Services.AddSingleton<IGameWindowCityResetService, GameWindowCityResetService>();
 builder.Services.AddSingleton<ICoordinateOcrSettingsService, CoordinateOcrSettingsService>();
 builder.Services.AddSingleton<ICoordinateTemplateOcrService, CoordinateTemplateOcrService>();
 builder.Services.AddSingleton<IPriceTradeTypeTemplateSettingsService, PriceTradeTypeTemplateSettingsService>();

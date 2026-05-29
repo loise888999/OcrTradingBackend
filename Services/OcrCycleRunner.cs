@@ -39,6 +39,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
     private readonly IPriceLayoutRowCacheService _priceLayoutRowCache;
     private readonly IPriceLayoutRowFingerprintService _priceLayoutRowFingerprint;
     private readonly IPriceRecentHashCacheService _priceRecentHashCache;
+    private readonly IGameWindowCityResetService _gameWindowCityReset;
     private readonly OcrLastResultState _lastResults;
     private readonly ILogger<OcrCycleRunner> _logger;
     private readonly CoordinateFarJumpConfirmationGate _coordinateFarJumpGate;
@@ -69,6 +70,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         IPriceLayoutRowCacheService priceLayoutRowCache,
         IPriceLayoutRowFingerprintService priceLayoutRowFingerprint,
         IPriceRecentHashCacheService priceRecentHashCache,
+        IGameWindowCityResetService gameWindowCityReset,
         OcrLastResultState lastResults,
         CoordinateFarJumpConfirmationGate coordinateFarJumpGate,
         ICoordinateStreamService coordinateStream,
@@ -98,6 +100,7 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
         _priceLayoutRowCache = priceLayoutRowCache;
         _priceLayoutRowFingerprint = priceLayoutRowFingerprint;
         _priceRecentHashCache = priceRecentHashCache;
+        _gameWindowCityReset = gameWindowCityReset;
         _lastResults = lastResults;
         _coordinateFarJumpGate = coordinateFarJumpGate;
         _coordinateStream = coordinateStream;
@@ -119,6 +122,12 @@ public sealed class OcrCycleRunner : IOcrCycleRunner
                     "OCR layout is disabled. Layout-only OCR mode requires the calibration layout to be enabled.");
                 return;
             }
+
+            await _gameWindowCityReset.ResetLatestCityIfWindowChangedAsync(
+                _db,
+                _zoneService.FindWindow(),
+                _priceRecentHashCache,
+                ct);
 
             var coordinateZone = _layoutService.TryGetCoordinateZone(layout);
             var cityZone = _layoutService.TryGetCityZone(layout);

@@ -25,6 +25,11 @@
     <None Include="Data\*.csv"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
   </ItemGroup>
   <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>OcrTradingBackend.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+  <ItemGroup>
     <Compile Remove="OcrTradingBackend.Tests\**\*.cs" />
     <Content Remove="OcrTradingBackend.Tests\**\*" />
     <EmbeddedResource Remove="OcrTradingBackend.Tests\**\*" />
