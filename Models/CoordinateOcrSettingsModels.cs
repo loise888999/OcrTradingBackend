@@ -34,7 +34,8 @@ public sealed record CoordinateOcrSettingsResponse(
     bool CoordinateTemplateNormalizeDigitPaddingEnabled = true,
     int CoordinateTemplateDigitHorizontalPaddingPixels = 1,
     int CoordinateTemplateDigitVerticalPaddingPixels = 1,
-    int CoordinateTemplateFastModeSpeedMultiplier = 8);
+    int CoordinateTemplateFastModeSpeedMultiplier = 8,
+    int CoordinateTemplateBrightnessThreshold = 180);
 
 public sealed record UpdateCoordinateOcrSettingsRequest(
     string? CoordinateReadMode,
@@ -54,7 +55,8 @@ public sealed record UpdateCoordinateOcrSettingsRequest(
     bool? CoordinateTemplateNormalizeDigitPaddingEnabled = null,
     int? CoordinateTemplateDigitHorizontalPaddingPixels = null,
     int? CoordinateTemplateDigitVerticalPaddingPixels = null,
-    int? CoordinateTemplateFastModeSpeedMultiplier = null);
+    int? CoordinateTemplateFastModeSpeedMultiplier = null,
+    int? CoordinateTemplateBrightnessThreshold = null);
 
 public sealed record CoordinateTemplateOcrStatus(
     int FailedReadCount,
@@ -68,6 +70,7 @@ public sealed record CreateCoordinateTemplateProfileRequest(
 public sealed record CoordinateTemplateProfileStatus(
     bool ProfileReady,
     string? ProfileId,
+    int BrightnessWhiteThreshold,
     IReadOnlyList<string> LearnedDigits,
     IReadOnlyList<string> MissingDigitTemplates,
     int TemplateCount,
@@ -89,9 +92,36 @@ public sealed record CoordinateTemplateProfileStatus(
     IReadOnlyList<string> LastDigitOcrRejectedDigits,
     string? LastDigitOcrValidationMessage,
     string? LastCalibrationMessage,
+    CoordinateTemplateSetupProofStatus? LastSuccessfulSetupProof,
+    IReadOnlyList<CoordinateDigitTemplatePreview> DigitTemplatePreviews,
     DateTime? CreatedAtUtc,
     DateTime? UpdatedAtUtc,
     CoordinateTemplateOcrStatus Runtime);
+
+public sealed record CoordinateTemplateSetupProofStatus(
+    DateTime CapturedAtUtc,
+    string Source,
+    string? ImageDataUrl,
+    string? ImagePath,
+    string? VisibleCoordinate,
+    string? NormalOcrRawText,
+    string? NormalOcrParsedCoordinate,
+    string? FastTemplateRawText,
+    string? FastTemplateParsedCoordinate,
+    bool FastTemplateSuccess,
+    string? FastTemplateReason);
+
+public sealed record CoordinateDigitTemplatePreview(
+    string Digit,
+    bool Ready,
+    string? ImageDataUrl,
+    string? ImagePath,
+    int Width,
+    int Height,
+    string? Side,
+    int DistanceFromSeparator,
+    bool TouchesCropEdge,
+    double QualityScore);
 
 public sealed class CoordinateTemplateProfile
 {
@@ -119,8 +149,23 @@ public sealed class CoordinateTemplateProfile
     public List<string> LastDigitOcrRejectedDigits { get; set; } = new();
     public string? LastDigitOcrValidationMessage { get; set; }
     public string LastCalibrationMessage { get; set; } = "";
+    public CoordinateTemplateSetupProof? LastSuccessfulSetupProof { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+}
+
+public sealed class CoordinateTemplateSetupProof
+{
+    public DateTime CapturedAtUtc { get; set; } = DateTime.UtcNow;
+    public string Source { get; set; } = "";
+    public string? ImagePath { get; set; }
+    public string? VisibleCoordinate { get; set; }
+    public string? NormalOcrRawText { get; set; }
+    public string? NormalOcrParsedCoordinate { get; set; }
+    public string? FastTemplateRawText { get; set; }
+    public string? FastTemplateParsedCoordinate { get; set; }
+    public bool FastTemplateSuccess { get; set; }
+    public string? FastTemplateReason { get; set; }
 }
 
 public sealed class CoordinateDigitTemplate

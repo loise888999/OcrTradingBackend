@@ -82,6 +82,11 @@ public interface IPriceLayoutRowCacheService
         out ParsedPriceLine? parsed,
         out int distance);
 
+    bool TryGetLatest(
+        string rowKey,
+        string tradeType,
+        out ParsedPriceLine? parsed);
+
     void Remember(
         string rowKey,
         string tradeType,
@@ -136,6 +141,22 @@ public sealed class PriceLayoutRowCacheService : IPriceLayoutRowCacheService
 
         parsed = null;
         distance = bestDistance == int.MaxValue ? -1 : bestDistance;
+        return false;
+    }
+
+    public bool TryGetLatest(
+        string rowKey,
+        string tradeType,
+        out ParsedPriceLine? parsed)
+    {
+        if (_rows.TryGetValue(rowKey, out var cached) &&
+            string.Equals(cached.TradeType, tradeType, StringComparison.OrdinalIgnoreCase))
+        {
+            parsed = cached.Parsed;
+            return cached.Parsed is not null;
+        }
+
+        parsed = null;
         return false;
     }
 

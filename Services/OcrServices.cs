@@ -283,6 +283,12 @@ public sealed class OcrRuntimeSettingsValidator : IValidateOptions<OcrRuntimeSet
                 "OcrSettings:CoordinateReadMode must be one of: NormalOcr, FastTemplate.");
         }
 
+        if (!PriceTradeTypeReadModes.IsValid(settings.PriceTradeTypeReadMode))
+        {
+            failures.Add(
+                "OcrSettings:PriceTradeTypeReadMode must be one of: NormalOcr, FastTemplate.");
+        }
+
         if (settings.CoordinateTemplateRecalibrationFailureLimit < 1)
         {
             failures.Add(
@@ -305,6 +311,78 @@ public sealed class OcrRuntimeSettingsValidator : IValidateOptions<OcrRuntimeSet
         {
             failures.Add(
                 "OcrSettings:CoordinateTemplateMaxTemplatesPerDigit must be at least 1.");
+        }
+
+        if (settings.CoordinateTemplateBrightnessThreshold is < 0 or > 255)
+        {
+            failures.Add(
+                "OcrSettings:CoordinateTemplateBrightnessThreshold must be between 0 and 255.");
+        }
+
+        if (settings.CoordinateSpeedResetAfterMilliseconds < 1)
+        {
+            failures.Add(
+                "OcrSettings:CoordinateSpeedResetAfterMilliseconds must be at least 1.");
+        }
+
+        if (settings.CoordinateSpeedWindowMilliseconds < 1)
+        {
+            failures.Add(
+                "OcrSettings:CoordinateSpeedWindowMilliseconds must be at least 1.");
+        }
+
+        if (settings.CoordinateSpeedRecentAverageCount < 1)
+        {
+            failures.Add(
+                "OcrSettings:CoordinateSpeedRecentAverageCount must be at least 1.");
+        }
+
+        if (settings.PriceTradeTypeTemplateMaxTemplatesPerType < 1)
+        {
+            failures.Add(
+                "OcrSettings:PriceTradeTypeTemplateMaxTemplatesPerType must be at least 1.");
+        }
+
+        if (settings.PriceTradeTypeTemplateMaxScore is < 0 or > 1)
+        {
+            failures.Add(
+                "OcrSettings:PriceTradeTypeTemplateMaxScore must be between 0 and 1.");
+        }
+
+        if (settings.PriceTradeTypeTemplateRecalibrationFailureLimit < 1)
+        {
+            failures.Add(
+                "OcrSettings:PriceTradeTypeTemplateRecalibrationFailureLimit must be at least 1.");
+        }
+
+        if (settings.PriceTradeTypeTemplateProbeIntervalMs < 25)
+        {
+            failures.Add(
+                "OcrSettings:PriceTradeTypeTemplateProbeIntervalMs must be at least 25.");
+        }
+
+        if (settings.PriceLayoutRowsPerCycle < 1)
+        {
+            failures.Add(
+                "OcrSettings:PriceLayoutRowsPerCycle must be at least 1.");
+        }
+
+        if (settings.PriceLayoutRowWatcherIntervalMs < 25)
+        {
+            failures.Add(
+                "OcrSettings:PriceLayoutRowWatcherIntervalMs must be at least 25.");
+        }
+
+        if (settings.PriceLayoutRowWatcherRowsPerTick < 1)
+        {
+            failures.Add(
+                "OcrSettings:PriceLayoutRowWatcherRowsPerTick must be at least 1.");
+        }
+
+        if (settings.PriceLayoutRowWatcherOcrBudgetPerTick < 1)
+        {
+            failures.Add(
+                "OcrSettings:PriceLayoutRowWatcherOcrBudgetPerTick must be at least 1.");
         }
 
         if (!settings.UseEnglishModels || settings.FallbackToBundledModel)

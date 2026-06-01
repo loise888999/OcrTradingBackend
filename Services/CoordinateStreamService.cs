@@ -9,13 +9,21 @@ public sealed record CoordinateStreamEvent(
     int X,
     int Y,
     string RawText,
-    DateTime CapturedAtUtc);
+    DateTime CapturedAtUtc,
+    double SpeedWorldUnitsPerSecond = 0,
+    double SpeedKnots = 0,
+    double SpeedDistance = 0,
+    double SpeedDeltaMilliseconds = 0,
+    int SpeedSampleCount = 0,
+    bool SpeedReset = true,
+    string? SpeedResetReason = null);
 
 public interface ICoordinateStreamService
 {
     CoordinateStreamSubscription Subscribe();
     void Publish(ParsedCoordinate coordinate);
     void Publish(CoordinateCapture coordinate);
+    void Publish(CoordinateCapture coordinate, CoordinateSpeedSnapshot speed);
     void Unsubscribe(Guid subscriptionId);
 }
 
@@ -60,6 +68,23 @@ public sealed class CoordinateStreamService : ICoordinateStreamService
             Y: coordinate.Y,
             RawText: coordinate.RawText,
             CapturedAtUtc: coordinate.CapturedAtUtc));
+    }
+
+    public void Publish(CoordinateCapture coordinate, CoordinateSpeedSnapshot speed)
+    {
+        Publish(new CoordinateStreamEvent(
+            Id: coordinate.Id == 0 ? null : coordinate.Id,
+            X: coordinate.X,
+            Y: coordinate.Y,
+            RawText: coordinate.RawText,
+            CapturedAtUtc: coordinate.CapturedAtUtc,
+            SpeedWorldUnitsPerSecond: speed.SpeedWorldUnitsPerSecond,
+            SpeedKnots: speed.SpeedKnots,
+            SpeedDistance: speed.SpeedDistance,
+            SpeedDeltaMilliseconds: speed.SpeedDeltaMilliseconds,
+            SpeedSampleCount: speed.SpeedSampleCount,
+            SpeedReset: speed.SpeedReset,
+            SpeedResetReason: speed.SpeedResetReason));
     }
 
     public void Unsubscribe(Guid subscriptionId)

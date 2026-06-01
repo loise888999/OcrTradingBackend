@@ -75,15 +75,33 @@ static string? BuildOcrDebugImageUrl(string? debugImagePath)
     return $"/api/ocr-debug-image?path={Uri.EscapeDataString(debugImagePath.Replace('\\', '/'))}";
 }
 
+static string NormalizeTradeTypeLabel(string? value)
+{
+    if (string.Equals(value, "Buy", StringComparison.OrdinalIgnoreCase))
+        return "Buy";
+
+    if (string.Equals(value, "Sell", StringComparison.OrdinalIgnoreCase))
+        return "Sell";
+
+    return "Unknown";
+}
+
+static string DetectTradeTypeFromMenuText(string? rawText)
+    => TradeTypeMenuTextDetector.Detect(rawText);
+
 static string EncodePngDataUrl(Bitmap bitmap)
 {
     using var stream = new MemoryStream();
     bitmap.Save(stream, ImageFormat.Png);
     return $"data:image/png;base64,{Convert.ToBase64String(stream.ToArray())}";
 }
+
+static string? FormatCoordinate(ParsedCoordinate? coordinate)
+    => coordinate is null ? null : $"{coordinate.X},{coordinate.Y}";
+
 static async Task WriteSseCoordinateEventAsync(
     HttpResponse response,
-    CoordinateStreamEvent coordinate,
+    object coordinate,
     CancellationToken ct)
 {
     var json = JsonSerializer.Serialize(
@@ -153,6 +171,7 @@ builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlite(builder.Configurati
 builder.Services.AddSingleton<OcrControlState>();
 builder.Services.AddSingleton<OcrLastResultState>();
 builder.Services.AddSingleton<ICoordinateStreamService, CoordinateStreamService>();
+builder.Services.AddSingleton<ICoordinateSpeedService, CoordinateSpeedService>();
 builder.Services.AddSingleton<ICoordinateParser, CoordinateParser>();
 builder.Services.AddSingleton<CoordinateFarJumpConfirmationGate>();
 builder.Services.AddSingleton<ICityCatalog, CityCatalog>();
@@ -161,6 +180,7 @@ builder.Services.AddSingleton<ITradeGoodCatalog, TradeGoodCatalog>();
 builder.Services.AddSingleton<ISpecialCraftBonusItemCatalog, SpecialCraftBonusItemCatalog>();
 builder.Services.AddSingleton<INpcNormalCraftingCatalog, NpcNormalCraftingCatalog>();
 builder.Services.AddSingleton<IFlorenceCraftsmanContributionCatalog, FlorenceCraftsmanContributionCatalog>();
+builder.Services.AddSingleton<INanbanMarketRateCatalog, NanbanMarketRateCatalog>();
 builder.Services.AddSingleton<IStrictTradeGoodMatcher, StrictTradeGoodMatcher>();
 builder.Services.AddSingleton<IPendingTradeGoodService, PendingTradeGoodService>();
 builder.Services.AddSingleton<IPriceParser, PriceParser>();
@@ -179,8 +199,12 @@ builder.Services.AddSingleton<IOcrDebugSnapshotService, OcrDebugSnapshotService>
 builder.Services.AddSingleton<IOcrImagePreprocessingService, OcrImagePreprocessingService>();
 builder.Services.AddSingleton<IOcrTextPresenceAnalyzer, OcrTextPresenceAnalyzer>();
 builder.Services.AddSingleton<IOcrLayoutService, OcrLayoutService>();
+builder.Services.AddSingleton<IGameWindowChangeTracker, GameWindowChangeTracker>();
+builder.Services.AddSingleton<IGameWindowCityResetService, GameWindowCityResetService>();
 builder.Services.AddSingleton<ICoordinateOcrSettingsService, CoordinateOcrSettingsService>();
 builder.Services.AddSingleton<ICoordinateTemplateOcrService, CoordinateTemplateOcrService>();
+builder.Services.AddSingleton<IPriceTradeTypeTemplateSettingsService, PriceTradeTypeTemplateSettingsService>();
+builder.Services.AddSingleton<IPriceTradeTypeTemplateOcrService, PriceTradeTypeTemplateOcrService>();
 builder.Services.AddScoped<IOcrCalibrationService, OcrCalibrationService>();
 builder.Services.AddScoped<IWindowRelativeOcrZoneService, WindowRelativeOcrZoneService>();
 builder.Services.AddScoped<ITradingRecommendationService, TradingRecommendationService>();
@@ -313,6 +337,28 @@ app.MapPost("/api/settings/coordinate-ocr", async (
     return Results.Ok(updated);
 });
 
+app.MapGet("/api/settings/price-trade-type-template", (
+    IPriceTradeTypeTemplateSettingsService settings) =>
+    Results.Ok(settings.Get()));
+
+app.MapPost("/api/settings/price-trade-type-template", async (
+    UpdatePriceTradeTypeTemplateSettingsRequest request,
+    IPriceTradeTypeTemplateSettingsService settings,
+    CancellationToken ct) =>
+{
+    if (!string.IsNullOrWhiteSpace(request.PriceTradeTypeReadMode) &&
+        !PriceTradeTypeReadModes.IsValid(request.PriceTradeTypeReadMode))
+    {
+        return Results.BadRequest(new
+        {
+            message = "PriceTradeTypeReadMode must be NormalOcr or FastTemplate."
+        });
+    }
+
+    var updated = await settings.UpdateAsync(request, ct);
+    return Results.Ok(updated);
+});
+
 app.MapGet("/api/settings/coordinate-ocr/status", (
     ICoordinateOcrSettingsService coordinateOcrSettings,
     ICoordinateTemplateOcrService templateOcr) =>
@@ -324,6 +370,231 @@ app.MapGet("/api/settings/coordinate-ocr/status", (
         fastTemplate = templateOcr.GetStatus(),
         profile = templateOcr.GetProfileStatus(settings.CoordinateTemplateAutoProfileEnabled)
     });
+});
+
+app.MapGet("/api/price-trade-type-template/profile/status", (
+    IPriceTradeTypeTemplateSettingsService settings,
+    IPriceTradeTypeTemplateOcrService templateOcr) =>
+{
+    var current = settings.Get();
+    return Results.Ok(new
+    {
+        settings = current,
+        profile = templateOcr.GetProfileStatus(current.PriceTradeTypeTemplateAutoProfileEnabled)
+    });
+});
+
+app.MapPost("/api/price-trade-type-template/profile/auto/start", async (
+    IPriceTradeTypeTemplateSettingsService settings,
+    CancellationToken ct) =>
+{
+    var updated = await settings.UpdateAsync(
+        new UpdatePriceTradeTypeTemplateSettingsRequest(
+            PriceTradeTypeReadMode: null,
+            PriceTradeTypeTemplateFallbackToNormalOcr: true,
+            PriceTradeTypeTemplateAutoProfileEnabled: true,
+            PriceTradeTypeTemplateMaxTemplatesPerType: null,
+            PriceTradeTypeTemplateMaxScore: null,
+            PriceTradeTypeTemplateCountFailedReadsForRecalibration: null,
+            PriceTradeTypeTemplateRecalibrationFailureLimit: null,
+            PriceTradeTypeTemplateProbeIntervalMs: null),
+        ct);
+
+    return Results.Ok(new
+    {
+        message = "Buy/Sell template auto build started. Open Buy and Sell menus so normal OCR can learn both boxes.",
+        settings = updated
+    });
+});
+
+app.MapPost("/api/price-trade-type-template/profile/auto/stop", async (
+    IPriceTradeTypeTemplateSettingsService settings,
+    CancellationToken ct) =>
+{
+    var updated = await settings.UpdateAsync(
+        new UpdatePriceTradeTypeTemplateSettingsRequest(
+            PriceTradeTypeReadMode: null,
+            PriceTradeTypeTemplateFallbackToNormalOcr: null,
+            PriceTradeTypeTemplateAutoProfileEnabled: false,
+            PriceTradeTypeTemplateMaxTemplatesPerType: null,
+            PriceTradeTypeTemplateMaxScore: null,
+            PriceTradeTypeTemplateCountFailedReadsForRecalibration: null,
+            PriceTradeTypeTemplateRecalibrationFailureLimit: null,
+            PriceTradeTypeTemplateProbeIntervalMs: null),
+        ct);
+
+    return Results.Ok(new
+    {
+        message = "Buy/Sell template auto build stopped.",
+        settings = updated
+    });
+});
+
+app.MapDelete("/api/price-trade-type-template/profile", (
+    IPriceTradeTypeTemplateOcrService templateOcr) =>
+{
+    templateOcr.DeleteProfile();
+    return Results.Ok(new
+    {
+        deleted = true,
+        message = "Buy/Sell template profile deleted."
+    });
+});
+
+app.MapPost("/api/price-trade-type-template/test-box", async (
+    PriceTradeTypeTemplateTestBoxRequest request,
+    IOcrLayoutService layoutService,
+    IScreenCaptureService capture,
+    IOcrCachedTextService ocr,
+    IOcrImagePreprocessingService preprocessor,
+    IOcrTextPresenceAnalyzer textPresence,
+    IOcrDebugSnapshotService debug,
+    IPriceTradeTypeTemplateSettingsService templateSettingsService,
+    IPriceTradeTypeTemplateOcrService templateOcr,
+    IOptionsMonitor<OcrRuntimeSettings> runtimeSettings,
+    CancellationToken ct) =>
+{
+    var region = NormalizeTradeTypeLabel(request.Region);
+    if (region == "Unknown")
+    {
+        return Results.BadRequest(new
+        {
+            message = "Region must be Buy or Sell."
+        });
+    }
+
+    var layout = await layoutService.LoadAsync(ct);
+    var box = region == "Buy"
+        ? layout.Price.BuyValidationBox
+        : layout.Price.SellValidationBox;
+
+    if (box is not { IsValid: true })
+    {
+        return Results.BadRequest(new
+        {
+            message = $"{region} validation box is missing. Open OCR calibration and save the {region} box first."
+        });
+    }
+
+    var captureZone = layoutService.TryGetLayoutBoxZone(box, $"{region.ToLowerInvariant()}-validation-test");
+    if (captureZone is null)
+    {
+        return Results.BadRequest(new
+        {
+            message = "Could not resolve validation box to screen coordinates. Make sure the game window is selected/found first."
+        });
+    }
+
+    var settings = runtimeSettings.CurrentValue;
+    var templateSettings = templateSettingsService.Get();
+
+    using var bitmap = capture.Capture(captureZone);
+    var visibility = textPresence.Analyze(bitmap, settings);
+
+    Bitmap? preprocessed = null;
+
+    try
+    {
+        var imageToRead = bitmap;
+        var source = $"{region.ToLowerInvariant()}-validation-setup";
+
+        if (settings.PriceLayoutValidationPreprocess)
+        {
+            preprocessed = preprocessor.TryPreparePriceImage(bitmap, settings);
+
+            if (preprocessed is not null)
+            {
+                imageToRead = preprocessed;
+                source = $"{source}-preprocessed";
+            }
+        }
+
+        var normal = ocr.ReadText(
+            $"price-trade-type-template:{source}",
+            imageToRead,
+            OcrFieldKind.PriceMenu,
+            settings);
+
+        var normalDetected = DetectTradeTypeFromMenuText(normal.Text);
+        var fast = templateOcr.TryRead(imageToRead, region, templateSettings);
+
+        var before = templateOcr.GetProfileStatus(
+            templateSettings.PriceTradeTypeTemplateAutoProfileEnabled);
+
+        var learned = false;
+        var normalMatches = string.Equals(normalDetected, region, StringComparison.OrdinalIgnoreCase);
+        if (request.LearnIfNormalOcrMatches && normalMatches)
+        {
+            var after = templateOcr.AddProfileSampleFromNormalOcr(
+                imageToRead,
+                box,
+                region,
+                templateSettings,
+                normal.Text);
+
+            var beforeCount = region == "Buy"
+                ? before.BuyTemplateCount
+                : before.SellTemplateCount;
+            var afterCount = region == "Buy"
+                ? after.BuyTemplateCount
+                : after.SellTemplateCount;
+
+            learned = afterCount > beforeCount;
+            fast = templateOcr.TryRead(imageToRead, region, templateSettings);
+        }
+
+        if (normalMatches)
+        {
+            templateOcr.RecordSuccessfulSetupProof(
+                imageToRead,
+                new PriceTradeTypeTemplateSetupProof
+                {
+                    CapturedAtUtc = DateTime.UtcNow,
+                    Region = region,
+                    TextVisible = visibility.MayContainText,
+                    Contrast = visibility.Contrast,
+                    EdgePixelsPercent = visibility.EdgePixelsPercent,
+                    NormalOcrRawText = normal.Text,
+                    NormalOcrDetectedTradeType = normalDetected,
+                    FastTemplateDetectedTradeType = fast.TradeType ?? "Unknown",
+                    FastTemplateSuccess = fast.Success,
+                    FastTemplateScore = fast.Score,
+                    FastTemplateReason = fast.Reason,
+                    LearnedTemplate = learned
+                },
+                templateSettings.PriceTradeTypeTemplateAutoProfileEnabled);
+        }
+
+        var debugPath = await debug.SaveAsync(
+            "price-trade-type-template-setup",
+            source,
+            imageToRead,
+            normal.Text,
+            ct);
+
+        return Results.Ok(new
+        {
+            region,
+            box,
+            textVisible = visibility.MayContainText,
+            visibility.Contrast,
+            visibility.EdgePixelsPercent,
+            imageDataUrl = EncodePngDataUrl(imageToRead),
+            normalOcrRawText = normal.Text,
+            normalOcrDetectedTradeType = normalDetected,
+            fastTemplateDetectedTradeType = fast.TradeType ?? "Unknown",
+            fastTemplateSuccess = fast.Success,
+            fastTemplateScore = fast.Score,
+            fastTemplateReason = fast.Reason,
+            learnedTemplate = learned,
+            debugImagePath = debugPath,
+            debugImageUrl = BuildOcrDebugImageUrl(debugPath)
+        });
+    }
+    finally
+    {
+        preprocessed?.Dispose();
+    }
 });
 
 app.MapGet("/api/coordinate-template/profile/status", (
@@ -463,10 +734,13 @@ app.MapPost("/api/coordinate-template/profile/use-fast", async (
 });
 
 app.MapPost("/api/coordinate-template/test-current", async (
-    IOcrLayoutService layoutService,
-    IScreenCaptureService capture,
-    ICoordinateOcrSettingsService coordinateOcrSettings,
-    ICoordinateTemplateOcrService templateOcr,
+    [FromServices] IOcrLayoutService layoutService,
+    [FromServices] IScreenCaptureService capture,
+    [FromServices] IOcrCachedTextService ocr,
+    [FromServices] ICoordinateParser coordinateParser,
+    [FromServices] ICoordinateOcrSettingsService coordinateOcrSettings,
+    [FromServices] ICoordinateTemplateOcrService templateOcr,
+    [FromServices] IOptionsMonitor<OcrRuntimeSettings> runtimeSettings,
     CancellationToken ct) =>
 {
     var layout = await layoutService.LoadAsync(ct);
@@ -500,15 +774,47 @@ app.MapPost("/api/coordinate-template/test-current", async (
     }
 
     var settings = coordinateOcrSettings.Get();
+    var runtime = runtimeSettings.CurrentValue;
 
     using var bitmap = capture.Capture(zone);
+    var normal = ocr.ReadText(
+        "coordinate-template:test-current",
+        bitmap,
+        OcrFieldKind.Coordinate,
+        runtime);
+    var normalParsed = coordinateParser.TryParse(
+        normal.Text,
+        runtime.WorldWidth,
+        runtime.WorldHeight);
     var attempt = templateOcr.TryRead(bitmap, settings);
     var profile = templateOcr.GetProfileStatus(settings.CoordinateTemplateAutoProfileEnabled);
+
+    if (attempt.Success)
+    {
+        profile = templateOcr.RecordSuccessfulSetupProof(
+            bitmap,
+            new CoordinateTemplateSetupProof
+            {
+                CapturedAtUtc = DateTime.UtcNow,
+                Source = "coordinate-template-test-current",
+                NormalOcrRawText = normal.Text,
+                NormalOcrParsedCoordinate = FormatCoordinate(normalParsed),
+                FastTemplateRawText = attempt.RawText,
+                FastTemplateParsedCoordinate = FormatCoordinate(attempt.Parsed),
+                FastTemplateSuccess = attempt.Success,
+                FastTemplateReason = attempt.Reason
+            },
+            settings.CoordinateTemplateAutoProfileEnabled);
+    }
 
     return Results.Ok(new
     {
         success = attempt.Success,
-        rawText = attempt.RawText,
+        imageDataUrl = EncodePngDataUrl(bitmap),
+        normalOcrRawText = normal.Text,
+        normalOcrParsedCoordinate = FormatCoordinate(normalParsed),
+        fastTemplateRawText = attempt.RawText,
+        fastTemplateParsedCoordinate = FormatCoordinate(attempt.Parsed),
         parsed = attempt.Parsed is null
             ? null
             : new
@@ -517,6 +823,7 @@ app.MapPost("/api/coordinate-template/test-current", async (
                 y = attempt.Parsed.Y,
                 rawText = attempt.Parsed.RawText
             },
+        rawText = attempt.RawText,
         reason = attempt.Reason,
         needsRecalibration = attempt.NeedsRecalibration,
         settings,
@@ -528,10 +835,13 @@ app.MapPost("/api/coordinate-template/test-current", async (
 
 app.MapPost("/api/coordinate-template/profile", async (
     CreateCoordinateTemplateProfileRequest request,
-    IOcrLayoutService layoutService,
-    IScreenCaptureService capture,
-    ICoordinateTemplateOcrService templateOcr,
-    IOptionsMonitor<OcrRuntimeSettings> settings,
+    [FromServices] IOcrLayoutService layoutService,
+    [FromServices] IScreenCaptureService capture,
+    [FromServices] IOcrCachedTextService ocr,
+    [FromServices] ICoordinateParser coordinateParser,
+    [FromServices] ICoordinateOcrSettingsService coordinateOcrSettings,
+    [FromServices] ICoordinateTemplateOcrService templateOcr,
+    [FromServices] IOptionsMonitor<OcrRuntimeSettings> settings,
     CancellationToken ct) =>
 {
     try
@@ -557,12 +867,43 @@ app.MapPost("/api/coordinate-template/profile", async (
         }
 
         using var bitmap = capture.Capture(zone);
+        var runtime = settings.CurrentValue;
+        var normal = ocr.ReadText(
+            "coordinate-template:profile-setup",
+            bitmap,
+            OcrFieldKind.Coordinate,
+            runtime);
+        var normalParsed = coordinateParser.TryParse(
+            normal.Text,
+            runtime.WorldWidth,
+            runtime.WorldHeight);
+
+        var coordinateSettings = coordinateOcrSettings.Get();
         var profile = await templateOcr.CreateProfileAsync(
             bitmap,
             coordinateBox,
             request,
-            settings.CurrentValue,
+            coordinateSettings,
+            runtime,
             ct);
+
+        var attempt = templateOcr.TryRead(bitmap, coordinateSettings);
+
+        profile = templateOcr.RecordSuccessfulSetupProof(
+            bitmap,
+            new CoordinateTemplateSetupProof
+            {
+                CapturedAtUtc = DateTime.UtcNow,
+                Source = "coordinate-template-profile-setup",
+                VisibleCoordinate = request.VisibleCoordinate,
+                NormalOcrRawText = normal.Text,
+                NormalOcrParsedCoordinate = FormatCoordinate(normalParsed),
+                FastTemplateRawText = attempt.RawText,
+                FastTemplateParsedCoordinate = FormatCoordinate(attempt.Parsed),
+                FastTemplateSuccess = attempt.Success,
+                FastTemplateReason = attempt.Reason
+            },
+            coordinateSettings.CoordinateTemplateAutoProfileEnabled);
 
         return Results.Ok(profile);
     }
@@ -604,15 +945,21 @@ app.MapPost("/api/ocr/test/{zoneKind}", async (
     return Results.Ok(result);
 });
 
-app.MapGet("/api/coordinates/latest", async (AppDbContext db, int take = 20) =>
+app.MapGet("/api/coordinates/latest", async (
+    AppDbContext db,
+    IOptionsMonitor<OcrRuntimeSettings> settings,
+    ICoordinateSpeedService coordinateSpeed,
+    int take = 20) =>
 {
     var limit = Math.Clamp(take, 2, 100);
     var rows = await db.CoordinateCaptures.OrderByDescending(x => x.CapturedAtUtc).Take(limit).OrderBy(x => x.CapturedAtUtc).ToListAsync();
-    return Results.Ok(rows);
+    return Results.Ok(coordinateSpeed.BuildTimeline(rows, settings.CurrentValue));
 });
 app.MapGet("/api/coordinates/stream", async (
     HttpContext httpContext,
     ICoordinateStreamService coordinateStream,
+    ICoordinateSpeedService coordinateSpeed,
+    IOptionsMonitor<OcrRuntimeSettings> settings,
     AppDbContext db,
     int history = 20,
     CancellationToken ct = default) =>
@@ -637,16 +984,11 @@ app.MapGet("/api/coordinates/stream", async (
             .OrderBy(x => x.CapturedAtUtc)
             .ToListAsync(ct);
 
-        foreach (var coordinate in recent)
+        foreach (var coordinate in coordinateSpeed.BuildTimeline(recent, settings.CurrentValue))
         {
             await WriteSseCoordinateEventAsync(
                 httpContext.Response,
-                new CoordinateStreamEvent(
-                    coordinate.Id,
-                    coordinate.X,
-                    coordinate.Y,
-                    coordinate.RawText,
-                    coordinate.CapturedAtUtc),
+                coordinate,
                 ct);
         }
     }
@@ -684,6 +1026,43 @@ app.MapGet("/api/coordinates/stream", async (
     {
         coordinateStream.Unsubscribe(subscription.Id);
     }
+});
+
+app.MapGet("/api/navigation/speed", async (
+    AppDbContext db,
+    IOptionsMonitor<OcrRuntimeSettings> settings,
+    ICoordinateSpeedService coordinateSpeed,
+    CancellationToken ct) =>
+{
+    var latest = coordinateSpeed.GetLatestSnapshot();
+    if (latest.SpeedResetReason != "no-coordinate")
+        return Results.Ok(latest);
+
+    var recent = await db.CoordinateCaptures
+        .AsNoTracking()
+        .OrderByDescending(x => x.CapturedAtUtc)
+        .Take(100)
+        .OrderBy(x => x.CapturedAtUtc)
+        .ToListAsync(ct);
+
+    var timeline = coordinateSpeed.BuildTimeline(recent, settings.CurrentValue);
+    var last = timeline.LastOrDefault();
+    if (last is null)
+        return Results.Ok(latest);
+
+    return Results.Ok(new CoordinateSpeedSnapshot(
+        CoordinateId: last.Id == 0 ? null : last.Id,
+        X: last.X,
+        Y: last.Y,
+        RawText: last.RawText,
+        CapturedAtUtc: last.CapturedAtUtc,
+        SpeedWorldUnitsPerSecond: last.SpeedWorldUnitsPerSecond,
+        SpeedKnots: last.SpeedKnots,
+        SpeedDistance: last.SpeedDistance,
+        SpeedDeltaMilliseconds: last.SpeedDeltaMilliseconds,
+        SpeedSampleCount: last.SpeedSampleCount,
+        SpeedReset: last.SpeedReset,
+        SpeedResetReason: last.SpeedResetReason));
 });
 
 app.MapGet("/api/prices/history", async (AppDbContext db, string? city, string? item, string? tradeType, int take = 250) =>
@@ -1022,10 +1401,11 @@ app.MapGet("/api/trading/special-craft-bonus-items", (
     string? item,
     string? type,
     string? bonus,
+    int? minBonusValue,
     string? material,
     string? location,
     int take = 500) =>
-    Results.Ok(catalog.Search(item, type, bonus, material, location, take)));
+    Results.Ok(catalog.Search(item, type, bonus, minBonusValue, material, location, take)));
 
 app.MapGet("/api/trading/npc-normal-crafting", (
     INpcNormalCraftingCatalog catalog,
@@ -1047,6 +1427,18 @@ app.MapGet("/api/trading/florence-craftsman-contribution", (
     string? source,
     int take = 500) =>
     Results.Ok(catalog.Search(good, type, skill, confidence, source, take)));
+
+app.MapGet("/api/trading/nanban-market-rates", (
+    INanbanMarketRateCatalog catalog,
+    string? sourceMarket,
+    string? tradeGood,
+    string? category,
+    string? sellArea,
+    string? marketSignal,
+    int? minPrice,
+    int? maxPrice,
+    int take = 1000) =>
+    Results.Ok(catalog.Search(sourceMarket, tradeGood, category, sellArea, marketSignal, minPrice, maxPrice, take)));
 
 app.MapGet("/api/ocr-layout", async (
     IOcrLayoutService layoutService,

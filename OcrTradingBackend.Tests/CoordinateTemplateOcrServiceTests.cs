@@ -108,6 +108,7 @@ public sealed class CoordinateTemplateOcrServiceTests
                 bitmap,
                 new OcrLayoutBox { Name = "Coordinate", X = 1, Y = 2, Width = 20, Height = 8 },
                 new CreateCoordinateTemplateProfileRequest("99999,9999"),
+                BuildSettings(countFailures: true, limit: 2),
                 new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 },
                 CancellationToken.None));
     }
@@ -123,16 +124,17 @@ public sealed class CoordinateTemplateOcrServiceTests
             bitmap,
             new OcrLayoutBox { Name = "Coordinate", X = 1, Y = 2, Width = bitmap.Width, Height = bitmap.Height },
             new CreateCoordinateTemplateProfileRequest("12345,6789"),
+            BuildSettings(countFailures: true, limit: 2),
             new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 },
             CancellationToken.None);
 
-        Assert.IsTrue(status.ProfileReady);
+        Assert.IsFalse(status.ProfileReady);
         Assert.AreEqual(9, status.TemplateCount);
         CollectionAssert.AreEqual(new[] { "0" }, status.MissingDigitTemplates.ToArray());
         StringAssert.Contains(status.LastCalibrationMessage, "12345,6789");
 
         var reloaded = service.GetProfileStatus();
-        Assert.IsTrue(reloaded.ProfileReady);
+        Assert.IsFalse(reloaded.ProfileReady);
         Assert.AreEqual(9, reloaded.TemplateCount);
     }
 
@@ -155,7 +157,7 @@ public sealed class CoordinateTemplateOcrServiceTests
             settings,
             runtimeSettings);
 
-        Assert.IsTrue(firstStatus.ProfileReady);
+        Assert.IsFalse(firstStatus.ProfileReady);
         CollectionAssert.AreEqual(new[] { "0" }, firstStatus.MissingDigitTemplates.ToArray());
         Assert.AreEqual(1, firstStatus.SampleCount);
 
@@ -270,7 +272,7 @@ public sealed class CoordinateTemplateOcrServiceTests
     }
 
     [TestMethod]
-    public void PerDigitOcrValidationRejectsWrongUnknownDigitButStillLearnsMatchingDigits()
+    public void PerDigitOcrValidationFallsBackForUnknownDigitWhenKnownDigitsAnchorSample()
     {
         var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
         var runtimeSettings = new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 };
@@ -307,13 +309,13 @@ public sealed class CoordinateTemplateOcrServiceTests
 
         Assert.IsTrue(status.LastSampleAccepted);
         CollectionAssert.Contains(status.LastDigitOcrRejectedDigits.ToArray(), "7");
-        Assert.IsFalse(status.LearnedDigits.Contains("7"));
-        CollectionAssert.AreEquivalent(new[] { "3", "4", "7" }, status.MissingDigitTemplates.ToArray());
-        CollectionAssert.IsSubsetOf(new[] { "0", "6", "8", "9" }, status.LastLearnedDigits.ToArray());
+        Assert.IsTrue(status.LearnedDigits.Contains("7"));
+        CollectionAssert.AreEquivalent(new[] { "3", "4" }, status.MissingDigitTemplates.ToArray());
+        CollectionAssert.IsSubsetOf(new[] { "0", "6", "7", "8", "9" }, status.LastLearnedDigits.ToArray());
     }
 
     [TestMethod]
-    public void PerDigitOcrValidationRejectsSampleWhenKnownDigitMismatches()
+    public void PerDigitOcrValidationKeepsKnownDigitWhenTemplateValidationMatches()
     {
         var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
         var runtimeSettings = new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 };
@@ -348,10 +350,10 @@ public sealed class CoordinateTemplateOcrServiceTests
             runtimeSettings,
             _ => digitResponses.Dequeue());
 
-        Assert.IsFalse(status.LastSampleAccepted);
+        Assert.IsTrue(status.LastSampleAccepted);
         CollectionAssert.Contains(status.LastDigitOcrRejectedDigits.ToArray(), "1");
         CollectionAssert.Contains(status.LastRejectedDigits.ToArray(), "1");
-        CollectionAssert.AreEquivalent(new[] { "0", "3", "6", "7", "8", "9" }, status.MissingDigitTemplates.ToArray());
+        CollectionAssert.AreEquivalent(new[] { "3" }, status.MissingDigitTemplates.ToArray());
     }
 
     [TestMethod]
@@ -441,11 +443,11 @@ public sealed class CoordinateTemplateOcrServiceTests
             runtimeSettings);
 
         Assert.AreEqual(1, status.SampleCount);
-        StringAssert.Contains(status.LastAutoSampleMessage, "sample limit");
+        StringAssert.Contains(status.LastAutoSampleMessage, "Profile learned all 10 digits");
     }
 
     [TestMethod]
-    public void AutoProfileUsesSeparatorCenteredSegmentationWhenCommaIsFound()
+    public void FastTemplateAutoProfileUsesFixedAdvanceSegmentationWhenCommaIsFound()
     {
         var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
         var settings = BuildSettings(countFailures: true, limit: 2) with
@@ -462,11 +464,11 @@ public sealed class CoordinateTemplateOcrServiceTests
             settings,
             new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 });
 
-        Assert.AreEqual("SeparatorCentered", status.LastSegmentationMode);
+        Assert.AreEqual("FixedAdvanceSlots", status.LastSegmentationMode);
     }
 
     [TestMethod]
-    public void AutoProfileFallsBackWhenSeparatorIsNotFound()
+    public void FastTemplateAutoProfileUsesFixedAdvanceSegmentationWhenSeparatorIsNotFound()
     {
         var service = new CoordinateTemplateOcrService(CreateTempProfilePath());
         var settings = BuildSettings(countFailures: true, limit: 2) with
@@ -483,10 +485,7 @@ public sealed class CoordinateTemplateOcrServiceTests
             settings,
             new OcrRuntimeSettings { WorldWidth = 16384, WorldHeight = 8192 });
 
-        Assert.AreEqual("Fallback", status.LastSegmentationMode);
-        CollectionAssert.AreEquivalent(
-            new[] { "1", "2", "4", "5" },
-            status.LastLowQualityDigits.ToArray());
+        Assert.AreEqual("FixedAdvanceSlots", status.LastSegmentationMode);
     }
 
     [TestMethod]

@@ -158,16 +158,17 @@ public sealed class GameWindowLocatorService : IGameWindowLocator
     {
         var settings = _settings.CurrentValue;
 
-        if (settings.PreferMouseSelectedWindow)
-        {
-            var selected = GameWindowSelectionStore.Get();
-            var resolvedSelected = ResolveSelectedWindow(selected);
-            if (resolvedSelected is not null)
-                return new GameWindowLookupResult(resolvedSelected, "mouse-selected");
-        }
-
         var windows = GetVisibleWindows(settings.IncludeMinimized);
         var remembered = GameWindowSelectionStore.GetRemembered();
+        return SelectWindowFromOrderedCandidates(settings, remembered, windows, _logger);
+    }
+
+    internal static GameWindowLookupResult? SelectWindowFromOrderedCandidates(
+        GameWindowSettings settings,
+        RememberedGameWindowSelection? remembered,
+        IReadOnlyList<GameWindowInfo> windows,
+        ILogger? logger = null)
+    {
         var rememberedWindow = ResolveRememberedWindow(remembered, windows);
         if (rememberedWindow is not null)
             return new GameWindowLookupResult(rememberedWindow, "remembered-app");
@@ -175,14 +176,13 @@ public sealed class GameWindowLocatorService : IGameWindowLocator
         var processNames = BuildProcessNameList(settings);
         if (processNames.Count == 0 && string.IsNullOrWhiteSpace(settings.TitleContains))
         {
-            _logger.LogWarning("GameWindow settings are empty and no mouse-selected window is active.");
+            logger?.LogWarning("GameWindow settings are empty and no remembered app filter is active.");
             return null;
         }
 
         var candidates = windows
             .Where(window => MatchesProcessName(window, processNames))
             .Where(window => MatchesTitle(window, settings.TitleContains))
-            .OrderByDescending(window => window.Width * window.Height)
             .ToList();
 
         var configured = candidates.FirstOrDefault();
@@ -226,12 +226,9 @@ public sealed class GameWindowLocatorService : IGameWindowLocator
                 window.Title,
                 remembered.Title,
                 StringComparison.OrdinalIgnoreCase))
-            .OrderBy(window => Math.Abs((window.Width * window.Height) - (remembered.Width * remembered.Height)))
             .FirstOrDefault();
 
-        return exactTitle ?? sameProcess
-            .OrderByDescending(window => window.Width * window.Height)
-            .FirstOrDefault();
+        return exactTitle ?? sameProcess.FirstOrDefault();
     }
 
     private static List<string> BuildProcessNameList(GameWindowSettings settings)

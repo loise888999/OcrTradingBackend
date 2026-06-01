@@ -16,6 +16,7 @@ public interface ICoordinateTemplateOcrService
         Bitmap bitmap,
         OcrLayoutBox captureBox,
         CreateCoordinateTemplateProfileRequest request,
+        CoordinateOcrSettingsResponse coordinateOcrSettings,
         OcrRuntimeSettings settings,
         CancellationToken ct);
 
@@ -30,6 +31,11 @@ public interface ICoordinateTemplateOcrService
     CoordinateTemplateReadAttempt TryRead(
         Bitmap bitmap,
         CoordinateOcrSettingsResponse settings);
+
+    CoordinateTemplateProfileStatus RecordSuccessfulSetupProof(
+        Bitmap bitmap,
+        CoordinateTemplateSetupProof proof,
+        bool autoProfileEnabled = false);
 
     void ResetFailures();
 
@@ -100,6 +106,7 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
         Bitmap bitmap,
         OcrLayoutBox captureBox,
         CreateCoordinateTemplateProfileRequest request,
+        CoordinateOcrSettingsResponse coordinateOcrSettings,
         OcrRuntimeSettings settings,
         CancellationToken ct)
     {
@@ -114,10 +121,10 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
         var build = BuildTemplates(
             bitmap,
             normalized,
-            threshold: 180,
-            normalizePaddingEnabled: settings.CoordinateTemplateNormalizeDigitPaddingEnabled,
-            horizontalPadding: settings.CoordinateTemplateDigitHorizontalPaddingPixels,
-            verticalPadding: settings.CoordinateTemplateDigitVerticalPaddingPixels);
+            threshold: coordinateOcrSettings.CoordinateTemplateBrightnessThreshold,
+            normalizePaddingEnabled: coordinateOcrSettings.CoordinateTemplateNormalizeDigitPaddingEnabled,
+            horizontalPadding: coordinateOcrSettings.CoordinateTemplateDigitHorizontalPaddingPixels,
+            verticalPadding: coordinateOcrSettings.CoordinateTemplateDigitVerticalPaddingPixels);
         var templates = KeepSingleTemplatePerDigit(build.Templates);
         var allTemplates = templates.Values.SelectMany(x => x).ToList();
 
@@ -139,7 +146,7 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             CaptureBox = captureBox,
             DigitWidth = digitWidth,
             DigitHeight = digitHeight,
-            BrightnessWhiteThreshold = 180,
+            BrightnessWhiteThreshold = coordinateOcrSettings.CoordinateTemplateBrightnessThreshold,
             DigitTemplates = templates,
             MissingDigitTemplates = missing,
             SampleCount = existing?.SampleCount ?? 0,
@@ -162,7 +169,12 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             UpdatedAtUtc = now
         };
 
-        UpdateFullProfileOcrComparison(profile, bitmap, normalized, maxDigitScore: 0.45);
+        UpdateFullProfileOcrComparison(
+            profile,
+            bitmap,
+            normalized,
+            threshold: coordinateOcrSettings.CoordinateTemplateBrightnessThreshold,
+            maxDigitScore: 0.45);
 
         lock (_gate)
         {
@@ -242,7 +254,7 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
         var sampleBuild = BuildTemplates(
             bitmap,
             normalized,
-            threshold: 180,
+            threshold: coordinateOcrSettings.CoordinateTemplateBrightnessThreshold,
             normalizePaddingEnabled: coordinateOcrSettings.CoordinateTemplateNormalizeDigitPaddingEnabled,
             horizontalPadding: coordinateOcrSettings.CoordinateTemplateDigitHorizontalPaddingPixels,
             verticalPadding: coordinateOcrSettings.CoordinateTemplateDigitVerticalPaddingPixels);
@@ -258,7 +270,7 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             };
 
             profile.CaptureBox = captureBox;
-            profile.BrightnessWhiteThreshold = 180;
+            profile.BrightnessWhiteThreshold = coordinateOcrSettings.CoordinateTemplateBrightnessThreshold;
             profile.SampleCount++;
             profile.LastAutoSampleCoordinate = normalized;
             profile.LastSegmentationMode = sampleBuild.Mode;
@@ -411,13 +423,7 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
 
             foreach (var (digit, templates) in sampleTemplates.OrderBy(x => x.Key))
             {
-                if (profile.DigitTemplates.TryGetValue(digit, out var existingTemplates) &&
-                    existingTemplates.Count > 0)
-                {
-                    continue;
-                }
-
-                if (!profile.DigitTemplates.TryGetValue(digit, out existingTemplates))
+                if (!profile.DigitTemplates.TryGetValue(digit, out var existingTemplates))
                 {
                     existingTemplates = new List<CoordinateDigitTemplate>();
                     profile.DigitTemplates[digit] = existingTemplates;
@@ -430,9 +436,14 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
                 if (templateToLearn is null)
                     continue;
 
-                AddTemplateVariant(existingTemplates, templateToLearn, maxTemplates: 1);
+                var existingCount = existingTemplates.Count;
 
-                if (existingTemplates.Count > 0)
+                AddTemplateVariant(
+                    existingTemplates,
+                    templateToLearn,
+                    coordinateOcrSettings.CoordinateTemplateMaxTemplatesPerDigit);
+
+                if (existingCount == 0 && existingTemplates.Count > 0)
                     learnedDigits.Add(digit);
             }
 
@@ -465,7 +476,24 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
                 profile,
                 bitmap,
                 normalized,
+                coordinateOcrSettings.CoordinateTemplateBrightnessThreshold,
                 coordinateOcrSettings.CoordinateTemplateAutoProfileValidationMaxDigitScore);
+
+            SetSuccessfulSetupProofLocked(
+                profile,
+                bitmap,
+                new CoordinateTemplateSetupProof
+                {
+                    CapturedAtUtc = now,
+                    Source = "auto-profile-normal-ocr",
+                    VisibleCoordinate = normalized,
+                    NormalOcrRawText = parsedCoordinate.RawText,
+                    NormalOcrParsedCoordinate = normalized,
+                    FastTemplateRawText = profile.LastOcrComparisonText,
+                    FastTemplateParsedCoordinate = profile.LastOcrComparisonMatched ? normalized : null,
+                    FastTemplateSuccess = profile.LastOcrComparisonMatched,
+                    FastTemplateReason = profile.LastOcrComparisonMessage
+                });
 
             profile.UpdatedAtUtc = now;
 
@@ -559,6 +587,25 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             NeedsRecalibration: status.NeedsRecalibration);
     }
 
+    public CoordinateTemplateProfileStatus RecordSuccessfulSetupProof(
+        Bitmap bitmap,
+        CoordinateTemplateSetupProof proof,
+        bool autoProfileEnabled = false)
+    {
+        lock (_gate)
+        {
+            var profile = LoadProfileLocked();
+            if (profile is null)
+                return BuildProfileStatusLocked(autoProfileEnabled);
+
+            SetSuccessfulSetupProofLocked(profile, bitmap, proof);
+            profile.UpdatedAtUtc = DateTime.UtcNow;
+            SaveProfileLocked(profile);
+
+            return BuildProfileStatusLocked(profile, autoProfileEnabled);
+        }
+    }
+
     public void DeleteProfile()
     {
         lock (_gate)
@@ -635,6 +682,7 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
         return new CoordinateTemplateProfileStatus(
             ProfileReady: profile is not null && BuildMissingDigits(profile.DigitTemplates).Count == 0,
             ProfileId: profile?.ProfileId,
+            BrightnessWhiteThreshold: profile?.BrightnessWhiteThreshold ?? 180,
             LearnedDigits: learnedDigits,
             MissingDigitTemplates: profile?.MissingDigitTemplates.ToArray() ?? Array.Empty<string>(),
             TemplateCount: templateCount,
@@ -656,9 +704,94 @@ public sealed class CoordinateTemplateOcrService : ICoordinateTemplateOcrService
             LastDigitOcrRejectedDigits: profile?.LastDigitOcrRejectedDigits.ToArray() ?? Array.Empty<string>(),
             LastDigitOcrValidationMessage: profile?.LastDigitOcrValidationMessage,
             LastCalibrationMessage: profile?.LastCalibrationMessage,
+            LastSuccessfulSetupProof: BuildSetupProofStatus(profile?.LastSuccessfulSetupProof),
+            DigitTemplatePreviews: BuildDigitTemplatePreviews(profile),
             CreatedAtUtc: profile?.CreatedAtUtc,
             UpdatedAtUtc: profile?.UpdatedAtUtc,
             Runtime: BuildStatusLocked());
+    }
+
+    private void SetSuccessfulSetupProofLocked(
+        CoordinateTemplateProfile profile,
+        Bitmap bitmap,
+        CoordinateTemplateSetupProof proof)
+    {
+        proof.ImagePath = SaveProfileBitmapImageLocked(profile, bitmap, "last-coordinate-proof.png");
+        profile.LastSuccessfulSetupProof = proof;
+    }
+
+    private string SaveProfileBitmapImageLocked(
+        CoordinateTemplateProfile profile,
+        Bitmap bitmap,
+        string fileName)
+    {
+        var root = GetProfileImageRoot(profile);
+        Directory.CreateDirectory(root);
+
+        var absolutePath = Path.Combine(root, fileName);
+        bitmap.Save(absolutePath, ImageFormat.Png);
+
+        return ToProfileRelativePath(absolutePath);
+    }
+
+    private CoordinateTemplateSetupProofStatus? BuildSetupProofStatus(CoordinateTemplateSetupProof? proof)
+    {
+        if (proof is null)
+            return null;
+
+        return new CoordinateTemplateSetupProofStatus(
+            CapturedAtUtc: proof.CapturedAtUtc,
+            Source: proof.Source,
+            ImageDataUrl: BuildProfileImageDataUrl(proof.ImagePath),
+            ImagePath: proof.ImagePath,
+            VisibleCoordinate: proof.VisibleCoordinate,
+            NormalOcrRawText: proof.NormalOcrRawText,
+            NormalOcrParsedCoordinate: proof.NormalOcrParsedCoordinate,
+            FastTemplateRawText: proof.FastTemplateRawText,
+            FastTemplateParsedCoordinate: proof.FastTemplateParsedCoordinate,
+            FastTemplateSuccess: proof.FastTemplateSuccess,
+            FastTemplateReason: proof.FastTemplateReason);
+    }
+
+    private IReadOnlyList<CoordinateDigitTemplatePreview> BuildDigitTemplatePreviews(
+        CoordinateTemplateProfile? profile)
+    {
+        return "0123456789"
+            .Select(digit =>
+            {
+                var text = digit.ToString();
+                var template = profile?.DigitTemplates.TryGetValue(text, out var templates) == true
+                    ? templates
+                        .OrderByDescending(item => item.QualityScore)
+                        .FirstOrDefault()
+                    : null;
+
+                return new CoordinateDigitTemplatePreview(
+                    Digit: text,
+                    Ready: template is not null,
+                    ImageDataUrl: BuildProfileImageDataUrl(template?.ImagePath),
+                    ImagePath: template?.ImagePath,
+                    Width: template?.Width ?? 0,
+                    Height: template?.Height ?? 0,
+                    Side: template?.Side,
+                    DistanceFromSeparator: template?.DistanceFromSeparator ?? 0,
+                    TouchesCropEdge: template?.TouchesCropEdge ?? false,
+                    QualityScore: template?.QualityScore ?? 0);
+            })
+            .ToArray();
+    }
+
+    private string? BuildProfileImageDataUrl(string? imagePath)
+    {
+        if (string.IsNullOrWhiteSpace(imagePath))
+            return null;
+
+        var absolutePath = GetAbsoluteTemplateImagePath(imagePath);
+
+        if (!File.Exists(absolutePath))
+            return null;
+
+        return $"data:image/png;base64,{Convert.ToBase64String(File.ReadAllBytes(absolutePath))}";
     }
 
     private CoordinateTemplateProfile? LoadProfile()
@@ -2288,9 +2421,7 @@ ISet<string>? knownDigits = null)
             CoordinateDigitTemplate candidate,
             int maxTemplates)
     {
-        // This app learns exactly one template per digit: 0-9.
-        // No variants are added after a digit is already learned.
-        if (existingTemplates.Count == 0)
+        if (existingTemplates.Count < Math.Max(1, maxTemplates))
             existingTemplates.Add(candidate);
     }
 
@@ -2401,6 +2532,7 @@ ISet<string>? knownDigits = null)
         CoordinateTemplateProfile profile,
         Bitmap bitmap,
         string expectedCoordinate,
+        int threshold,
         double maxDigitScore)
     {
         if (profile.MissingDigitTemplates.Count > 0)
@@ -2417,7 +2549,7 @@ ISet<string>? knownDigits = null)
             var sampleTemplates = BuildTemplates(
                 bitmap,
                 expectedCoordinate,
-                profile.BrightnessWhiteThreshold).Templates;
+                threshold).Templates;
 
             var chars = new List<char>();
             var failed = new List<string>();
@@ -2540,12 +2672,13 @@ ISet<string>? knownDigits = null)
         CoordinateTemplateProfile profile,
         CoordinateOcrSettingsResponse settings)
     {
-        var bounds = TryFindInkBounds(bitmap, profile.BrightnessWhiteThreshold);
+        var threshold = settings.CoordinateTemplateBrightnessThreshold;
+        var bounds = TryFindInkBounds(bitmap, threshold);
         if (bounds is null)
             return null;
 
         var textBounds = bounds.Value;
-        var runs = FindColumnRuns(bitmap, profile.BrightnessWhiteThreshold);
+        var runs = FindColumnRuns(bitmap, threshold);
 
         if (runs.Count == 0)
             return null;
@@ -2564,7 +2697,7 @@ ISet<string>? knownDigits = null)
         var separatorRunIndex = FindRuntimeSeparatorRunIndex(
             bitmap,
             runs,
-            profile.BrightnessWhiteThreshold);
+            threshold);
 
         var advance = EstimateFixedAdvance(
             runCenters,
@@ -2614,7 +2747,7 @@ ISet<string>? knownDigits = null)
                     DebugPrintBitmap(
                         $"RUNTIME SEPARATOR SLOT index={i}",
                         separatorCrop,
-                        profile.BrightnessWhiteThreshold);
+                        threshold);
                 }
 
                 continue;
@@ -2627,7 +2760,7 @@ ISet<string>? knownDigits = null)
                 right,
                 top,
                 bottom,
-                profile.BrightnessWhiteThreshold,
+                threshold,
                 "runtime-fixed-advance",
                 i,
                 left <= 0 || right >= bitmap.Width - 1,

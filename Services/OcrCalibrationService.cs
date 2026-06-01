@@ -372,19 +372,10 @@ public sealed class OcrCalibrationService : IOcrCalibrationService
     }
 
     private static bool LooksLikeBuyMenu(string rawText)
-    {
-        var normalized = NormalizeWords(rawText);
-        return ContainsWord(normalized, "buy") ||
-               normalized.Contains("for sale", StringComparison.Ordinal);
-    }
+        => TradeTypeMenuTextDetector.LooksLikeBuy(rawText);
 
     private static bool LooksLikeSellMenu(string rawText)
-    {
-        var normalized = NormalizeWords(rawText);
-        return ContainsWord(normalized, "sell") ||
-               ContainsWord(normalized, "inventory") ||
-               ContainsWord(normalized, "nventory");
-    }
+        => TradeTypeMenuTextDetector.LooksLikeSell(rawText);
 
     private static string NormalizeWords(string? value)
     {

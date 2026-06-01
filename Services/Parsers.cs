@@ -249,23 +249,33 @@ public sealed class CityParser : ICityParser
 
         foreach (var raw in text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
-            var candidate = CleanCityCandidate(raw);
-            if (candidate.Count(char.IsLetter) < minLetters) continue;
+            foreach (var candidate in CleanCityCandidates(raw))
+            {
+                if (candidate.Count(char.IsLetter) < minLetters) continue;
 
-            var city = _catalog.FindByName(candidate);
-            if (city is not null) return city.Name;
+                var city = _catalog.FindByName(candidate);
+                if (city is not null) return city.Name;
+            }
         }
 
         return null;
     }
 
-    private static string CleanCityCandidate(string raw)
+    private static IReadOnlyList<string> CleanCityCandidates(string raw)
     {
-        if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
+        if (string.IsNullOrWhiteSpace(raw)) return [];
         var beforeParenthesis = raw.Split('(', 2)[0];
-        var candidate = Regex.Replace(beforeParenthesis, @"[^\p{L}\s\-']", " ").Trim();
-        candidate = Regex.Replace(candidate, @"\s+", " ");
-        return candidate;
+        var candidates = new[]
+            {
+                Regex.Replace(beforeParenthesis, @"[^\p{L}\s\-'\.]", " ").Trim(),
+                Regex.Replace(beforeParenthesis, @"[^\p{L}\s\-']", " ").Trim()
+            }
+            .Select(candidate => Regex.Replace(candidate, @"\s+", " "))
+            .Where(candidate => !string.IsNullOrWhiteSpace(candidate))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return candidates;
     }
 }
 

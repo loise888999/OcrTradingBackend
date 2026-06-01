@@ -94,6 +94,7 @@ public sealed class OcrRuntimeSettings
     public int CoordinateTemplateDigitHorizontalPaddingPixels { get; set; } = 1;
     public int CoordinateTemplateDigitVerticalPaddingPixels { get; set; } = 1;
     public bool CoordinateTemplateDebugPrintDigitBitmaps { get; set; }
+    public int CoordinateTemplateBrightnessThreshold { get; set; } = 180;
     // When CoordinateReadMode is FastTemplate, divide CoordinateIntervalMilliseconds by this value.
     // Example: 1500ms / 8 = about 188ms.
     public int CoordinateTemplateFastModeSpeedMultiplier { get; set; } = 8;
@@ -101,6 +102,10 @@ public sealed class OcrRuntimeSettings
     public int CoordinateIntervalMilliseconds { get; set; } = 2000;
     public int CoordinateRecentlyVisibleSeconds { get; set; } = 10;
     public bool CoordinateRequiresProbablyAtSea { get; set; } = true;
+    public bool CoordinateSpeedEnabled { get; set; } = true;
+    public int CoordinateSpeedResetAfterMilliseconds { get; set; } = 5000;
+    public int CoordinateSpeedWindowMilliseconds { get; set; } = 5000;
+    public int CoordinateSpeedRecentAverageCount { get; set; } = 3;
     public int ProbablyAtSeaAfterNoCityOrMenuSeconds { get; set; } = 30;
     public int MinCityNameLength { get; set; } = 5;
 
@@ -182,6 +187,15 @@ public sealed class OcrRuntimeSettings
     // Preprocesses Buy/Sell validation layout boxes before OCR.
     public bool PriceLayoutValidationPreprocess { get; set; } = true;
 
+    public string PriceTradeTypeReadMode { get; set; } = "NormalOcr";
+    public bool PriceTradeTypeTemplateFallbackToNormalOcr { get; set; } = true;
+    public bool PriceTradeTypeTemplateAutoProfileEnabled { get; set; } = true;
+    public int PriceTradeTypeTemplateMaxTemplatesPerType { get; set; } = 5;
+    public double PriceTradeTypeTemplateMaxScore { get; set; } = 0.18;
+    public bool PriceTradeTypeTemplateCountFailedReadsForRecalibration { get; set; } = true;
+    public int PriceTradeTypeTemplateRecalibrationFailureLimit { get; set; } = 5;
+    public int PriceTradeTypeTemplateProbeIntervalMs { get; set; } = 250;
+
     // Preprocesses row OCR crops before OCR.
     public bool PriceLayoutFieldPreprocess { get; set; } = true;
 
@@ -190,6 +204,20 @@ public sealed class OcrRuntimeSettings
 
     // Allowed difference for whole-row perceptual fingerprint cache hits.
     public int PriceLayoutRowFingerprintTolerance { get; set; } = 10;
+
+    // Reads only a small number of changed layout rows per price cycle.
+    public bool PriceLayoutRowFifoEnabled { get; set; } = true;
+
+    // Changed/uncached rows allowed to run OCR in one price cycle.
+    public int PriceLayoutRowsPerCycle { get; set; } = 1;
+
+    // Restarts row scanning from first visible row when Buy/Sell state changes.
+    public bool PriceLayoutRowFifoResetOnTradeStateChange { get; set; } = true;
+
+    public bool PriceLayoutRowWatcherEnabled { get; set; } = true;
+    public int PriceLayoutRowWatcherIntervalMs { get; set; } = 500;
+    public int PriceLayoutRowWatcherRowsPerTick { get; set; } = 2;
+    public int PriceLayoutRowWatcherOcrBudgetPerTick { get; set; } = 1;
 
     public bool OcrAllowedCharFilteringEnabled { get; set; } = true;
     public string CoordinateOcrAllowedChars { get; set; } = "0123456789XYxy,:=. \r\n";
@@ -226,6 +254,13 @@ public sealed class OcrControlState
     public DateTime? LastPriceAttemptUtc { get; set; }
     public DateTime? LastPriceStateChangeUtc { get; set; }
     public DateTime? PriceFastModeUntilUtc { get; set; }
+    public string CurrentTradeTypeState { get; set; } = "Unknown";
+    public DateTime? LastTradeTypeProbeUtc { get; set; }
+    public DateTime? LastTradeTypeStateChangeUtc { get; set; }
+    public string LastPriceReadTradeTypeState { get; set; } = "Unknown";
+    public int PriceLayoutRowFifoNextIndex { get; set; }
+    public bool PriceLayoutRowFifoResetPending { get; set; }
+    public DateTime? LastPriceRowWatcherUtc { get; set; }
     public DateTime? LastNotAtSeaSignalUtc { get; set; }
     public DateTime? SeaCandidateSinceUtc { get; set; }
     public bool ProbablyAtSea { get; set; }
